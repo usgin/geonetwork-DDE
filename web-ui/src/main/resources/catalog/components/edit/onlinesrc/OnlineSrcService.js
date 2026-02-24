@@ -41,6 +41,44 @@
    * The `gnOnlinesrc` service provides all tools required to manage
    * online resources like method to link or remove all kind of resources.
    */
+  module.constant("gnOnlinesrcConfig", {
+    searchObj: {
+      internal: true,
+      any: "",
+      hitsperpageValues: [50],
+      sortbyValues: [
+        {
+          sortBy: "relevance",
+          sortOrder: ""
+        },
+        {
+          sortBy: "referenceDate",
+          sortOrder: "desc"
+        },
+        {
+          sortBy: "changeDate",
+          sortOrder: "desc"
+        },
+        {
+          sortBy: "createDate",
+          sortOrder: "desc"
+        },
+        {
+          sortBy: "resourceTitleObject.default.sort",
+          sortOrder: ""
+        }
+      ],
+      defaultParams: {
+        any: "",
+        isTemplate: "n",
+        sortBy: "relevance",
+        sortOrder: "",
+        from: 1,
+        to: 50
+      }
+    }
+  });
+
   module.factory("gnOnlinesrc", [
     "gnBatchProcessing",
     "gnHttp",
@@ -55,6 +93,7 @@
     "Metadata",
     "gnUrlUtils",
     "gnGlobalSettings",
+    "gnOnlinesrcConfig",
     function (
       gnBatchProcessing,
       gnHttp,
@@ -68,7 +107,8 @@
       $filter,
       Metadata,
       gnUrlUtils,
-      gnGlobalSettings
+      gnGlobalSettings,
+      gnOnlinesrcConfig
     ) {
       var reload = false;
       var openCb = {};
@@ -130,15 +170,19 @@
 
           var addLayersInUrl = params.addLayersInUrl;
 
-          if (addLayersInUrl != "" && params.protocol.indexOf("OGC:WMS") >= 0) {
-            params.url = gnUrlUtils.remove(params.url, [addLayersInUrl], true);
-            params.url = gnUrlUtils.append(
-              params.url,
-              addLayersInUrl + "=" + names.join(",")
-            );
-          }
+          if (addLayersInUrl != undefined && addLayersInUrl != "") {
+            // Add layers in the resource URL
 
-          if (params.wmsResources.addLayerNamesMode == "resourcename") {
+            if (params.protocol.indexOf("OGC:WMS") >= 0) {
+              params.url = gnUrlUtils.remove(params.url, [addLayersInUrl], true);
+              params.url = gnUrlUtils.append(
+                params.url,
+                addLayersInUrl + "=" + names.join(",")
+              );
+            }
+          } else {
+            // Add layers in resource name
+
             angular.extend(params, {
               name: names.join(",")
             });
@@ -229,6 +273,12 @@
          */
         reload: reload,
 
+        getSearchConfig: function () {
+          var searchObj = angular.extend({}, gnOnlinesrcConfig.searchObj);
+          searchObj.params = angular.extend({}, searchObj.defaultParams);
+          return searchObj;
+        },
+
         /**
          * @ngdoc method
          * @methodOf gn_onlinesrc.service:gnOnlinesrc
@@ -261,32 +311,37 @@
             relatedTypes = defaultRelatedTypes;
           }
 
-          linksAndRelatedPromises.push(
-            $http.get(
-              apiPrefix +
-                "/related?type=" +
-                relatedTypes.join("&type=") +
-                (!isApproved ? "&approved=false" : ""),
-              {
-                headers: {
-                  Accept: "application/json"
+          if (relatedTypes.length > 0) {
+            linksAndRelatedPromises.push(
+              $http.get(
+                apiPrefix +
+                  "/related?type=" +
+                  relatedTypes.join("&type=") +
+                  (!isApproved ? "&approved=false" : ""),
+                {
+                  headers: {
+                    Accept: "application/json"
+                  }
                 }
-              }
-            )
-          );
-          linksAndRelatedPromises.push(
-            $http.get(
-              apiPrefix +
-                "/associated?type=" +
-                associatedTypes.join("&type=") +
-                (!isApproved ? "&approved=false" : ""),
-              {
-                headers: {
-                  Accept: "application/json"
+              )
+            );
+          }
+
+          if (associatedTypes.length > 0) {
+            linksAndRelatedPromises.push(
+              $http.get(
+                apiPrefix +
+                  "/associated?type=" +
+                  associatedTypes.join(",") +
+                  (!isApproved ? "&approved=false" : ""),
+                {
+                  headers: {
+                    Accept: "application/json"
+                  }
                 }
-              }
-            )
-          );
+              )
+            );
+          }
 
           var all = $q.all(linksAndRelatedPromises).then(function (result) {
             var relations = {};
@@ -357,6 +412,15 @@
          * @param {string} type of the directive that calls it.
          */
         onOpenPopup: function (type, additionalParams) {
+          if (
+            type === "parent" &&
+            additionalParams.fields &&
+            additionalParams.fields.associationType
+          ) {
+            // In ISO19115-3, parents are usually encoded using the association records
+            // Configured in config/associated-panel/default.json
+            type = "siblings";
+          }
           var fn = openCb[type];
           if (angular.isFunction(fn)) {
             openCb[type](additionalParams);
@@ -682,17 +746,21 @@
               this,
               setParams("thumbnail-remove", {
                 id: gnCurrentEdit.id,
-                thumbnail_url: thumb.id
+                thumbnail_url: thumb.id,
+                resourceIdx: thumb.idx,
+                resourceHash: thumb.hash
               })
             );
           }
-          // It is an uploaded tumbnail
+          // It is an uploaded thumbnail
           else {
             return runService(
               "removeThumbnail",
               {
                 type: thumb.title === "thumbnail" ? "small" : "large",
                 id: gnCurrentEdit.id,
+                resourceIdx: thumb.idx,
+                resourceHash: thumb.hash,
                 version: gnCurrentEdit.version
               },
               this
@@ -724,6 +792,8 @@
             this,
             setParams("onlinesrc-remove", {
               id: gnCurrentEdit.id,
+              resourceHash: onlinesrc.hash,
+              resourceIdx: onlinesrc.idx,
               url: url,
               name: $filter("gnLocalized")(onlinesrc.title)
             })
@@ -899,6 +969,37 @@
             }
           }
           return xml;
+        }
+      };
+    }
+  ]);
+
+  /**
+   * Service to query a DOI service and return the results.
+   */
+  module.service("gnDoiSearchService", [
+    "$http",
+    function ($http) {
+      function buildBaseUrl(url) {
+        var containsQuestionMark = url.indexOf("?") >= 0;
+        return url + (containsQuestionMark ? "&" : "?");
+      }
+      return {
+        search: function (url, prefix, query) {
+          var url = buildBaseUrl(url);
+          if (prefix) {
+            url += "prefix=" + prefix + "&";
+          }
+          return $http.get(
+            url + "query=" + query.replaceAll(encodeURIComponent("https://doi.org/"), "")
+          );
+        },
+        searchCrossref: function (url, prefix, query) {
+          return $http.get(
+            buildBaseUrl(url) +
+              "select=DOI%2Ctitle%2Ctype%2Cprefix%2Cabstract%2CURL&" +
+              query
+          );
         }
       };
     }

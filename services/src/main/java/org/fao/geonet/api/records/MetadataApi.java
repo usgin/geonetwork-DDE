@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2023 Food and Agriculture Organization of the
+ * Copyright (C) 2001-2024 Food and Agriculture Organization of the
  * United Nations (FAO-UN), United Nations World Food Programme (WFP)
  * and United Nations Environment Programme (UNEP)
  *
@@ -23,6 +23,7 @@
 
 package org.fao.geonet.api.records;
 
+import com.google.gson.*;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -51,8 +52,10 @@ import org.fao.geonet.kernel.GeonetworkDataDirectory;
 import org.fao.geonet.kernel.SchemaManager;
 import org.fao.geonet.kernel.datamanager.IMetadataUtils;
 import org.fao.geonet.kernel.mef.MEFLib;
+import org.fao.geonet.kernel.search.EsSearchManager;
 import org.fao.geonet.lib.Lib;
 import org.fao.geonet.repository.MetadataRepository;
+import org.fao.geonet.util.XslUtil;
 import org.fao.geonet.utils.Log;
 import org.fao.geonet.utils.Xml;
 import org.jdom.Attribute;
@@ -63,9 +66,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.nio.file.Files;
@@ -107,6 +112,9 @@ public class MetadataApi {
     GeonetworkDataDirectory dataDirectory;
 
     private ApplicationContext context;
+
+    @Autowired
+    EsSearchManager esSearchManager;
 
     public static RelatedResponse getRelatedResources(
         String language, ServiceContext context,
@@ -174,6 +182,10 @@ public class MetadataApi {
             required = true)
         @PathVariable
         String metadataUuid,
+        @Parameter(description = "Formatter to use on the record view page. " +
+            "If invalid or not specified, no redirect to the record view page is performed.")
+        @RequestParam(required = false)
+        String recordViewFormatter,
         HttpServletResponse response,
         HttpServletRequest request
     )
@@ -183,6 +195,14 @@ public class MetadataApi {
         } catch (SecurityException e) {
             Log.debug(API.LOG_MODULE_NAME, e.getMessage(), e);
             throw new NotAllowedException(ApiParams.API_RESPONSE_NOT_ALLOWED_CAN_VIEW);
+        }
+
+        // Check if a redirect to the record view page is required.
+        String redirect = getRedirect(recordViewFormatter, languageUtils.getIso3langCode(request.getLocales()), metadataUuid);
+
+        // If a redirect is required, perform it.
+        if (redirect != null) {
+            return redirect;
         }
 
         String acceptHeader = StringUtils.isBlank(request.getHeader(HttpHeaders.ACCEPT)) ? MediaType.APPLICATION_XML_VALUE : request.getHeader(HttpHeaders.ACCEPT);
@@ -366,7 +386,7 @@ public class MetadataApi {
         throws Exception {
         AbstractMetadata metadata;
         try {
-            metadata = ApiUtils.canViewRecord(metadataUuid, request);
+            metadata = ApiUtils.canViewRecord(metadataUuid, approved, request);
         } catch (ResourceNotFoundException e) {
             Log.debug(API.LOG_MODULE_NAME, e.getMessage(), e);
             throw e;
@@ -780,6 +800,47 @@ public class MetadataApi {
 
     }
 
+    @io.swagger.v3.oas.annotations.Operation(summary = "Check if metadata field value is duplicated in another metadata",
+        description = "Verifies if a metadata field value is in use. Fields supported: title (title), " +
+            "alternate title (altTitle) or resource identifier (identifier)")
+    @PostMapping(value = "/{metadataUuid:.+}/checkDuplicatedFieldValue",
+        produces = {MediaType.APPLICATION_JSON_VALUE})
+    @PreAuthorize("hasAuthority('Editor')")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Return true if the field value is duplicated in another metadata or false in other case."),
+        @ApiResponse(responseCode = "403", description = ApiParams.API_RESPONSE_NOT_ALLOWED_CAN_VIEW)
+    })
+    public ResponseEntity<Boolean> checkDuplicatedFieldValue(
+        @Parameter(description = API_PARAM_RECORD_UUID,
+            required = true)
+        @PathVariable
+        String metadataUuid,
+        @Parameter(description = "Metadata field information to check",
+            required = true)
+        @RequestBody DuplicatedValueDto duplicatedValueDto,
+        HttpServletRequest request
+    ) throws Exception {
+        try {
+            ApiUtils.canViewRecord(metadataUuid, request);
+        } catch (SecurityException e) {
+            Log.debug(API.LOG_MODULE_NAME, e.getMessage(), e);
+            throw new NotAllowedException(ApiParams.API_RESPONSE_NOT_ALLOWED_CAN_VIEW);
+        }
+
+        List<String> validFields = Arrays.asList("title", "altTitle", "identifier");
+
+        if (!validFields.contains(duplicatedValueDto.getField())) {
+            throw new IllegalArgumentException(String.format("A valid field name is required:", String.join(",", validFields)));
+        }
+
+        if (StringUtils.isEmpty(duplicatedValueDto.getValue())) {
+            throw new IllegalArgumentException("A non-empty value is required.");
+        }
+
+
+        boolean uuidsWithSameTitle = MetadataUtils.isMetadataFieldValueExistingInOtherRecords(duplicatedValueDto.getValue(), duplicatedValueDto.getField(), metadataUuid);
+        return ResponseEntity.ok(uuidsWithSameTitle);
+    }
 
     private boolean isIncludedAttributeTable(RelatedResponse.Fcat fcat) {
         return fcat != null
@@ -788,5 +849,71 @@ public class MetadataApi {
             && fcat.getItem().get(0).getFeatureType() != null
             && fcat.getItem().get(0).getFeatureType().getAttributeTable() != null
             && fcat.getItem().get(0).getFeatureType().getAttributeTable().getElement() != null;
+    }
+
+    private static class DuplicatedValueDto {
+        private String field;
+        private String value;
+
+        public String getField() {
+            return field;
+        }
+
+        public void setField(String field) {
+            this.field = field;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+    }
+
+    /**
+     * Constructs a redirect string based on the provided formatter label, language, and metadata UUID
+     *
+     * @param recordViewFormatter The label of the formatter to use on the record view page
+     * @param language            The language code to include in the URL
+     * @param metadataUuid        The unique identifier of the metadata record
+     * @return A redirect string if a matching formatter is found, or null if no formatter matches the provided label
+     */
+    private String getRedirect(@Nullable String recordViewFormatter, String language, String metadataUuid) {
+        if (StringUtils.isBlank(recordViewFormatter)) {
+            return null; // If no formatter is specified, return null
+        }
+
+        // Parse the UI configuration
+        JsonObject uiConfig = JsonParser.parseString(XslUtil.getUiConfiguration(null)).getAsJsonObject();
+
+        // Navigate through the JSON structure to retrieve the array of record view page formatters
+        JsonArray formatterArray = Optional.ofNullable(uiConfig)
+            .map(cfg -> cfg.getAsJsonObject("mods"))
+            .map(mods -> mods.getAsJsonObject("search"))
+            .map(search -> search.getAsJsonObject("formatter"))
+            .map(search -> search.getAsJsonArray("list"))
+            .orElse(null); // Return null if any of the objects in the chain are missing
+
+        // If the formatter array is null, return null as no formatters are available
+        if (formatterArray == null) return null;
+
+        // Iterate through each element in the formatter array
+        for (JsonElement element : formatterArray) {
+            JsonObject obj = element.getAsJsonObject(); // Convert the element to a JSON object
+
+            // Check if the "label" of the current formatter matches the provided formatter label
+            if (recordViewFormatter.equals(obj.get("label").getAsString())) {
+                // Retrieve the "url" of the matching formatter
+                String url = obj.get("url").getAsString();
+
+                // Return the constructed redirect
+                return "redirect:/srv/" + language + "/catalog.search#/metadata/" + metadataUuid + url;
+            }
+        }
+
+        // Return null if no matching formatter is found
+        return null;
     }
 }

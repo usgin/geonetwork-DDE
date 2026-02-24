@@ -5,7 +5,7 @@
         xmlns:gcx="http://standards.iso.org/iso/19115/-3/gcx/1.0"
         xmlns:gex="http://standards.iso.org/iso/19115/-3/gex/1.0"
         xmlns:lan="http://standards.iso.org/iso/19115/-3/lan/1.0"
-        xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.1"
+        xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0"
         xmlns:mas="http://standards.iso.org/iso/19115/-3/mas/1.0"
         xmlns:mcc="http://standards.iso.org/iso/19115/-3/mcc/1.0"
         xmlns:mco="http://standards.iso.org/iso/19115/-3/mco/1.0"
@@ -24,7 +24,6 @@
         xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0"
         xmlns:msr="http://standards.iso.org/iso/19115/-3/msr/2.0"
         xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
-        xmlns:dqm="http://standards.iso.org/iso/19157/-2/mdq/1.0"
         xmlns:mac="http://standards.iso.org/iso/19115/-3/mac/2.0"
         xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
         xmlns:gml="http://www.opengis.net/gml/3.2"
@@ -589,14 +588,6 @@
     <label>Resolution</label>
     <description iso="true">Degree of detail in the grid dataset</description>
     <condition>optional</condition>
-    <helper relAtt="uom">
-      <option value="1" title="second">seconds</option>
-      <option value="1" title="minute">minutes</option>
-      <option value="1" title="hour">hours</option>
-      <option value="1" title="day">days</option>
-      <option value="1" title="month">months</option>
-      <option value="1" title="year">years</option>
-    </helper>
   </element>
   <element name="msr:dimensionTitle" id="174.0">
     <label>Dimension title</label>
@@ -802,12 +793,8 @@
     <description></description>
   </element>
   <element name="mdq:abstract">
-    <label>Data quality summary</label>
-    <description>Text summary of any data quality tests or other information to assess quality</description>
-  </element>
-  <element name="dqm:abstract">
-    <label>Data quality summary</label>
-    <description>Text summary of any data quality tests or other information to assess quality</description>
+    <label>Abstract</label>
+    <description></description>
   </element>
   <element name="mdq:elementReport">
     <label>Element report</label>
@@ -992,7 +979,7 @@
     <_condition>optional</_condition>
   </element>
   <element name="mdb:metadataLinkage" id="25.0">
-    <label>URL to access this metadata record</label>
+    <label>Metadata linkage</label>
     <description iso="true">Online location where the metadata is available
     </description>
     <_condition>optional</_condition>
@@ -1007,29 +994,31 @@
   <element name="mdb:resourceLineage" id="37.0">
     <label>Resource lineage</label>
     <description iso="true">Information about the provenance, source(s), and/or
-      the production process(es) applied to the resource. For DDE metadata, describe the acquistion workflow here.
+      the production process(es) applied to the resource
     </description>
     <_condition>optional</_condition>
   </element>
   <element name="mdb:metadataScope" id="38.0">
     <label>Type of resource</label>
-    <description iso="true">Type of resource described by this metadata record
+    <description iso="true">Type of resource for which metadata is provided
     </description>
   </element>
 
   <element name="mdb:MD_MetadataScope" id="6.0">
     <label>Hierarchy level</label>
-    <description>Kind of resource described by this metadata
+    <description>Scope to which the metadata applies (see annex H for more
+      information about
+      metadata hierarchy levels)
     </description>
   </element>
   <element name="mri:temporalResolution" id="51.0">
     <label>Temporal resolution</label>
-    <description iso="true">Smallest resolvable temporal interval in a resource
+    <description iso="true">Smallest resolvable temporal period in a resource
     </description>
     <_condition>optional</_condition>
   </element>
   <element name="mrl:additionalDocumentation">
-    <label>Additional documentation about the resource</label>
+    <label>Additional doc.</label>
     <description/>
   </element>
   <element name="mrl:LI_Source">
@@ -1303,7 +1292,7 @@
     </description>
   </element>
   <element name="cit:partyIdentifier">
-    <label>Agent ID</label>
+    <label>Identifier for the party</label>
     <description/>
   </element>
   <element name="cit:role" id="377.0">
@@ -1325,6 +1314,10 @@
   <element name="lan:language" id="448.0" context="/mdb:MD_Metadata/mdb:defaultLocale/lan:PT_Locale/lan:language">
     <label>Metadata language</label>
     <description iso="true">Designation of the locale language</description>
+  </element>
+  <element name="lan:language" id="448.0" context="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:defaultLocale/lan:PT_Locale/lan:language">
+    <label>Dataset language</label>
+    <description iso="true">ISO 3 letters code.</description>
   </element>
   <element name="lan:language" id="448.0" context="/mdb:MD_Metadata/mdb:otherLocale/lan:PT_Locale/lan:language">
     <label>Other language</label>
@@ -2646,14 +2639,6 @@
     <label>Spatial resolution</label>
     <description>Ground sample distance</description>
     <condition>Provide a distance if no equivalent Scale is documented</condition>
-    <helper relAtt="uom">
-      <option value="0.10" title="cm">10 cm</option>
-      <option value="0.25" title="cm">25 cm</option>
-      <option value="0.50" title="cm">50 cm</option>
-      <option value="1" title="m">1 m</option>
-      <option value="30" title="m">30 m</option>
-      <option value="100" title="m">100 m</option>
-    </helper>
   </element>
   <element name="mrd:distributionFormat" id="271.0">
     <label>Distribution format</label>
@@ -4297,8 +4282,9 @@
     <label>Specification</label>
   </element>
   <element name="mrl:statement" id="83.0">
-    <label>Text description of resource lineage/provenance</label>
-    <description>Explanation of the data producers knowledge about the lineage of the resource
+    <label>Statement</label>
+    <description>General explanation of the data producers knowledge about the
+      lineage of a dataset
     </description>
     <condition>conditional</condition>
   </element>
@@ -4909,24 +4895,24 @@
       values of the
       nameSpace and name attributes of GeneralName may be 'OGC' and 'catalogue'
     </description>
-<!--    <helper>
+    <helper>
       <option value="OGC:WMS">OGC Web Map Service</option>
       <option value="OGC:WMTS">OGC Web Map Tile Service</option>
       <option value="OGC:WFS">OGC Web Feature Service</option>
       <option value="OGC:WCS">OGC Web Coverage Service</option>
       <option value="OGC:WPS">OGC Web Processing Service</option>
       <option value="atom:feed">ATOM feed</option>
-      <!-\-INSPIRE Service type defined in MD IR / 1.3.1 Spatial data service
+      <!--INSPIRE Service type defined in MD IR / 1.3.1 Spatial data service
         type <option value="discovery">Discovery Service (discovery)</option> <option
         value="view">View Service (view)</option> <option value="download">Download
         Service (download)</option> <option value="transformation">Transformation
-        Service (transformation)</option> <option value="other">Other Services (other)</option> -\->
-      <!-\-<option value="OGC:WMS">OGC Web Map Service (OGC:WMS)</option>
+        Service (transformation)</option> <option value="other">Other Services (other)</option> -->
+      <!--<option value="OGC:WMS">OGC Web Map Service (OGC:WMS)</option>
       <option value="OGC:WFS">OGC Web Feature Service (OGC:WFS)</option>
       <option value="OGC:WCS">OGC Web Coverage Service (OGC:WCS)</option>
       <option value="W3C:HTML:DOWNLOAD">Download (W3C:HTML:DOWNLOAD)</option>
-      <option value="W3C:HTML:LINK">Information (W3C:HTML:LINK)</option>-\->
-    </helper>-->
+      <option value="W3C:HTML:LINK">Information (W3C:HTML:LINK)</option>-->
+    </helper>
   </element>
   <element name="srv:serviceTypeVersion">
     <label>Service Version</label>
@@ -4943,7 +4929,7 @@
     <label>Access Properties</label>
     <description>Information about the availability of the service eg. fees,
       availability,
-      ordering instructions
+      oredering instructions
     </description>
   </element>
   <element name="srv:restrictions">

@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <editor xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:noNamespaceSchemaLocation="../../../../../../config-editorRev.xsd"
-  xmlns:gn="http://www.fao.org/geonetwork" xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0"
-  xmlns:mds="http://standards.iso.org/iso/19115/-3/mds/2.0"
-  xmlns:mcc="http://standards.iso.org/iso/19115/-3/mcc/1.0"
-  xmlns:mri="http://standards.iso.org/iso/19115/-3/mri/1.0"
-  xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0"
-  xmlns:mrd="http://standards.iso.org/iso/19115/-3/mrd/1.0"
-  xmlns:mdb="http://standards.iso.org/iso/19115/-3/mdb/2.0"
-  xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/2.0"
-  xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/2.0"
-  xmlns:mmi="http://standards.iso.org/iso/19115/-3/mmi/1.0"
-  xmlns:mco="http://standards.iso.org/iso/19115/-3/mco/1.0"
-  xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
-  xmlns:dqm="http://standards.iso.org/iso/19157/-2/mdq/1.0"
-  xmlns:msr="http://standards.iso.org/iso/19115/-3/msr/2.0"
-  xmlns:lan="http://standards.iso.org/iso/19115/-3/lan/1.0"
-  xmlns:gcx="http://standards.iso.org/iso/19115/-3/gcx/1.0"
-  xmlns:gex="http://standards.iso.org/iso/19115/-3/gex/1.0"
-  xmlns:cit="http://standards.iso.org/iso/19115/-3/cit/2.0"
-  xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
-  xmlns:mac="http://standards.iso.org/iso/19115/-3/mac/2.0"
-  xmlns:gfc="http://standards.iso.org/iso/19110/gfc/1.1"
-  xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gml="http://www.opengis.net/gml/3.2"
-  xmlns:xlink="http://www.w3.org/1999/xlink">
-  <!--  xmlns:srv2="http://standards.iso.org/iso/19115/-3/srv/2.0"-->
+        xsi:noNamespaceSchemaLocation="../../../../../../config-editor.xsd"
+        xmlns:gn="http://www.fao.org/geonetwork"
+        xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0"
+        xmlns:mds="http://standards.iso.org/iso/19115/-3/mds/2.0"
+        xmlns:mcc="http://standards.iso.org/iso/19115/-3/mcc/1.0"
+        xmlns:mri="http://standards.iso.org/iso/19115/-3/mri/1.0"
+        xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0"
+        xmlns:mrd="http://standards.iso.org/iso/19115/-3/mrd/1.0"
+        xmlns:mdb="http://standards.iso.org/iso/19115/-3/mdb/2.0"
+        xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/2.0"
+        xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/2.0"
+        xmlns:mmi="http://standards.iso.org/iso/19115/-3/mmi/1.0"
+        xmlns:mco="http://standards.iso.org/iso/19115/-3/mco/1.0"
+        xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
+        xmlns:msr="http://standards.iso.org/iso/19115/-3/msr/2.0"
+        xmlns:lan="http://standards.iso.org/iso/19115/-3/lan/1.0"
+        xmlns:gcx="http://standards.iso.org/iso/19115/-3/gcx/1.0"
+        xmlns:gex="http://standards.iso.org/iso/19115/-3/gex/1.0"
+        xmlns:dqm="http://standards.iso.org/iso/19157/-2/dqm/1.0"
+        xmlns:cit="http://standards.iso.org/iso/19115/-3/cit/2.0"
+        xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
+        xmlns:mac="http://standards.iso.org/iso/19115/-3/mac/2.0"
+        xmlns:gfc="http://standards.iso.org/iso/19110/gfc/1.1"
+        xmlns:gml="http://www.opengis.net/gml/3.2"
+        xmlns:xlink="http://www.w3.org/1999/xlink">
+
   <!-- Form field type configuration. Default is text. -->
   <fields>
     <for name="cit:issueIdentification" use="textarea"/>
@@ -48,6 +49,7 @@
     <for name="gmd:evaluationMethodDescription" use="textarea"/>
     <for name="gmd:explanation" use="textarea"/>
     <for name="gmd:handlingDescription" use="textarea"/>
+    <for name="mdq:measureDescription" use="textarea"/>
     <for name="mri:purpose" use="textarea"/>
     <for name="mrd:orderingInstructions" use="textarea"/>
     <for name="mco:otherConstraints" use="textarea"/>
@@ -60,40 +62,43 @@
     <for name="mco:statement" use="textarea"/>
     <for name="gfc:definition" use="textarea"/>
     <for name="mri:environmentDescription" use="textarea"/>
-    <!--  smr change, this is not an elment in the xml schema.
-      <for name="mdq:standaloneQualityReportDetails" use="textarea"/>-->
-    <!-- standaloneQualityReport is an object, not a text field. 
-       comment out to see if this solves problem. -->
-    <!--<for name="mdq:standaloneQualityReport" use="textarea"/>-->
+    <for name="mdq:standaloneQualityReportDetails" use="textarea"/>
     <for name="mdq:abstract" use="textarea"/>
-    <for name="dqm:abstract" use="textarea"/>
     <for name="mdq:statement" use="textarea"/>
     <for name="mdq:evaluationMethodDescription" use="textarea"/>
-    <for name="mdq:measureDescription" use="textarea"/>
     <for name="mrl:statement" use="textarea"/>
     <for name="mri:response" use="textarea"/>
     <for name="mri:specificUsage" use="textarea"/>
     <for name="mrd:orderOptions" use="textarea"/>
     <for name="mrc:rangeElement" use="textarea"/>
-    <for name="gml:description" use="textarea"/>
+
     <for name="gco:Distance" use="number"/>
+    <for name="gco:Distance/@uom" use="data-gn-keyword-picker">
+      <directiveAttributes
+        data-thesaurus-key="local.theme.codelist_unit_distance"
+        data-display-definition="true"
+        data-show-hints-on-focus="true"/>
+    </for>
     <for name="gco:Decimal" use="number"/>
     <for name="gco:Integer" use="number"/>
     <for name="gco:Real" use="number"/>
     <for name="gco:Angle" use="number"/>
-    <for name="gml:timePosition" use="number"/>
+    <for name="gco:Measure" use="number"/>
+    <for name="gco:Measure/@uom" use="data-gn-keyword-picker">
+      <directiveAttributes
+        data-thesaurus-key="xpath::../*:dimensionName/*[@codeListValue]/(if (@codeListValue = 'time') then 'local.theme.codelist_unit_time' else 'local.theme.codelist_unit_distance')"
+        data-display-definition="true"
+        data-show-hints-on-focus="true"/>
+    </for>
+    <for name="gco:Length" use="number"/>
+
     <for name="gco:Boolean" use="checkbox"/>
 
     <for name="gco:Date" use="data-gn-date-picker"/>
     <for name="gco:DateTime" use="data-gn-date-picker"/>
-    <for name="gml:beginPosition" use="data-gn-date-picker"/>
-    <!-- smr add -->
-    <for name="gml:endPosition" use="data-gn-date-picker"/>
-    <!-- smr add -->
 
     <for name="gml:duration" use="data-gn-field-duration-div"/>
     <for name="gco:TM_PeriodDuration" use="data-gn-field-duration-div"/>
-    <!--    <for name="gml:duration" use="data-gn-field-duration-div"/>-->
 
     <for name="gmx:FileName/src" use="data-gn-logo-selector"/>
 
@@ -107,8 +112,17 @@
 
     <for name="mrs:referenceSystemIdentifier" addDirective="data-gn-crs-selector"/>
 
+    <!-- Example configuration to check duplicated metadata alternate title -->
+    <!--<for name="cit:alternateTitle"
+         xpath="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:alternateTitle"
+         use="data-gn-duplicated-metadata-value-checker">
+      <directiveAttributes
+        data-field-key="altTitle" />
+    </for>-->
+
     <for name="mdb:contact" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-snippet="&lt;cit:CI_Responsibility
+      <directiveAttributes
+              data-template-add-snippet="&lt;cit:CI_Responsibility
                    xmlns:cit='http://standards.iso.org/iso/19115/-3/cit/2.0'
                    xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'&gt;
                     &lt;cit:role&gt;
@@ -140,14 +154,28 @@
                         &lt;/cit:individual&gt;
                       &lt;/cit:CI_Organisation&gt;
                     &lt;/cit:party&gt;
-                  &lt;/cit:CI_Responsibility&gt;" data-default-role="pointOfContact"
-        data-search-action="true" data-popup-action="true" data-template-type="contact"
-        data-filter='{"root": "cit:CI_Responsibility"}'
-        data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"
-        data-template-add-action="true"/>
+                  &lt;/cit:CI_Responsibility&gt;"
+              data-default-role="pointOfContact"
+              data-search-action="true"
+              data-popup-action="true"
+              data-template-type="contact"
+              data-filter='{"root": "cit:CI_Responsibility"}'
+              data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
     </for>
     <for name="mri:pointOfContact" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-snippet="&lt;cit:CI_Responsibility
+      <!--<directiveAttributes
+              data-template-add-action="true"
+              data-template-type="contact"
+              data-filter='{"root": "cit:CI_Responsibility"}'
+              data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>-->
+      <!-- To use an ISO19139 contact directory in an ISO19115-3 record
+      use the following configuration:
+              data-filter='{"root": "gmd:CI_ResponsibleParty"}'
+              data-variables="gmd:role/gmd:CI_RoleCode/@codeListValue~{role}"
+              data-transformation="contact-from-iso19139-to-iso19115-3.2018"/>
+       -->
+      <directiveAttributes
+        data-template-add-snippet="&lt;cit:CI_Responsibility
                    xmlns:cit='http://standards.iso.org/iso/19115/-3/cit/2.0'
                    xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'&gt;
                     &lt;cit:role&gt;
@@ -179,13 +207,17 @@
                         &lt;/cit:individual&gt;
                       &lt;/cit:CI_Organisation&gt;
                     &lt;/cit:party&gt;
-                  &lt;/cit:CI_Responsibility&gt;" data-default-role="pointOfContact"
-        data-search-action="true" data-popup-action="true" data-template-type="contact"
-        data-filter='{"root": "cit:CI_Responsibility"}'
-        data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
+                  &lt;/cit:CI_Responsibility&gt;"
+              data-default-role="pointOfContact"
+              data-search-action="true"
+              data-popup-action="true"
+              data-template-type="contact"
+              data-filter='{"root": "cit:CI_Responsibility"}'
+              data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
     </for>
     <for name="mrd:distributorContact" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-snippet="&lt;cit:CI_Responsibility
+      <directiveAttributes
+        data-template-add-snippet="&lt;cit:CI_Responsibility
                    xmlns:cit='http://standards.iso.org/iso/19115/-3/cit/2.0'
                    xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'&gt;
                     &lt;cit:role&gt;
@@ -217,13 +249,17 @@
                         &lt;/cit:individual&gt;
                       &lt;/cit:CI_Organisation&gt;
                     &lt;/cit:party&gt;
-                  &lt;/cit:CI_Responsibility&gt;" data-default-role="distributor"
-        data-search-action="true" data-popup-action="true" data-template-type="contact"
-        data-filter='{"root": "cit:CI_Responsibility"}'
-        data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
+                  &lt;/cit:CI_Responsibility&gt;"
+              data-default-role="distributor"
+              data-search-action="true"
+              data-popup-action="true"
+              data-template-type="contact"
+              data-filter='{"root": "cit:CI_Responsibility"}'
+              data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
     </for>
     <for name="mrl:processor" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-snippet="&lt;cit:CI_Responsibility
+      <directiveAttributes
+        data-template-add-snippet="&lt;cit:CI_Responsibility
                    xmlns:cit='http://standards.iso.org/iso/19115/-3/cit/2.0'
                    xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'&gt;
                     &lt;cit:role&gt;
@@ -255,13 +291,17 @@
                         &lt;/cit:individual&gt;
                       &lt;/cit:CI_Organisation&gt;
                     &lt;/cit:party&gt;
-                  &lt;/cit:CI_Responsibility&gt;" data-default-role="processor"
-        data-search-action="true" data-popup-action="true" data-template-type="contact"
-        data-filter='{"root": "cit:CI_Responsibility"}'
-        data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
+                  &lt;/cit:CI_Responsibility&gt;"
+              data-default-role="processor"
+              data-search-action="true"
+              data-popup-action="true"
+              data-template-type="contact"
+              data-filter='{"root": "cit:CI_Responsibility"}'
+              data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
     </for>
     <for name="cit:citedResponsibleParty" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-snippet="&lt;cit:CI_Responsibility
+      <directiveAttributes
+        data-template-add-snippet="&lt;cit:CI_Responsibility
                    xmlns:cit='http://standards.iso.org/iso/19115/-3/cit/2.0'
                    xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'&gt;
                     &lt;cit:role&gt;
@@ -293,61 +333,89 @@
                         &lt;/cit:individual&gt;
                       &lt;/cit:CI_Organisation&gt;
                     &lt;/cit:party&gt;
-                  &lt;/cit:CI_Responsibility&gt;" data-default-role="author"
-        data-search-action="true" data-popup-action="true" data-template-type="contact"
-        data-filter='{"root": "cit:CI_Responsibility"}'
-        data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
+                  &lt;/cit:CI_Responsibility&gt;"
+              data-default-role="author"
+              data-search-action="true"
+              data-popup-action="true"
+              data-template-type="contact"
+              data-filter='{"root": "cit:CI_Responsibility"}'
+              data-variables="cit:role/cit:CI_RoleCode/@codeListValue~{role}"/>
     </for>
-    <for name="mdb:referenceSystemInfo" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-template-type="CRS" data-filter='{"root": "mrs:MD_ReferenceSystem"}'
+
+    <!--<for name="mdb:referenceSystemInfo" addDirective="data-gn-directory-entry-selector">
+      <directiveAttributes
+        data-template-add-action="true"
+        data-search-action="true"
+        data-template-type="CRS"
+        data-filter='{"root": "mrs:MD_ReferenceSystem"}'
+        data-insert-modes=""/>
+    </for>-->
+
+
+    <for name="mri:extent" addDirective="data-gn-directory-entry-selector">
+      <directiveAttributes
+        data-template-add-action="true"
+        data-search-action="true"
+        data-template-type="extent"
+        data-filter='{"root": "gex:EX_Extent"}'
         data-insert-modes=""/>
     </for>
-    <for name="mri:extent" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-template-type="extent" data-filter='{"root": "gex:EX_Extent"}' data-insert-modes=""/>
-    </for>
+
     <for name="mcc:extent" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-template-type="extent" data-filter='{"root": "gex:EX_Extent"}' data-insert-modes=""/>
+      <directiveAttributes
+        data-template-add-action="true"
+        data-search-action="true"
+        data-template-type="extent"
+        data-filter='{"root": "gex:EX_Extent"}'
+        data-insert-modes=""/>
     </for>
+
     <for name="cit:extent" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-template-type="extent" data-filter='{"root": "gex:EX_Extent"}' data-insert-modes=""/>
+      <directiveAttributes
+        data-template-add-action="true"
+        data-search-action="true"
+        data-template-type="extent"
+        data-filter='{"root": "gex:EX_Extent"}'
+        data-insert-modes=""/>
     </for>
+
     <for name="cit:logo" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-popup-action="false" data-template-type="logo"
-        data-filter='{"root": "mcc:MD_BrowseGraphic"}'/>
+      <directiveAttributes
+              data-template-add-action="true"
+              data-search-action="true"
+              data-popup-action="false"
+              data-template-type="logo"
+              data-filter='{"root": "mcc:MD_BrowseGraphic"}'/>
     </for>
 
     <for name="mdq:report" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-popup-action="false" data-template-type="report" data-filter='{"root": "mdq:DQ_*"}'/>
+      <directiveAttributes
+              data-template-add-action="true"
+              data-search-action="true"
+              data-popup-action="false"
+              data-template-type="report"
+              data-filter='{"root": "mdq:DQ_*"}'/>
     </for>
 
     <for name="mri:resourceConstraints" addDirective="data-gn-directory-entry-selector">
-      <directiveAttributes data-template-add-action="true" data-search-action="true"
-        data-popup-action="false" data-template-type="resourceConstraints"
-        data-filter='{"root": "mco:MD_*"}'/>
+      <directiveAttributes
+              data-template-add-action="true"
+              data-search-action="true"
+              data-popup-action="false"
+              data-template-type="resourceConstraints"
+              data-filter='{"root": "mco:MD_*"}'/>
     </for>
 
-<!-- <for name="mri:descriptiveKeywords[*//mri:thesaurusName//cit:title/child::*/text() = 'DDE topic category extensions']" addDirective="data-gn-thesaurus-selector">-->
-<!--    <for name="mri:descriptiveKeywords" addDirective="data-gn-thesaurus-selector">
-      <directiveAttributes data-transformation="to-iso19115-3.2018-keyword"
-        data-include="xpath::string-join(*//mri:thesaurusName//cit:identifier/*/mcc:code/gcx:Anchor/
-        concat('-', substring-after(text()[. != ''], 'geonetwork.thesaurus.')), ',')"/>
-    </for>-->
-    <!-- the data-include directiveAttribute lists thesauri to include in pick list; if the name has a '-' prefix, is 
-      is not included (removed), so the above xpath removes any thesauri that already have keywords assigned. 
-      removes the 'genetwork.thesaurus.' prefix that is introduced into the processed schema?-->
-    
     <for name="mri:descriptiveKeywords" addDirective="data-gn-thesaurus-selector">
-      <directiveAttributes data-transformation="to-iso19115-3.2018-keyword"
-        data-include="xpath::string-join(('-local.theme.acquisitioncodeskos', '-local.theme.servicetypeskos','-local.theme.resourcetypeskos'),',')"/>
+      <directiveAttributes
+              data-transformation="to-iso19115-3.2018-keyword"
+              data-include="xpath::string-join(*
+                                          //mri:thesaurusName//cit:identifier/*/
+                                            mcc:code/gcx:Anchor/
+                                              concat('-', substring-after(text()[. != ''], 'geonetwork.thesaurus.')), ',')"/>
     </for>
-    
   </fields>
+
 
   <fieldsWithFieldset>
     <name>cit:citedResponsibleParty</name>
@@ -523,1126 +591,107 @@
     a table view force some constraints. -->
     <table for="cit:CI_Responsibility">
       <header>
+        <col/>
         <col label="cit:role"/>
-        <!--<col label="cit:CI_Organisation"/>-->
-        <col label="cit:name"/>
-        <col label="cit:partyIdentifier"/>
+        <col label="cit:CI_Organisation"/>
         <col label="cit:electronicMailAddress"/>
-        <col label="cit:country"/>
         <col/>
       </header>
       <row>
+        <col orderControl=".."/>
         <col xpath="cit:role"/>
-        <!--<col xpath="cit:party/cit:CI_Organisation/cit:name"/>
-        <col xpath="cit:party/*/cit:contactInfo/*/cit:address/*/cit:electronicMailAddress"/>-->
-        <col xpath="cit:party/*/cit:name"/>
-        <col xpath="cit:party/*/cit:partyIdentifier/mcc:MD_Identifier/mcc:code"/>
+        <col xpath="cit:party/cit:CI_Organisation/cit:name"/>
         <col xpath="cit:party/*/cit:contactInfo/*/cit:address/*/cit:electronicMailAddress"/>
-        <col
-          xpath="cit:party/*/cit:contactInfo/cit:CI_Contact/cit:address/cit:CI_Address/cit:country"/>
         <col del=".."/>
       </row>
     </table>
-
-    <table for="mcc:MD_BrowseGraphic">
+    <table for="gfc:FC_ListedValue">
       <header>
-        <col label="mcc:fileName"/>
-        <col label="mcc:fileType"/>
-        <col label="mcc:fileDescription"/>
-        <col label="cit:linkage"/>
+        <col/>
+        <col label="gfc:code"/>
+        <col label="gfc:label"/>
+        <col label="gfc:definition"/>
+        <col/>
       </header>
       <row>
-        <col xpath="mcc:fileName"/>
-        <col xpath="mcc:fileType"/>
-        <col xpath="mcc:fileDescription"/>
-        <col xpath="mcc:linkage/cit:CI_OnlineResource/cit:linkage"/>
+        <col orderControl=".."/>
+        <col xpath="gfc:code"/>
+        <col xpath="gfc:label"/>
+        <col xpath="gfc:definition"/>
+        <col del=".."/>
       </row>
     </table>
-    <table for="mac:MI_Sensor">
+    <table for="gfc:FC_ListedValue">
       <header>
-        <col label="mac:type"/>
-        <col label="mcc:code"/>
+        <col/>
+        <col label="gfc:code"/>
+        <col label="gfc:label"/>
+        <col label="gfc:definition"/>
+        <col label="gfc:valueType"/>
+        <col/>
       </header>
       <row>
-        <col xpath="mac:type"/>
-        <col xpath="mac:identifier/mcc:MD_Identifier/mcc:code"/>
+        <col orderControl=".."/>
+        <col xpath="gfc:code"/>
+        <col xpath="gfc:label"/>
+        <col xpath="gfc:definition"/>
+        <col del=".."/>
       </row>
     </table>
-    <table for="mac:MI_Instrument">
-      <header>
-        <col label="mac:type"/>
-        <col label="mcc:code"/>
-      </header>
-      <row>
-        <col xpath="mac:type"/>
-        <col xpath="mac:identifier/mcc:MD_Identifier/mcc:code"/>
-      </row>
-    </table>
-
-    <table for="mac:MI_Platform">
-      <header>
-        <col label="mac:description"/>
-        <col label="mcc:code"/>
-      </header>
-      <row>
-        <col xpath="mac:description"/>
-        <col xpath="mac:identifier/mcc:MD_Identifier/mcc:code"/>
-      </row>
-    </table>
-
-    <table for="mcc:MD_Identifier">
-      <header>
-        <col label="mcc:code"/>
-        <col label="mcc:authority"/>
-        <col label="mcc:codeSpace"/>
-        <col label="mcc:description"/>
-      </header>
-      <row>
-        <col xpath="mcc:code"/>
-        <col xpath="mcc:authority/cit:CI_Citation/cit:title"/>
-        <col xpath="mcc:codeSpace"/>
-        <col xpath="mcc:description"/>
-      </row>
-    </table>
-
-    <table for="gml:TimeInstant">
-      <header>
-        <col label="gml:name"/>
-        <col label="gml:identifier"/>
-        <col label="gml:timePosition"/>
-      </header>
-      <row>
-        <col xpath=".//gml:name"/>
-        <col xpath=".//gml:identifier"/>
-        <col xpath="gml:timePosition"/>
-      </row>
-    </table>
-
   </tableFields>
+
 
   <!-- View configuration -->
   <views>
-
-    <view name="ddeview" class="gn-label-above-input gn-indent-bluescale" default="true">
-      <sidePanel>
-        <!-- <directive data-gn-need-help="creating-metadata"/>  -->
-        <directive data-gn-overview-manager="" data-file-types=".png,.gif,.jpeg,.jpg"/>
-        
-        <!--<directive data-gn-distribution-resources-panel="gnCurrentEdit.metadata"
-          data-mode="viewConfig.distributionConfig.layout || ''" data-editor-config="default"
-          data-related-config="[{
-          title: 'API',
-          filter: 'protocol:OGC:WMS|OGC:WMTS|ESRI:.*|atom.*|REST|OGC API Maps|OGC API Records',
-          editActions: ['addOnlinesrc#API']
-          }, {
-          title: 'download',
-          filter: 'protocol:OGC:WFS|OGC:WCS|.*DOWNLOAD.*|DB:.*|FILE:.*|OGC API Features|OGC API Coverages',
-          editActions: ['addOnlinesrc#onlineDownload|localNetwork']
-          }, {
-          title: 'mapLegend',
-          filter: 'function:legend',
-          editActions: ['addOnlinesrc#onlineUseLegend']
-          }, {
-          title: 'links',
-          filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.* AND -function:legend|featureCatalogue|dataQualityReport',
-          editActions: ['addOnlinesrc#links']
-          }]"/>-->
-        
-        <directive data-gn-onlinesrc-list=""
-          data-types="sibling|associated|source|dataset|service"/>
-        
-        <directive data-gn-geo-publisher="" data-ng-if="gnCurrentEdit.geoPublisherConfig"
-          data-config="{{gnCurrentEdit.geoPublisherConfig}}" data-lang="lang"/>
-        
-        <directive data-gn-validation-report=""/>
-        
-        <directive data-gn-suggestion-list=""/>
-      </sidePanel>
-
-      <tab id="basicmetadata" default="true" mode="flat">
-        <section name="basicmetadata">
-  <!-- title and alt title -->
-          <field
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:title"/>
-          <field
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:alternateTitle"
-            or="alternateTitle"
-            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation"/>
-          <field
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:edition"
-            or="edition"
-            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation"  del="."/>
-          <text ref="horizontalRule"/>
-<!-- resource identifier -->
-          <action type="add" btnLabel="Add the resource identifier" or="identifier"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:citation/cit:CI_Citation"  
-  if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:citation/cit:CI_Citation/cit:identifier//mcc:code) = 0">
-            <template>
-              <snippet>
-                <cit:identifier>
-                  <mcc:MD_Identifier>
-                    <mcc:authority>
-                      <cit:CI_Citation>
-                        <cit:title>
-                          <gco:CharacterString>authority</gco:CharacterString>
-                        </cit:title>
-                      </cit:CI_Citation>
-                    </mcc:authority>
-                    <mcc:code>
-                      <gco:CharacterString>identifercode</gco:CharacterString>
-                    </mcc:code>
-                    <mcc:codeSpace>
-                      <gco:CharacterString></gco:CharacterString>
-                    </mcc:codeSpace>
-                    <mcc:description>
-                      <gco:CharacterString></gco:CharacterString>
-                    </mcc:description>
-                  </mcc:MD_Identifier>
-                </cit:identifier>
-              </snippet>
-            </template>
-          </action>
-          <field name="ResourceIdentifier"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:identifier"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:citation/cit:CI_Citation/cit:identifier) > 0"/>
-          <text ref="horizontalRule"/>
-        </section>
-
-<!-- ISO Resource type and name; use name for DDE resource type. -->
-        <section name="resourceType" forEach="/mdb:MD_Metadata/mdb:metadataScope">
-          <field name="ISOresourceScope" xpath="*/mdb:resourceScope" or="resourceScope" in="*"
-            del="."/>
-
-          <field name="scopeName" xpath="*/mdb:name" or="name" in="*" del="."
-            use="data-gn-keyword-picker">
-            <directiveAttributes data-thesaurus-key="local.theme.resourcetypeskos" data-transformation="to-iso19115-3.2018-keyword"/>
-          </field>
-        </section>
-
-<!-- abstract, dates, responsibilities -->
-        <section>
-          <action type="add" name=" " btnLabel="Add resource type" or="metadataScope"
-            in="/mdb:MD_Metadata">
-            <template>
-              <snippet>
-                <mdb:metadataScope>
-                  <mdb:MD_MetadataScope>
-                    <mdb:resourceScope>
-                      <mcc:MD_ScopeCode
-                        codeList=" http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode"
-                        codeListValue=""/>
-                    </mdb:resourceScope>
-                    <mdb:name>
-                      <gco:CharacterString/>
-                    </mdb:name>
-                  </mdb:MD_MetadataScope>
-                </mdb:metadataScope>
-              </snippet>
-            </template>
-          </action>
-          <text ref="horizontalRule"/>
-
-          <field
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:abstract"
-            or="abstract" in="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification" />
-          <action type="add" name=" " btnLabel="Add abstract (required, 250 characters)" or="abstract"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification"
-            if="count(/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:abstract) = 0">
-            <template>
-              <snippet>
-                <mri:abstract>
-                  <gco:CharacterString></gco:CharacterString>
-                </mri:abstract>
-              </snippet>
-            </template>
-          </action>
-
-<!-- resource dates -->
-          <field name="resourceDates"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:date"
-            or="date" in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation"
-            del="." />
-<!-- add metadata history dates -->
-          <action type="add" name=" " btnLabel="Add date" or="date"
-            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation">
-            <template>
-              <snippet>
-                <cit:date>
-                  <cit:CI_Date>
-                    <cit:date>
-                      <gco:DateTime/>
-                    </cit:date>
-                    <cit:dateType>
-                      <cit:CI_DateTypeCode
-                        codeList="https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_DateTypeCode"
-                        codeListValue=""/>
-                    </cit:dateType>
-                  </cit:CI_Date>
-                </cit:date>
-              </snippet>
-            </template>
-          </action>
-
-<!-- metadata responsible parties.  GN magically links to directory and add button -->
-          <field
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:citedResponsibleParty"
-            or="citedResponsibleParty"
-            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation" del="."/>
-        </section>
-
-<!-- keywords, topic category, acquisitionCode -->
-  <!-- keywords not from thesaurus, and DDE topic category keywords -->      
-        <section name="keywords">
-          <field
-            xpath="//mri:descriptiveKeywords[ not (*//mri:thesaurusName) or *//mri:thesaurusName//cit:title/child::*/text() != 'DDE topic category extensions']"
-            or="descriptiveKeywords"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
-          />  <!-- either no thesaurus, or not the DDE topic category extensions thesaurus -->
-          <text ref="horizontalRule"/>
-          <!-- "DDEtopicCategory  -->
-          <field name="DDEtopicCategory"
-            xpath="//mri:descriptiveKeywords[ *//mri:thesaurusName//cit:title/child::*/text() = 'DDE topic category extensions']" />
-          <text ref="horizontalRule"/>
-          <field name="ISOtopicCategory" 
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:topicCategory" or="topicCategory" 
-            in="/mdb:MD_Metadata/mdb:identificationInfo"/>
-          <action type="add" btnLabel="Add topic category" or="topicCategory"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo//mri:topicCategory)=0">
-            <template>
-              <snippet>
-                <mri:topicCategory>
-                  <mri:MD_TopicCategoryCode>geoscientificInformation</mri:MD_TopicCategoryCode>
-                </mri:topicCategory>
-              </snippet>
-            </template>
-          </action>
-          <text ref="horizontalRule"/>
-        </section>
-        
-        <!-- DDE acquistion type codes are placed in mdb:acquisitionInformation/mac:MI_Operation/mac:description -->
-        <!-- have to use forEach to avoid xslt error with multiple description values -->
-        <section forEach="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:operation"> 
-          <field name="DDEacquisitionType" xpath="mac:MI_Operation/mac:description"  
-            or="description"  in="mac:MI_Operation"
-            use="data-gn-keyword-picker"  del="../../../..">
-            <directiveAttributes data-thesaurus-key="local.theme.acquisitioncodeskos" data-transformation="to-iso19115-3.2018-keyword"/>
-          </field>
-        </section>
-<!-- ISO topic category -->
-        <section>
-          <!-- put the add acqusitionType in separate section so button isn't repeated  -->
-          <action type="add" btnLabel="Add DDE aquisition type" or="acquisitionInformation"
-            in="/mdb:MD_Metadata">
-            <template>
-               <snippet>
-                <mdb:acquisitionInformation>
-                  <mac:MI_AcquisitionInformation>
-                    <mac:operation>
-                      <mac:MI_Operation>
-                        <mac:description>
-                          <gco:CharacterString></gco:CharacterString>
-                        </mac:description>
-                        <mac:status gco:nilReason="unknown"/>
-                      </mac:MI_Operation>
-                    </mac:operation>
-                  </mac:MI_AcquisitionInformation>
-                </mdb:acquisitionInformation>
-              </snippet>
-            </template>
-          </action>
-          <text ref="horizontalRule"/>
-        </section>
-      </tab>
-
-      <tab id="firstdetail" mode="flat">
-        <section>
-          <field name="browseGraphic"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:graphicOverview" del="."/>
-          <action type="add" btnLabel="Add browse graphic" or="graphicOverview"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*" >
-            <template>
-              <snippet>
-                <mri:graphicOverview>
-                  <mcc:MD_BrowseGraphic>
-                    <mcc:fileName>
-                      <gco:CharacterString></gco:CharacterString>
-                    </mcc:fileName>
-                    <mcc:fileDescription>
-                      <gco:CharacterString></gco:CharacterString>
-                    </mcc:fileDescription>
-                    <mcc:fileType>
-                      <gco:CharacterString></gco:CharacterString>
-                    </mcc:fileType>
-                    <mcc:linkage>
-                      <cit:CI_OnlineResource>
-                        <cit:linkage>
-                          <gco:CharacterString></gco:CharacterString>
-                        </cit:linkage>
-                      </cit:CI_OnlineResource>
-                    </mcc:linkage>
-                  </mcc:MD_BrowseGraphic>
-                </mri:graphicOverview>
-              </snippet>
-            </template>
-          </action>
-          
-          
-          <field name="lineageSummary"
-            xpath="/mdb:MD_Metadata/mdb:resourceLineage/mrl:LI_Lineage/mrl:statement" or="statement"
-            in="/mdb:MD_Metadata/mdb:resourceLineage/mrl:LI_Lineage"  del="../.."/>
-
-          <action type="add" name=" " btnLabel="Add data quality summary" or="dataQualityInfo"
-            in="/mdb:MD_Metadata"              if="count(//*[local-name() = 'DQ_DataQuality']//*[local-name()='DQ_StandaloneQualityReportInformation']//*[local-name()='abstract'])=0">
-           <!-- use local-name to avoid problems with mdq and dqm namespace usage -->
-            <template>
-              <snippet>
-                <mdb:dataQualityInfo>
-                  <dqm:DQ_DataQuality  xmlns:dqm="http://standards.iso.org/iso/19157/-2/mdq/1.0">
-                    <dqm:scope gco:nilReason="missing"/>
-                    <dqm:standaloneQualityReport>
-                      <dqm:DQ_StandaloneQualityReportInformation>
-                        <dqm:reportReference gco:nilReason="missing"/>
-                        <dqm:abstract>
-                          <gco:CharacterString></gco:CharacterString>
-                        </dqm:abstract>
-                      </dqm:DQ_StandaloneQualityReportInformation>
-                    </dqm:standaloneQualityReport>
-                    <dqm:report gco:nilReason="missing"/>
-                  </dqm:DQ_DataQuality>
-                </mdb:dataQualityInfo>
-              </snippet>
-            </template>
-          </action>
-          <field name="dataQualityReport" 
-xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQualityReport/mdq:DQ_StandaloneQualityReportInformation/mdq:abstract"     or="abstract"  in="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQualityReport/mdq:DQ_StandaloneQualityReportInformation" del="../../../.."/>
-          
-          <text ref="addDoc-help"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo//mri:supplementalInformation)=0"/>
-          <field name="additionalDocumentation"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:supplementalInformation"
-            or="supplementalInformation" in="/mdb:MD_Metadata/mdb:identificationInfo/*"  del="."/>
-
-          <action type="add" name=" " btnLabel="Add supplemental information"
-            or="supplementalInformation" in="/*/mdb:identificationInfo/*"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo//mri:supplementalInformation)=0">
-            <template>
-              <snippet>
-                <mri:supplementalInformation>
-                  <gco:CharacterString/>
-                </mri:supplementalInformation>
-              </snippet>
-            </template>
-          </action>
-        </section>
-<!-- resource constraints -->
-        <section name="resourceconstraints">
-          <field xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:resourceConstraints"  del="."/>
-           <action type="add" name=" " btnLabel="Add usage or access constraint"
-            or="resourceConstraints" in="/*/mdb:identificationInfo/*" >
-            <template>
-              <snippet>
-                <mri:resourceConstraints>
-                  <mco:MD_LegalConstraints>
-                      <mco:reference>
-                        <cit:CI_Citation>
-                          <cit:title>
-                            <gco:CharacterString>   </gco:CharacterString>
-                          </cit:title>
-                          <cit:onlineResource>
-                            <cit:CI_OnlineResource>
-                              <cit:linkage>
-                                <gco:CharacterString></gco:CharacterString>
-                              </cit:linkage>
-                            </cit:CI_OnlineResource>
-                          </cit:onlineResource>
-                        </cit:CI_Citation>
-                      </mco:reference>
-                      <mco:useConstraints>
-                        <mco:MD_RestrictionCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_RestrictionCode"
-                          codeListValue=""/>
-                      </mco:useConstraints>
-                      <mco:otherConstraints>
-                        <gco:CharacterString></gco:CharacterString>
-                      </mco:otherConstraints>
-                  </mco:MD_LegalConstraints>
-                </mri:resourceConstraints>
-              </snippet>
-            </template>
-          </action>
-         </section>
-      </tab>
-
-<!-- spatial and temporal extent -->
-      <tab id="extent" mode="flat">
-        <section name="spatialExtent">
-
-          <field name="boundingBox"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/gex:EX_Extent/gex:geographicElement"  or="geographicElement"  in="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/gex:EX_Extent"  del="../.."
-          />
-          <action type="add"  btnLabel="Add bounding box"
-            name="extent"
-            or="extent"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*" >
-            <template>
-              <snippet>
-                <mri:extent>
-                  <gex:EX_Extent>
-                    <gex:geographicElement>
-                      <gex:EX_GeographicBoundingBox>
-                        <gex:westBoundLongitude>
-                          <gco:Decimal></gco:Decimal>
-                        </gex:westBoundLongitude>
-                        <gex:eastBoundLongitude>
-                          <gco:Decimal></gco:Decimal>
-                        </gex:eastBoundLongitude>
-                        <gex:southBoundLatitude>
-                          <gco:Decimal></gco:Decimal>
-                        </gex:southBoundLatitude>
-                        <gex:northBoundLatitude>
-                          <gco:Decimal></gco:Decimal>
-                        </gex:northBoundLatitude>
-                      </gex:EX_GeographicBoundingBox>
-                    </gex:geographicElement>
-                  </gex:EX_Extent>
-                </mri:extent>
-              </snippet>
-            </template>
-          </action>
-       
-          <field
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:spatialRepresentationType"
-            or="spatialRepresentationType" in="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification" del="."/>
-          
-          <action type="add" name=" " btnLabel="Add spatial resolution" or="spatialResolution"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:spatialResolution/*//mri:levelOfDetail) = 0">
-            <!-- Note the // in mri:spatialResolution/*//mri:levelOfDetail for the same reason as in temporal element and
-                gml begin/end because there is a choice in the XSD. -->
-            <template>
-              <snippet>
-                <mri:spatialResolution>
-                  <mri:MD_Resolution>
-                    <mri:levelOfDetail>
-                      <gco:CharacterString/>
-                    </mri:levelOfDetail>
-                  </mri:MD_Resolution>
-                </mri:spatialResolution>
-              </snippet>
-            </template>
-          </action>
-          <field name="levelOfDetail"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:spatialResolution/*//mri:levelOfDetail"
-            del="ancestor::mri:spatialResolution" />
-        </section>
-        <section name="temporalExtent">
-          <text ref="geotime-help"/>
-          <text ref="horizontalRule"/>
-
-          <action type="add" name=" " btnLabel="Add a calendar date time period" or="extent"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod//gml:begin)=0">
-            <template>
-              <snippet>
-                <mri:extent>
-                  <gex:EX_Extent>
-                    <gex:temporalElement>
-                      <gex:EX_TemporalExtent>
-                        <gex:extent>
-                          <gml:TimePeriod gml:id="">
-                            <gml:description/>
-                            <gml:beginPosition/>
-                            <gml:endPosition/>
-                          </gml:TimePeriod>
-                        </gex:extent>
-                      </gex:EX_TemporalExtent>
-                    </gex:temporalElement>
-                  </gex:EX_Extent>
-                </mri:extent>
-              </snippet>
-            </template>
-          </action>
-          <action type="add" name=" " btnLabel="Add a geologic age" or="extent"
-            in="/*/mdb:identificationInfo/*"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod)=0">
-            <template>
-              <snippet>
-                <mri:extent>
-                  <gex:EX_Extent>
-                    <gex:temporalElement>
-                      <gex:EX_TemporalExtent>
-                        <gex:extent>
-                          <gml:TimePeriod gml:id="">
-                            <gml:description/>
-                            <gml:begin>
-                              <gml:TimeInstant>
-                                <gml:identifier>http://</gml:identifier>
-                                <gml:name>begin extent name</gml:name>
-                                <gml:timePosition frame="Ma before present">1870</gml:timePosition>
-                              </gml:TimeInstant>
-                            </gml:begin>
-                            <gml:end>
-                              <gml:TimeInstant>
-                                <gml:identifier>http://</gml:identifier>
-                                <gml:name>end extent name</gml:name>
-                                <gml:timePosition frame="Ma before present">1870</gml:timePosition>
-                              </gml:TimeInstant>
-                            </gml:end>
-                          </gml:TimePeriod>
-                        </gex:extent>
-                      </gex:EX_TemporalExtent>
-                    </gex:temporalElement>
-                  </gex:EX_Extent>
-                </mri:extent>
-              </snippet>
-            </template>
-          </action>
-
-          <text ref="calendarExtent"/>
-          <field
-            xpath="/*/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod[.//gml:beginPosition]"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod//gml:begin)=0"
-            del="ancestor::gex:temporalElement"/>
-          <text ref="horizontalRule"/>
-          <text ref="geologicAge"/>
-          <field
-            xpath="/*/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod[.//gml:begin]"
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod//gml:beginPosition)=0"
-            del="ancestor::gex:temporalElement"/>
-          <text ref="horizontalRule"/>
-        </section>
-      </tab>
-
-<!-- imagery information -->
-      <tab id="imagery" mode="flat"
-        displayIfRecord="count(mdb:MD_Metadata/mdb:metadataScope/*/mdb:name[gco:CharacterString='image'])>0">
-        <!--or count(mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation)>0-->
-        <section>
-          <text ref="wavelengthsignalgenerator"/>
-          <field name="image-wavelength"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:operation//mac:description[starts-with(gco:CharacterString,'wavelength')]"
-          del="../../../.."/>
-          <action type="add"  btnLabel="add image wavelength"
-            name="Image wavelength(s)"
-            or="acquisitionInformation"
-            in="/mdb:MD_Metadata" >
-            <template>
-              <snippet>
-                <mdb:acquisitionInformation>
-                  <mac:MI_AcquisitionInformation>
-                    <mac:operation>
-                      <mac:MI_Operation>
-                        <mac:description>
-                          <gco:CharacterString>wavelength: </gco:CharacterString>
-                        </mac:description>
-                        <mac:status gco:nilReason="unknown"/>
-                      </mac:MI_Operation>
-                </mac:operation>
-                  </mac:MI_AcquisitionInformation>
-                </mdb:acquisitionInformation>
-              </snippet>
-            </template>
-          </action>
-
-          <field name="image-signalGenerator"
-    xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:operation//mac:description[starts-with(gco:CharacterString,'signalGenerator')]"
-            del="../../../.."/>
-          <action type="add"  btnLabel="add signal generator informaiton"
-            name="Signal generator"
-            or="acquisitionInformation"
-            in="/mdb:MD_Metadata" >
-            <template>
-              <snippet>
-                <mdb:acquisitionInformation>
-                  <mac:MI_AcquisitionInformation>
-                    <mac:operation>
-                      <mac:MI_Operation>
-                        <mac:description>
-                          <gco:CharacterString>signalGenerator: </gco:CharacterString>
-                        </mac:description>
-                        <mac:status gco:nilReason="unknown"/>
-                      </mac:MI_Operation>
-                    </mac:operation>
-                  </mac:MI_AcquisitionInformation>
-                </mdb:acquisitionInformation>
-              </snippet>
-            </template>
-          </action>
-
-          <field name="image-sensor"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:instrument/mac:MI_Sensor"
-          del="../../.."/>
-          
-          <action type="add"  btnLabel="data acquisition sensor"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation">
-            <template>
-              <snippet>
-                <mdb:acquisitionInformation>
-                  <mac:MI_AcquisitionInformation>
-                      <mac:instrument>
-                        <mac:MI_Sensor>
-                          <mac:identifier>
-                            <mcc:MD_Identifier>
-                              <mcc:code>
-                                <gco:CharacterString>
-                                   </gco:CharacterString>
-                              </mcc:code>
-                            </mcc:MD_Identifier>
-                          </mac:identifier>
-                          <mac:type>
-                            <gco:CharacterString>
-                            </gco:CharacterString>
-                          </mac:type>
-                        </mac:MI_Sensor>
-                      </mac:instrument>
-                  </mac:MI_AcquisitionInformation>
-                </mdb:acquisitionInformation>
-              </snippet>
-            </template>
-            
-          </action>
-
-          <field name="image-instrument"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:instrument/mac:MI_Instrument"
-            del="../../.."/>
-          <action type="add"  btnLabel="data acquisition instrument"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation">
-            <template>
-              <snippet>
-                <mdb:acquisitionInformation>
-                  <mac:MI_AcquisitionInformation>
-                    <mac:instrument>
-                      <mac:MI_Instrument>
-                        <mac:identifier>
-                          <mcc:MD_Identifier>
-                            <mcc:code>
-                              <gco:CharacterString>
-                              </gco:CharacterString>
-                            </mcc:code>
-                          </mcc:MD_Identifier>
-                        </mac:identifier>
-                        <mac:type>
-                          <gco:CharacterString>
-                          </gco:CharacterString>
-                        </mac:type>
-                      </mac:MI_Instrument>
-                    </mac:instrument>
-                  </mac:MI_AcquisitionInformation>
-                </mdb:acquisitionInformation>
-              </snippet>
-            </template>
-            
-          </action>
-
-  <text ref="platform-help"/>
-          <field name="image-platform"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:platform"
-          del="../.."/>          
-          <action type="add"  btnLabel="data acquisition platform"
-            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation">
-            <template>
-              <snippet>
-                <mdb:acquisitionInformation>
-                  <mac:MI_AcquisitionInformation>
-                    <mac:platform>
-                      <mac:MI_Platform>
-                        <mac:identifier>
-                          <mcc:MD_Identifier>
-                            <mcc:code>
-                              <gco:CharacterString></gco:CharacterString>
-                            </mcc:code>
-                          </mcc:MD_Identifier>
-                        </mac:identifier>
-                        <mac:description>
-                          <gco:CharacterString></gco:CharacterString>
-                        </mac:description>
-                        <mac:instrument gco:nilReason="missing"/>
-                      </mac:MI_Platform>
-                    </mac:platform>
-                  </mac:MI_AcquisitionInformation>
-                </mdb:acquisitionInformation>
-              </snippet>
-            </template>
-          </action>
-          
-        </section>
-      </tab>
-
-<!-- service information -->
-      <tab id="service" mode="flat"
-        displayIfRecord="count(mdb:MD_Metadata/mdb:metadataScope/mdb:MD_MetadataScope/mdb:resourceScope/mcc:MD_ScopeCode[@codeListValue='service'])>0">
-        <section xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.1">
-          <!-- Geonetwork generates srv v2.1, but will probably revert to 2.0 because ISO does not define a metadata interchange schema using v2.1 -->
-
-          <field name="serviceType"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/srv:serviceType" or="serviceType"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification"
-            use="data-gn-keyword-picker" >
-            <directiveAttributes data-thesaurus-key="local.theme.servicetypeskos" data-transformation="to-iso19115-3.2018-keyword" />
-          </field>
-
-          <field name="accessProperties"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/srv:accessProperties/*/mrd:orderingInstructions"  
-            or="orderingInstructions"
-            in="//srv:SV_ServiceIdentification/srv:accessProperties/mrd:MD_StandardOrderProcess"  del="../.."/>
-          <action type="add"  btnLabel="Service access instructions"
-            name="ordering instructions"
-            or="accessProperties"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification" 
-            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/srv:accessProperties/*/mrd:orderingInstructions)=0">
-            <template>
-              <snippet>
-                <srv:accessProperties>
-                  <mrd:MD_StandardOrderProcess> 
-                    <mrd:orderingInstructions>
-                      <gco:CharacterString></gco:CharacterString>
-                    </mrd:orderingInstructions>
-                  </mrd:MD_StandardOrderProcess>
-                </srv:accessProperties>
-              </snippet>
-            </template>
-          </action>
-        </section>
-        
-        <text><hr/></text>
-        <section name="Target datasets" xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.1">
-          <field name="operatedDataset"
-            xpath="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification/srv:operatedDataset" or="operatedDataset"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification" del="."/>
-          <action type="add"  btnLabel="Add a target dataset"
-            name="operated Dataset"
-            or="operatedDataset"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification" >
-            <template>
-              <snippet>
-                <srv:operatedDataset>
-                  <cit:CI_Citation>
-                    <cit:title>
-                      <gco:CharacterString></gco:CharacterString>
-                    </cit:title>
-                    <cit:identifier>
-                      <mcc:MD_Identifier>
-                        <mcc:authority>
-                          <cit:CI_Citation>
-                            <cit:title>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:title>
-                          </cit:CI_Citation>
-                        </mcc:authority>
-                        <mcc:code>
-                          <gco:CharacterString></gco:CharacterString>
-                        </mcc:code>
-                        <mcc:codeSpace>
-                          <gco:CharacterString></gco:CharacterString>
-                        </mcc:codeSpace>
-                        <mcc:version></mcc:version>
-                        <mcc:description>
-                          <gco:CharacterString></gco:CharacterString>
-                        </mcc:description>
-                      </mcc:MD_Identifier>
-                    </cit:identifier>
-                  </cit:CI_Citation>
-                </srv:operatedDataset>
-              </snippet>
-             </template>
-           </action>
-        </section>
-        <section name="Service operations" xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.1">
-          <field name="containsOperation"
-            xpath="//srv:SV_ServiceIdentification/srv:containsOperations/srv:SV_OperationMetadata/srv:operationName"
-            or="operationName"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification"  del="../.."
-          />
-          <action type="add"  btnLabel="describe service operation"
-            name="contains operation"
-            or="containsOperations"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification" >
-            <template>
-              <snippet>
-                <srv:containsOperations>
-                  <srv:SV_OperationMetadata>
-                    <srv:operationName>
-                      <gco:CharacterString></gco:CharacterString>
-                    </srv:operationName>
-                    <srv:distributedComputingPlatform gco:nilReason="missing"/>
-                    <srv:connectPoint gco:nilReason="missing"/>
-                  </srv:SV_OperationMetadata>
-                </srv:containsOperations>
-              </snippet>
-            </template>
-          </action>
-        </section>
-      </tab>
-      
-<!-- related resources -->
-      <tab id="relatedresource"  mode="flat">
-        <section>
-          <field xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:associatedResource"  del="."/>
-          <action type="add" btnLabel="Add link to related resource"
-            name="related resource link"
-            or="associatedResource"
-            in="/mdb:MD_Metadata/mdb:identificationInfo/*">
-            <template>
-              <snippet>
-                <mri:associatedResource>
-                  <mri:MD_AssociatedResource>
-                    <mri:name>
-                      <cit:CI_Citation>
-                        <cit:title>
-                            <gco:CharacterString></gco:CharacterString>
-                         </cit:title>
-                        <cit:onlineResource>
-                          <cit:CI_OnlineResource>
-                            <cit:linkage>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:linkage>
-                            <cit:description>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:description>
-                            <cit:function>
-                              <cit:CI_OnLineFunctionCode codeList="https://www.ddeworld.org/resource/codelist/FunctionCode"
-                                codeListValue=""/>
-                            </cit:function>
-                          </cit:CI_OnlineResource>
-                        </cit:onlineResource>
-                      </cit:CI_Citation>
-                    </mri:name>
-                    <mri:associationType>
-                      <mri:DS_AssociationTypeCode codeList="https://www.ddeworld.org/resource/codelist/#DS_AssociationTypeCode"
-                        codeListValue=""/>
-                    </mri:associationType>
-                  </mri:MD_AssociatedResource>
-                </mri:associatedResource>
-              </snippet>
-            </template>
-          </action>
-        </section>
-      </tab>
-
-<!-- distributions   -->
-      <tab id="dde-distributionInfo" mode="flat">
-        <section forEach="/mdb:MD_Metadata/mdb:distributionInfo">
-          <text><h2>Distribution</h2></text>
-          
-          <field xpath="mrd:MD_Distribution/mrd:distributionFormat" or="distributionFormat"
-            in="mrd:MD_Distribution" del="."/>
-          <field   xpath="mrd:MD_Distribution/mrd:distributor"   or="distributor"   in="mrd:MD_Distribution" del="."/>
-          <field xpath="mrd:MD_Distribution/mrd:transferOptions/*/mrd:onLine" name="linkage" del="." 
-            or="online" in="mrd:MD_Distribution/mrd:transferOptions/mrd:MD_DigitalTransferOptions"/>
-          <text><hr/></text>
-        </section>
-        <section>
-          <action type="add" btnLabel="Add a distribution"  or="distributionInfo"
-            in="/mdb:MD_Metadata">
-            <template>
-              <snippet> 
-                <mdb:distributionInfo>
-                  <mrd:MD_Distribution>
-                    <mrd:distributionFormat>
-                      <mrd:MD_Format>
-                        <mrd:formatSpecificationCitation>
-                          <cit:CI_Citation>
-                            <cit:title>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:title>
-                            <cit:onlineResource>
-                              <cit:CI_OnlineResource>
-                                <cit:linkage>
-                                  <gco:CharacterString></gco:CharacterString>
-                                </cit:linkage>
-                              </cit:CI_OnlineResource>
-                            </cit:onlineResource>
-                          </cit:CI_Citation>
-                        </mrd:formatSpecificationCitation>
-                      </mrd:MD_Format>
-                    </mrd:distributionFormat>
-                    <mrd:distributor>
-                      <mrd:MD_Distributor>
-                        <mrd:distributorContact>
-                          <cit:CI_Responsibility>
-                            <cit:role>
-                              <cit:CI_RoleCode codeList="https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
-                                codeListValue="distributor">distributor</cit:CI_RoleCode>
-                            </cit:role>
-                            <cit:party>
-                              <cit:CI_Individual>
-                                <cit:name>
-                                  <gco:CharacterString></gco:CharacterString>
-                                </cit:name>
-                                <cit:contactInfo>
-                                  <cit:CI_Contact>
-                                    <cit:address>
-                                      <cit:CI_Address>
-                                        <cit:country>
-                                          <gco:CharacterString/>
-                                        </cit:country>
-                                        <cit:electronicMailAddress>
-                                          <gco:CharacterString></gco:CharacterString>
-                                        </cit:electronicMailAddress>
-                                      </cit:CI_Address>
-                                    </cit:address>
-                                  </cit:CI_Contact>
-                                </cit:contactInfo>
-                                <cit:partyIdentifier>
-                                  <mcc:MD_Identifier>
-                                    <mcc:code>
-                                      <gco:CharacterString></gco:CharacterString>
-                                    </mcc:code>
-                                  </mcc:MD_Identifier>
-                                </cit:partyIdentifier>
-                              </cit:CI_Individual>
-                            </cit:party>
-                          </cit:CI_Responsibility>
-                        </mrd:distributorContact>
-                      </mrd:MD_Distributor>
-                    </mrd:distributor>
-                    <mrd:transferOptions>
-                      <mrd:MD_DigitalTransferOptions>
-                        <mrd:onLine>
-                          <cit:CI_OnlineResource>
-                            <cit:linkage>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:linkage>
-                            <cit:applicationProfile>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:applicationProfile>
-                            <cit:name>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:name>
-                            <cit:description>
-                              <gco:CharacterString></gco:CharacterString>
-                            </cit:description>
-                            <cit:function>
-                              <cit:CI_OnLineFunctionCode codeList="https://www.ddeworld.org/resource/codelist/FunctionCode"
-                                codeListValue=""/>
-                            </cit:function>
-                          </cit:CI_OnlineResource>
-                        </mrd:onLine>
-                      </mrd:MD_DigitalTransferOptions>
-                    </mrd:transferOptions>
-                    
-                  </mrd:MD_Distribution>
-                </mdb:distributionInfo>
-              </snippet>
-            </template>
-          </action>
-        </section>
-      </tab>
-
-<!-- metadata about the metadata -->
-      <tab id="metadatametadata"  mode="flat">
-  
-  <section name="metadata">
-    <field xpath="/mdb:MD_Metadata/mdb:metadataIdentifier"/>
-    <field xpath="/mdb:MD_Metadata/mdb:metadataStandard"/>
-
-    <text ref="metadataprofiletext"/>
-    <field name="metadataprofile"  xpath="/mdb:MD_Metadata/mdb:metadataProfile/cit:CI_Citation/cit:title" del="../.."/>
-    <action type="add" btnLabel="Add DDE metadata profile"
-      name="DDE metadata profile"
-      or="metadataProfile"
-      in="/mdb:MD_Metadata"   if="count(mdb:MD_Metadata/mdb:metadataProfile/cit:CI_Citation/cit:title[child::*/text()='DDE S01-2023: Geosciences Information Metadata'])=0">
-      <template>
-        <snippet>
-          <mdb:metadataProfile>
-            <cit:CI_Citation>
-              <cit:title>
-                <gco:CharacterString>DDE S01-2023: Geosciences Information Metadata</gco:CharacterString>
-              </cit:title>
-            </cit:CI_Citation>
-          </mdb:metadataProfile>
-        </snippet>
-      </template>
-    </action>
-    <text ref="horizontalRule"/>
-    
-    <text ref="ddedefaultlocale"/>
-    <field xpath="/mdb:MD_Metadata/mdb:defaultLocale" or="defaultLocale" in="/mdb:MD_Metadata"/>
-<text ref="metadatacontact"/>
-    <field  name="mdContactInfo"  xpath="/mdb:MD_Metadata/mdb:contact" or="contact" in="/mdb:MD_Metadata"/>
-
-    <field xpath="/mdb:MD_Metadata/mdb:alternativeMetadataReference"
-      or="alternativeMetadataReference" in="/mdb:MD_Metadata"/>
-    <field xpath="/mdb:MD_Metadata/mdb:metadataLinkage" or="metadataLinkage"
-      in="/mdb:MD_Metadata"/>
-    <field name="metadatadates"  xpath="/mdb:MD_Metadata/mdb:dateInfo"/>
-
-  </section>
-  
-</tab>
-      <!-- Elements that should not use the "flat" mode -->
-      <flatModeExceptions>
-        <for name="mri:descriptiveKeywords"/>
-        <for name="mrl:processor"/>
-        <for name="cit:citedResponsibleParty"/>
-        <for name="mri:pointOfContact"/>
-        <for name="mdb:contact"/>
-        <for name="mcc:processor"/>
-        <for name="mrl:statement"/>
-        <for name="mdq:abstract"/>
-        <for name="dqm:abstract"/>
-        <!--        <for name="cit:party"/>
-        <for name="cit:CI_Individual"/>
-        <for name="cit:CI_Organisation"/>-->
-        <for name="mri:spatialResolution"/>
-        <for name="gex:temporalElement"/>
-        <for name="cit:alternateTitle"/>
-        <for name="mri:levelOfDetail"/>
-        <for name="mdb:name"/>
-        <for name="mac:description"/>
-        <for name="mcc:codeSpace"/>
-        <for name="mrd:distributorContact"/>
-        <for name="operatedDataset"/>
-        <!-- <for name="mcc:MD_BrowseGraphic"/>-->
-      </flatModeExceptions>
-
-      <thesaurusList>
-        <thesaurus key="local.theme.topiccategoryskos" maxtags="10"/>
-        <thesaurus key="local.theme.acquisitioncodeskos" maxtags="10"/>
-        <thesaurus key="local.theme.resourcetypeskos" maxtags="10"/>
-        <thesaurus key="local.theme.servicetypeskos" maxtags="10"/>
-      </thesaurusList>
-
-    </view>
-
-    <view name="gnSimple" class="gn-label-above-input gn-indent-bluescale">
+    <view name="default"
+          default="true"
+          class="gn-label-above-input gn-indent-bluescale">
       <sidePanel>
         <directive data-gn-need-help="creating-metadata"/>
-        <directive data-gn-overview-manager="" data-file-types=".png,.gif,.jpeg,.jpg"/>
+        <directive data-gn-overview-manager=""
+                   data-file-types=".png,.gif,.jpeg,.jpg"
+                   data-editable-thumbnail="true"/>
 
         <directive data-gn-distribution-resources-panel="gnCurrentEdit.metadata"
-          data-mode="viewConfig.distributionConfig.layout || ''" data-editor-config="default"
-          data-related-config="[{
-          title: 'API',
-          filter: 'protocol:OGC:WMS|OGC:WMTS|ESRI:.*|atom.*|REST|OGC API Maps|OGC API Records',
-          editActions: ['addOnlinesrc#API']
-          }, {
-          title: 'download',
-          filter: 'protocol:OGC:WFS|OGC:WCS|.*DOWNLOAD.*|DB:.*|FILE:.*|OGC API Features|OGC API Coverages',
-          editActions: ['addOnlinesrc#onlineDownload|localNetwork']
-          }, {
-          title: 'mapLegend',
-          filter: 'function:legend',
-          editActions: ['addOnlinesrc#onlineUseLegend']
-          }, {
-          title: 'links',
-          filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.* AND -function:legend|featureCatalogue|dataQualityReport',
-          editActions: ['addOnlinesrc#links']
-          }, {
-          title: 'quality',
-          filter: 'function:dataQualityReport',
-          editActions: ['addOnlinesrc#quality']
-          }, {
-          title: 'featureCatalog',
-          filter: 'function:featureCatalogue',
-          editActions: ['onlineUseFcats']
-          }]"/>
+                   data-mode="viewConfig.distributionConfig.layout || ''"
+                   data-editor-config="default"
+                   data-related-config="[{
+                                             title: 'API',
+                                             filter: 'protocol:OGC:WMS|OGC:WMTS|ESRI:.*|atom.*|REST|OGC API Maps|OGC API Records',
+                                             editActions: ['addOnlinesrc#API']
+                                           }, {
+                                              title: 'download',
+                                              filter: 'protocol:OGC:WFS|OGC:WCS|.*DOWNLOAD.*|DB:.*|FILE:.*|OGC API Features|OGC API Coverages',
+                                              editActions: ['addOnlinesrc#onlineDownload|localNetwork']
+                                           }, {
+                                             title: 'map',
+                                             filter: 'protocol:OGC:OWS-C|PDF:MAP',
+                                             editActions: ['addOnlinesrc#onlineUseMap']
+                                           }, {
+                                             title: 'mapLegend',
+                                             filter: 'function:legend',
+                                             editActions: ['addOnlinesrc#onlineUseLegend']
+                                           }, {
+                                              title: 'links',
+                                              filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.*|PDF:MAP AND -function:legend|featureCatalogue|dataQualityReport',
+                                              editActions: ['addOnlinesrc#links']
+                                           }, {
+                                              title: 'quality',
+                                              filter: 'function:dataQualityReport',
+                                              editActions: ['addOnlinesrc#quality']
+                                           }, {
+                                              title: 'featureCatalog',
+                                              filter: 'function:featureCatalogue',
+                                              editActions: ['onlineUseFcats']
+                                           }]"
+        />
 
-        <directive data-gn-onlinesrc-list=""
-          data-types="sibling|associated|source|dataset|service|fcats"/>
+        <directive data-gn-associated-resources-panel="gnCurrentEdit.metadata" />
 
-        <directive data-gn-geo-publisher="" data-ng-if="gnCurrentEdit.geoPublisherConfig"
-          data-config="{{gnCurrentEdit.geoPublisherConfig}}" data-lang="lang"/>
+        <directive gn-geo-publisher=""
+                   data-ng-if="gnCurrentEdit.geoPublisherConfig"
+                   data-config="{{gnCurrentEdit.geoPublisherConfig}}"
+                   data-lang="lang"/>
 
         <directive data-gn-validation-report=""/>
 
@@ -1664,16 +713,20 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
         <section xpath="/mdb:MD_Metadata/mdb:applicationSchemaInfo"/>
         <section name="metadata" collapsed="true">
           <field xpath="/mdb:MD_Metadata/mdb:metadataIdentifier"/>
-          <field xpath="/mdb:MD_Metadata/mdb:defaultLocale" or="defaultLocale" in="/mdb:MD_Metadata"/>
-          <!--<field xpath="/mdb:MD_Metadata/mdb:otherLocale" or="otherLocale" in="/mdb:MD_Metadata"/>-->
-          <field xpath="/mdb:MD_Metadata/mdb:contact" or="contact" in="/mdb:MD_Metadata"/>
-          <!--  <field xpath="/mdb:MD_Metadata/mdb:parentMetadata" or="parentMetadata"
-            in="/mdb:MD_Metadata"/>-->
-          <!--  <field xpath="/mdb:MD_Metadata/mdb:metadataScope" or="metadataScope" in="/mdb:MD_Metadata"/>-->
-          <field xpath="/mdb:MD_Metadata/mdb:alternativeMetadataReference"
-            or="alternativeMetadataReference" in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:defaultLocale" or="defaultLocale"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:otherLocale" or="otherLocale"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:contact" or="contact"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:parentMetadata" or="parentMetadata"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:metadataScope" or="metadataScope"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:alternativeMetadataReference" or="alternativeMetadataReference"
+                 in="/mdb:MD_Metadata"/>
           <field xpath="/mdb:MD_Metadata/mdb:metadataLinkage" or="metadataLinkage"
-            in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
           <field xpath="/mdb:MD_Metadata/mdb:dateInfo"/>
           <field xpath="/mdb:MD_Metadata/mdb:metadataStandard"/>
           <field xpath="/mdb:MD_Metadata/mdb:metadataProfile"/>
@@ -1695,29 +748,22 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
         <for name="gfc:listedValue"/>
       </flatModeExceptions>
 
-      <thesaurusList>
-        <!--        <thesaurus key="external.theme.httpinspireeceuropaeutheme-theme"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>
-        <thesaurus
-          key="external.theme.httpinspireeceuropaeumetadatacodelistSpatialScope-SpatialScope"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>
-        <thesaurus
-          key="external.theme.httpinspireeceuropaeumetadatacodelistPriorityDataset-PriorityDataset"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>
-        <thesaurus key="external.theme.httpinspireeceuropaeufeatureconcept-featureconcept"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>-->
-        <thesaurus key="local.theme.TopicCategorySKOS" maxtags="10"/>
-      </thesaurusList>
+      <thesaurusList defaultTransformation="to-iso19115-3.2018-keyword-with-anchor"/>
     </view>
 
-    <view name="advanced" class="gn-label-above-input gn-indent-bluescale">
+
+    <view name="advanced"
+          class="gn-label-above-input gn-indent-bluescale">
       <sidePanel>
         <directive data-gn-need-help="creating-metadata"/>
-        <directive data-gn-overview-manager="" data-file-types=".png,.gif,.jpeg,.jpg"/>
+        <directive data-gn-overview-manager=""
+                   data-file-types=".png,.gif,.jpeg,.jpg"
+                   data-editable-thumbnail="true"/>
 
         <directive data-gn-distribution-resources-panel="gnCurrentEdit.metadata"
-          data-mode="viewConfig.distributionConfig.layout || ''" data-editor-config="default"
-          data-related-config="[{
+                   data-mode="viewConfig.distributionConfig.layout || ''"
+                   data-editor-config="default"
+                   data-related-config="[{
                                              title: 'API',
                                              filter: 'protocol:OGC:WMS|OGC:WMTS|ESRI:.*|atom.*|REST|OGC API Maps|OGC API Records',
                                              editActions: ['addOnlinesrc#API']
@@ -1726,12 +772,16 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
                                               filter: 'protocol:OGC:WFS|OGC:WCS|.*DOWNLOAD.*|DB:.*|FILE:.*|OGC API Features|OGC API Coverages',
                                               editActions: ['addOnlinesrc#onlineDownload|localNetwork']
                                            }, {
+                                             title: 'map',
+                                             filter: 'protocol:OGC:OWS-C|PDF:MAP',
+                                             editActions: ['addOnlinesrc#onlineUseMap']
+                                           }, {
                                              title: 'mapLegend',
                                              filter: 'function:legend',
                                              editActions: ['addOnlinesrc#onlineUseLegend']
                                            }, {
                                               title: 'links',
-                                              filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.* AND -function:legend|featureCatalogue|dataQualityReport',
+                                              filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.*|PDF:MAP AND -function:legend|featureCatalogue|dataQualityReport',
                                               editActions: ['addOnlinesrc#links']
                                            }, {
                                               title: 'quality',
@@ -1741,13 +791,15 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
                                               title: 'featureCatalog',
                                               filter: 'function:featureCatalogue',
                                               editActions: ['onlineUseFcats']
-                                           }]"/>
+                                           }]"
+        />
 
-        <directive data-gn-onlinesrc-list=""
-          data-types="sibling|associated|source|dataset|service|fcats"/>
+        <directive data-gn-associated-resources-panel="gnCurrentEdit.metadata" />
 
-        <directive gn-geo-publisher="" data-ng-if="gnCurrentEdit.geoPublisherConfig"
-          data-config="{{gnCurrentEdit.geoPublisherConfig}}" data-lang="lang"/>
+        <directive gn-geo-publisher=""
+                   data-ng-if="gnCurrentEdit.geoPublisherConfig"
+                   data-config="{{gnCurrentEdit.geoPublisherConfig}}"
+                   data-lang="lang"/>
 
         <directive data-gn-validation-report=""/>
 
@@ -1756,21 +808,21 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
 
       <tab id="identificationInfo" default="true">
         <section xpath="/mdb:MD_Metadata/mdb:identificationInfo" or="identificationInfo"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="contentInfo">
         <section xpath="/mdb:MD_Metadata/mdb:contentInfo" or="contentInfo" in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="distributionInfo">
         <section xpath="/mdb:MD_Metadata/mdb:distributionInfo" or="distributionInfo"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <!--
       mdb:distributionInfo/mrd:MD_Distribution/mrd:transferOptions/mrd:MD_DigitalTransferOptions
       -->
       <tab id="dataQualityInfo">
         <section xpath="/mdb:MD_Metadata/mdb:dataQualityInfo" or="dataQualityInfo"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <!--
       Example to display a table view of quality measures.
@@ -1783,74 +835,73 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
       </tab>-->
       <tab id="resourceLineage">
         <section xpath="/mdb:MD_Metadata/mdb:resourceLineage" or="resourceLineage"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="spatialRepresentationInfo">
         <section xpath="/mdb:MD_Metadata/mdb:spatialRepresentationInfo"
-          or="spatialRepresentationInfo" in="/mdb:MD_Metadata"/>
+                 or="spatialRepresentationInfo" in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="referenceSystemInfo">
         <section xpath="/mdb:MD_Metadata/mdb:referenceSystemInfo" or="referenceSystemInfo"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="acquisitionInformation">
         <section xpath="/mdb:MD_Metadata/mdb:acquisitionInformation" or="acquisitionInformation"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="metadata">
         <section name="metadata">
           <field xpath="/mdb:MD_Metadata/mdb:metadataIdentifier"/>
-          <field xpath="/mdb:MD_Metadata/mdb:defaultLocale" or="defaultLocale" in="/mdb:MD_Metadata"/>
-          <field xpath="/mdb:MD_Metadata/mdb:otherLocale" or="otherLocale" in="/mdb:MD_Metadata"/>
-          <field xpath="/mdb:MD_Metadata/mdb:contact" or="contact" in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:defaultLocale" or="defaultLocale"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:otherLocale" or="otherLocale"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:contact" or="contact"
+                 in="/mdb:MD_Metadata"/>
           <field xpath="/mdb:MD_Metadata/mdb:parentMetadata" or="parentMetadata"
-            in="/mdb:MD_Metadata"/>
-          <field xpath="/mdb:MD_Metadata/mdb:metadataScope" or="metadataScope" in="/mdb:MD_Metadata"/>
-          <field xpath="/mdb:MD_Metadata/mdb:alternativeMetadataReference"
-            or="alternativeMetadataReference" in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:metadataScope" or="metadataScope"
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:alternativeMetadataReference" or="alternativeMetadataReference"
+                 in="/mdb:MD_Metadata"/>
           <field xpath="/mdb:MD_Metadata/mdb:metadataLinkage" or="metadataLinkage"
-            in="/mdb:MD_Metadata"/>
-          <field xpath="/mdb:MD_Metadata/mdb:dateInfo" or="dateInfo" in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:dateInfo" or="dateInfo"
+                 in="/mdb:MD_Metadata"/>
           <field xpath="/mdb:MD_Metadata/mdb:metadataStandard"/>
           <field xpath="/mdb:MD_Metadata/mdb:metadataProfile"/>
         </section>
       </tab>
       <tab id="portrayalCatalogueInfo" toggle="true">
         <section xpath="/mdb:MD_Metadata/mdb:portrayalCatalogueInfo" or="portrayalCatalogueInfo"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="metadataConstraints" toggle="true">
         <section xpath="/mdb:MD_Metadata/mdb:metadataConstraints" or="metadataConstraints"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="metadataMaintenance" toggle="true">
         <section xpath="/mdb:MD_Metadata/mdb:metadataMaintenance" or="metadataMaintenance"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
       <tab id="applicationSchemaInfo" toggle="true">
         <section xpath="/mdb:MD_Metadata/mdb:applicationSchemaInfo" or="applicationSchemaInfo"
-          in="/mdb:MD_Metadata"/>
+                 in="/mdb:MD_Metadata"/>
       </tab>
-      <thesaurusList>
-        <thesaurus key="external.theme.httpinspireeceuropaeutheme-theme"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>
-        <thesaurus
-          key="external.theme.httpinspireeceuropaeumetadatacodelistSpatialScope-SpatialScope"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>
-        <thesaurus
-          key="external.theme.httpinspireeceuropaeumetadatacodelistPriorityDataset-PriorityDataset"
-          transformations="to-iso19115-3.2018-keyword-with-anchor"/>
-      </thesaurusList>
-    </view>
 
+      <thesaurusList defaultTransformation="to-iso19115-3.2018-keyword-with-anchor"/>
+    </view>
     <view name="xml">
       <sidePanel>
         <directive data-gn-need-help="creating-metadata"/>
-        <directive data-gn-overview-manager="" data-file-types=".png,.gif,.jpeg,.jpg"/>
+        <directive data-gn-overview-manager=""
+                   data-file-types=".png,.gif,.jpeg,.jpg"
+                   data-editable-thumbnail="true"/>
 
         <directive data-gn-distribution-resources-panel="gnCurrentEdit.metadata"
-          data-mode="viewConfig.distributionConfig.layout || ''" data-editor-config="default"
-          data-related-config="[{
+                   data-mode="viewConfig.distributionConfig.layout || ''"
+                   data-editor-config="default"
+                   data-related-config="[{
                                              title: 'API',
                                              filter: 'protocol:OGC:WMS|OGC:WMTS|ESRI:.*|atom.*|REST|OGC API Maps|OGC API Records',
                                              editActions: ['addOnlinesrc#API']
@@ -1859,12 +910,16 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
                                               filter: 'protocol:OGC:WFS|OGC:WCS|.*DOWNLOAD.*|DB:.*|FILE:.*|OGC API Features|OGC API Coverages',
                                               editActions: ['addOnlinesrc#onlineDownload|localNetwork']
                                            }, {
+                                             title: 'map',
+                                             filter: 'protocol:OGC:OWS-C|PDF:MAP',
+                                             editActions: ['addOnlinesrc#onlineUseMap']
+                                           }, {
                                              title: 'mapLegend',
                                              filter: 'function:legend',
                                              editActions: ['addOnlinesrc#onlineUseLegend']
                                            }, {
                                               title: 'links',
-                                              filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.* AND -function:legend|featureCatalogue|dataQualityReport',
+                                              filter:'-protocol:OGC.*|REST|ESRI:.*|atom.*|.*DOWNLOAD.*|DB:.*|FILE:.*|PDF:MAP AND -function:legend|featureCatalogue|dataQualityReport',
                                               editActions: ['addOnlinesrc#links']
                                            }, {
                                               title: 'quality',
@@ -1874,13 +929,15 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
                                               title: 'featureCatalog',
                                               filter: 'function:featureCatalogue',
                                               editActions: ['onlineUseFcats']
-                                           }]"/>
+                                           }]"
+        />
 
-        <directive data-gn-onlinesrc-list=""
-          data-types="sibling|associated|source|dataset|service|fcats"/>
+        <directive data-gn-associated-resources-panel="gnCurrentEdit.metadata" />
 
-        <directive gn-geo-publisher="" data-ng-if="gnCurrentEdit.geoPublisherConfig"
-          data-config="{{gnCurrentEdit.geoPublisherConfig}}" data-lang="lang"/>
+        <directive gn-geo-publisher=""
+                   data-ng-if="gnCurrentEdit.geoPublisherConfig"
+                   data-config="{{gnCurrentEdit.geoPublisherConfig}}"
+                   data-lang="lang"/>
 
         <directive data-gn-validation-report=""/>
 
@@ -1890,4 +947,139 @@ xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQua
       <tab id="xml" default="true"/>
     </view>
   </views>
+
+  <batchEditing>
+    <section name="identification">
+      <!-- Update existing title in metadata record -->
+      <field name="title"
+             xpath="mdb:identificationInfo/*/
+                      mri:citation/*/cit:title"
+             indexField="title">
+        <template><![CDATA[<gco:CharacterString xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'>{{value}}</gco:CharacterString>]]></template>
+      </field>
+
+      <!-- Insert a new keyword in the first gmd:descriptiveKeywords found.
+      Warning: The section may contains a thesaurusName reference and
+      the keyword may not be part of it.
+      Warning: Duplicates may be inserted.
+      -->
+      <field name="keyword"
+             xpath="mdb:identificationInfo/*/
+                      mri:descriptiveKeywords/*/mri:keyword"
+             indexField="keyword"
+             insertMode="gn_create">
+        <template><![CDATA[<gco:CharacterString xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'>{{value}}</gco:CharacterString>]]></template>
+      </field>
+
+      <!-- Insert a new topic category
+      Warning: Duplicates may be inserted.
+      -->
+      <field name="topicCats"
+             xpath="mri:identificationInfo/*/
+                      mri:topicCategory"
+             use="data-gn-codelist-picker"
+             codelist="mri:MD_TopicCategoryCode"
+             indexField="topicCat"
+             insertMode="gn_create">
+        <template><![CDATA[<mri:MD_TopicCategoryCode xmlns:mri='http://standards.iso.org/iso/19115/-3/mri/1.0'>{{value}}</mri:MD_TopicCategoryCode>]]></template>
+      </field>
+
+      <!-- Insert a new extent
+      Warning: Duplicates may be inserted.
+      -->
+      <field name="extent"
+             xpath="mri:identificationInfo/*/mri:extent"
+             use="data-gn-draw-bbox"
+             insertMode="gn_create"/>
+
+      <!-- Insert a new resource language
+      Warning: Duplicates may be inserted.
+      -->
+      <field name="language"
+             xpath="mri:identificationInfo/*/mri:defaultLocale/*/lan:language"
+             use="data-gn-language-picker"
+             insertMode="gn_replace"
+             removable="true">
+        <template><![CDATA[<lan:LanguageCode xmlns:lan='http://standards.iso.org/iso/19115/-3/lan/1.0' codeListValue='{{value}}'/>]]></template>
+      </field>
+
+
+      <field name="resourceStatus"
+             xpath="mri:identificationInfo/*/
+                      mri:status"
+             use="data-gn-codelist-picker"
+             codelist="mcc:MD_ProgressCode"
+             insertMode="gn_replace"
+             removable="true">
+        <template><![CDATA[<mcc:MD_ProgressCode xmlns:mcc='http://standards.iso.org/iso/19115/-3/mcc/1.0' codeListValue='{{value}}'/>]]></template>
+      </field>
+    </section>
+
+    <section name="resourceConstraints">
+      <!-- Insert a new access contraints
+            Warning: Duplicates may be inserted.
+      -->
+      <field name="legalConstraints"
+             xpath="mri:identificationInfo/*/
+                      mri:resourceConstraints/mco:MD_LegalConstraints/
+                        mco:accessConstraints"
+             use="data-gn-codelist-picker"
+             codelist="mco:MD_RestrictionCode"
+             insertMode="gn_create"
+             removable="true">
+        <template><![CDATA[<mco:MD_RestrictionCode xmlns:mco='http://standards.iso.org/iso/19115/-3/mco/1.0' codeListValue='{{value}}'/>]]></template>
+      </field>
+
+      <!-- Insert a new other contraints
+            Warning: Duplicates may be inserted.
+      -->
+      <field name="otherConstraints"
+             xpath="mri:identificationInfo/*/
+                      mco:resourceConstraints/mco:MD_LegalConstraints/
+                        mco:otherConstraints"
+             use="textarea"
+             insertMode="gn_create"
+             removable="true">
+        <template><![CDATA[<gco:CharacterString xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'>{{value}}</gco:CharacterString>]]></template>
+      </field>
+    </section>
+
+
+    <!-- Replace current lineage or insert a new one.
+          Warning: Duplicates may be inserted.
+    -->
+    <section name="quality">
+      <field name="lineage"
+             xpath="mdb:resourceLineage/mrl:LI_Lineage/mrl:statement"
+             use="textarea"
+             insertMode="gn_replace"
+             removable="true">
+        <template><![CDATA[<gco:CharacterString xmlns:gco='http://standards.iso.org/iso/19115/-3/gco/1.0'>{{value}}</gco:CharacterString>]]></template>
+      </field>
+    </section>
+
+    <section name="contact">
+      <field name="resourceContact"
+             xpath="mdb:identificationInfo/*/mri:pointOfContact"
+             use="data-gn-directory-entry-selector"
+             insertMode="gn_create"/>
+      <field name="distributor"
+             xpath="mdb:distributionInfo/mrd:MD_Distribution/mrd:distributor/mrd:MD_Distributor/mrd:distributorContact"
+             use="data-gn-directory-entry-selector"
+             insertMode="gn_create"/>
+      <field name="mdContact"
+             xpath="mdb:contact"
+             use="data-gn-directory-entry-selector"
+             insertMode="gn_create"/>
+    </section>
+
+    <section name="metadata">
+      <field name="mdLanguage"
+             xpath="mdb:defaultLocale/lan:PT_Locale/lan:language"
+             use="data-gn-language-picker"
+             removable="true">
+        <template><![CDATA[<lan:LanguageCode xmlns:lan='http://standards.iso.org/iso/19115/-3/lan/1.0' codeListValue='{{value}}'/>]]></template>
+      </field>
+    </section>
+  </batchEditing>
 </editor>
