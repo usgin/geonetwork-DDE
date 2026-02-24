@@ -1,5 +1,5 @@
 //=============================================================================
-//===	Copyright (C) 2001-2024 Food and Agriculture Organization of the
+//===	Copyright (C) 2001-2023 Food and Agriculture Organization of the
 //===	United Nations (FAO-UN), United Nations World Food Programme (WFP)
 //===	and United Nations Environment Programme (UNEP)
 //===
@@ -23,10 +23,8 @@
 
 package org.fao.geonet.kernel.search.index;
 
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang.StringUtils;
+import org.elasticsearch.action.search.SearchResponse;
 import org.fao.geonet.kernel.search.EsSearchManager;
 import org.fao.geonet.util.XslUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,13 +61,11 @@ public class OverviewIndexFieldUpdater {
         SearchResponse response = null;
         try {
             response = searchManager.query(String.format(
-                "+_id:\"%s\" _exists_:overview.url -_exists_:overview.data",
+                "+id:\"%s\" _exists_:overview.url -_exists_:overview.data",
                 id), null, source, 0, 1);
-            ObjectMapper objectMapper = new ObjectMapper();
-            response.hits().hits().forEach(h -> {
-                Hit hit = (Hit) h;
+            response.getHits().forEach(hit -> {
                 AtomicBoolean updates = new AtomicBoolean(false);
-                Map<String, Object> fields = objectMapper.convertValue(hit.source(), Map.class);
+                Map<String, Object> fields = hit.getSourceAsMap();
                 getHitOverviews(fields)
                     .stream()
                     .forEach(overview -> {

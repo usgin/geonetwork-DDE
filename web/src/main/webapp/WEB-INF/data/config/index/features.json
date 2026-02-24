@@ -3,7 +3,6 @@
     "analysis": {
       "analyzer": {
         "pathAnalyzer": {
-          "type": "custom",
           "tokenizer": "pathTokenizer"
         }
       },
@@ -13,7 +12,6 @@
           "delimiter": "/",
           "replacement": "/",
           "skip": 0,
-          "buffer_size": 1024,
           "reverse": false
         }
       }
@@ -46,6 +44,15 @@
         }
       },
       {
+        "dateType": {
+          "match": "ft_*_d",
+          "mapping": {
+            "type": "double",
+            "format": ""
+          }
+        }
+      },
+      {
         "dateTimeType": {
           "match": "ft_*_dt",
           "mapping": {
@@ -59,6 +66,7 @@
           "match": "ft_*_s",
           "mapping": {
             "type": "keyword",
+            "fielddata": true,
             "copy_to": "any"
           }
         }
@@ -67,7 +75,7 @@
         "stringPathType": {
           "match": "ft_*_s_tree",
           "mapping": {
-            "type": "text",
+            "type":     "keyword",
             "fielddata": true,
             "analyzer": "pathAnalyzer",
             "search_analyzer": "keyword"
@@ -78,7 +86,8 @@
         "operationType": {
           "match": "_op*",
           "mapping": {
-            "type": "keyword"
+            "type": "keyword",
+            "fielddata": true
           }
         }
       }

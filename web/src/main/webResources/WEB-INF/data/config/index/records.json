@@ -2,13 +2,11 @@
   "settings": {
     "index": {
       "max_result_window": ${es.index.max_result_window.limit},
-      "max_inner_result_window": ${es.index.max_inner_result_window.limit},
       "query.default_field": "any.default",
       "mapping.total_fields.limit": ${es.index.mapping.total_fields.limit},
       "analysis": {
         "normalizer": {
           "sorting": {
-            "type": "custom",
             "filter": ["lowercase", "asciifolding"]
           }
         },
@@ -24,7 +22,6 @@
             "filter": ["reverse"]
           },
           "french_rebuilt": {
-            "type": "custom",
             "tokenizer": "standard",
             "filter": [
               "lowercase",
@@ -37,7 +34,6 @@
             ]
           },
           "english_rebuilt": {
-            "type": "custom",
             "tokenizer": "standard",
             "filter": [
               "english_possessive_stemmer",
@@ -50,7 +46,6 @@
             ]
           },
           "synInspireAnnexes": {
-            "type": "custom",
             "tokenizer": "keyword",
             "filter": [
               "lowercase",
@@ -60,27 +55,22 @@
             ]
           },
           "synInspireThemeUris": {
-            "type": "custom",
             "tokenizer": "keyword",
             "filter": ["lowercase", "synInspireThemeUris"]
           },
           "synInspireThemes": {
-            "type": "custom",
             "tokenizer": "keyword",
             "filter": ["lowercase", "synInspireThemes"]
           },
           "keepInspireServiceTypes": {
-            "type": "custom",
             "tokenizer": "keyword",
             "filter": ["lowercase", "keepInspireServiceTypes"]
           },
           "keepInspireAnnexes": {
-            "type": "custom",
             "tokenizer": "keyword",
             "filter": ["lowercase", "keepInspireAnnexes"]
           },
           "keepInspireThemes": {
-            "type": "custom",
             "tokenizer": "keyword",
             "filter": ["lowercase", "keepInspireThemes"]
           }
@@ -1278,8 +1268,9 @@
       {
         "tag": {
           "match": "th_*",
-          "match_mapping_type": "object",
           "mapping": {
+            "type": "object",
+            "copy_to": ["tag"],
             "properties": {
               "default": {
                 "type": "keyword",
@@ -1436,7 +1427,7 @@
         "synInspireAnnexesType": {
           "match": "inspireAnnex*",
           "mapping": {
-            "type": "text",
+            "type": "keyword",
             "fielddata": true,
             "analyzer": "synInspireAnnexes",
             "search_analyzer": "keyword"
@@ -1447,7 +1438,7 @@
         "synInspireThemeType": {
           "match": "inspireTheme*",
           "mapping": {
-            "type": "text",
+            "type": "keyword",
             "fielddata": true,
             "analyzer": "synInspireThemes",
             "search_analyzer": "keyword"
@@ -1458,7 +1449,7 @@
         "inspireServiceType": {
           "match": "inspireServiceType",
           "mapping": {
-            "type": "text",
+            "type": "keyword",
             "fielddata": true,
             "analyzer": "keepInspireServiceTypes",
             "search_analyzer": "keyword"
@@ -1567,7 +1558,8 @@
       },
       "document": {
         "type": "text",
-        "index": false
+        "index": false,
+        "doc_values": false
       },
       "documentStandard": {
         "type": "keyword"
@@ -1638,6 +1630,9 @@
       "isOpenData": {
         "type": "keyword"
       },
+      "lineage": {
+        "type": "text"
+      },
       "resolutionScaleDenominator": {
         "type": "integer"
       },
@@ -1669,46 +1664,6 @@
           },
           "pass": {
             "type": "keyword"
-          }
-        }
-      },
-      "measure": {
-        "type": "nested",
-        "properties": {
-          "name": {
-            "type": "keyword"
-          },
-          "description": {
-            "type": "text"
-          },
-          "date": {
-            "type": "date"
-          },
-          "value": {
-            "type": "keyword"
-          },
-          "unit": {
-            "type": "keyword"
-          },
-          "type": {
-            "type": "keyword"
-          }
-        }
-      },
-      "processSteps": {
-        "type": "nested",
-        "properties": {
-          "descriptionObject": {
-            "type": "object"
-          },
-          "date": {
-            "type": "date"
-          },
-          "source": {
-            "type": "object"
-          },
-          "processor": {
-            "type": "object"
           }
         }
       },
@@ -1841,8 +1796,7 @@
             "type": "keyword"
           },
           "title": {
-            "type": "keyword",
-            "copy_to": "any.common"
+            "type": "keyword"
           },
           "origin": {
             "type": "keyword"
@@ -1965,7 +1919,8 @@
       },
       "validReport": {
         "type": "text",
-        "index": false
+        "index": false,
+        "doc_values": false
       },
       "useLimitation": {
         "type": "text",
@@ -2029,18 +1984,7 @@
         "type": "boolean"
       },
       "indexingErrorMsg": {
-        "type": "object",
-        "properties": {
-          "string": {
-            "type": "keyword"
-          },
-          "type": {
-            "type": "keyword"
-          },
-          "values": {
-            "type": "nested"
-          }
-        }
+        "type": "keyword"
       },
       "statusWorkflow": {
         "type": "keyword"

@@ -52,6 +52,8 @@ import org.json.XML;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.ClientHttpResponse;
 
+import org.jdom.Namespace;
+
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -124,6 +126,42 @@ class Harvester implements IHarvester<HarvestResult> {
             if (isRDFLike(content)) type = SimpleUrlResourceType.RDFXML;
             else if (isXMLLike(content)) type = SimpleUrlResourceType.XML;
             else type = SimpleUrlResourceType.JSON;
+
+            // Sitemap processing: if isSitemap is explicitly enabled,
+            // parse the sitemap and fetch each URL as an individual record.
+            if ("true".equals(params.isSitemap)) {
+                log.info("Processing URL as sitemap: " + url);
+                try {
+                    List<String> sitemapUrls = extractUrlsFromSitemap(content);
+                    log.info("Found " + sitemapUrls.size() + " URLs in sitemap.");
+                    Map<String, Element> allSitemapUuids = new HashMap<>();
+
+                    for (String recordUrl : sitemapUrls) {
+                        if (cancelMonitor.get()) {
+                            return new HarvestResult();
+                        }
+                        try {
+                            log.debug("Fetching sitemap entry: " + recordUrl);
+                            String recordContent = retrieveUrl(recordUrl);
+                            JsonNode recordJson = objectMapper.readTree(recordContent);
+                            collectSingleJsonRecord(recordJson, allSitemapUuids, recordUrl);
+                        } catch (Exception e) {
+                            errors.add(new HarvestError(this.context, e));
+                            log.error(String.format("Failed to process sitemap entry %s. Error is: %s",
+                                recordUrl, e.getMessage()));
+                        }
+                    }
+
+                    aligner.align(allSitemapUuids, errors);
+                    aligner.cleanupRemovedRecords(allSitemapUuids.keySet());
+                    log.info("Total records processed from sitemap: " + allSitemapUuids.size());
+                } catch (Exception e) {
+                    error = true;
+                    errors.add(new HarvestError(context, e));
+                    log.error("Failed to process sitemap: " + e.getMessage());
+                }
+                continue;
+            }
 
             if (type == SimpleUrlResourceType.XML
                 || type == SimpleUrlResourceType.RDFXML) {
@@ -429,6 +467,89 @@ class Harvester implements IHarvester<HarvestResult> {
 
     private URI createUrl(String jsonUrl) throws URISyntaxException {
         return new URI(jsonUrl);
+    }
+
+    /**
+     * Check if the content looks like a sitemap XML document.
+     */
+    private boolean isSitemapContent(String content) {
+        if (content == null) return false;
+        String trimmed = content.trim();
+        return trimmed.contains("<urlset") || trimmed.contains("<sitemapindex");
+    }
+
+    /**
+     * Extract all loc URLs from a sitemap XML document.
+     */
+    private List<String> extractUrlsFromSitemap(String content) throws Exception {
+        List<String> urls = new ArrayList<>();
+        Element sitemapRoot = Xml.loadString(content, false);
+        Namespace sitemapNs = Namespace.getNamespace("sm", "http://www.sitemaps.org/schemas/sitemap/0.9");
+        List<Namespace> nsList = new ArrayList<>();
+        nsList.add(sitemapNs);
+
+        // Try with namespace: //sm:url/sm:loc
+        List<?> locNodes = Xml.selectNodes(sitemapRoot, "//sm:url/sm:loc", nsList);
+        if (locNodes != null && !locNodes.isEmpty()) {
+            for (Object node : locNodes) {
+                String locText = getXmlElementTextValue(node);
+                if (locText == null && node instanceof Element) {
+                    locText = ((Element) node).getTextTrim();
+                }
+                if (StringUtils.isNotEmpty(locText)) {
+                    urls.add(locText.trim());
+                }
+            }
+        }
+
+        // Fallback: try without namespace (some sitemaps don't use the namespace)
+        if (urls.isEmpty()) {
+            locNodes = Xml.selectNodes(sitemapRoot, "//url/loc", sitemapRoot.getAdditionalNamespaces());
+            if (locNodes != null) {
+                for (Object node : locNodes) {
+                    String locText = getXmlElementTextValue(node);
+                    if (locText == null && node instanceof Element) {
+                        locText = ((Element) node).getTextTrim();
+                    }
+                    if (StringUtils.isNotEmpty(locText)) {
+                        urls.add(locText.trim());
+                    }
+                }
+            }
+        }
+        return urls;
+    }
+
+    /**
+     * Process a single JSON object as one record (not an array).
+     * Used for sitemap harvesting where each URL returns a single JSON-LD document.
+     */
+    private void collectSingleJsonRecord(JsonNode jsonRecord,
+                                          Map<String, Element> uuids,
+                                          String sourceUrl) {
+        String uuid = null;
+        try {
+            if (StringUtils.isNotEmpty(params.recordIdPath)) {
+                JsonNode idNode = jsonRecord.at(params.recordIdPath);
+                if (!idNode.isMissingNode() && !idNode.isNull()) {
+                    uuid = this.extractUuidFromIdentifier(idNode.asText());
+                }
+            }
+            if (StringUtils.isEmpty(uuid)) {
+                uuid = Sha1Encoder.encodeString(sourceUrl);
+            }
+
+            URL apiUrl = new URL(sourceUrl);
+            String nodeUrl = apiUrl.getProtocol() + "://" + apiUrl.getAuthority();
+            Element xml = convertJsonRecordToXml(jsonRecord, uuid, sourceUrl, nodeUrl);
+            if (xml != null) {
+                uuids.put(uuid, xml);
+            }
+        } catch (Exception e) {
+            errors.add(new HarvestError(this.context, e));
+            log.error(String.format("Failed to process single JSON record from %s. Error is: %s",
+                sourceUrl, e.getMessage()));
+        }
     }
 
     public List<HarvestError> getErrors() {

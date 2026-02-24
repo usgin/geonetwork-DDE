@@ -676,6 +676,17 @@
             recordIdPath: "gmd:fileIdentifier/*/text()",
             toISOConversion: ""
           }
+        },
+        "CDIF Sitemap": {
+          defaultValues: {
+            loopElement: "",
+            numberOfRecordPath: "",
+            pageSizeParam: "",
+            pageFromParam: "",
+            recordIdPath: "/@id",
+            toISOConversion: "schema:iso19115-3.2018:convert/fromJsonCdif",
+            isSitemap: "true"
+          }
         }
       };
 

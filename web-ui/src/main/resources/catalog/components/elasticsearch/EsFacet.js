@@ -214,12 +214,12 @@
                 filters: {
                   errors: {
                     query_string: {
-                      query: "-indexingErrorMsg.type:warning"
+                      query: "-indexingErrorMsg:/Warning.*/"
                     }
                   },
                   warning: {
                     query_string: {
-                      query: "+indexingErrorMsg.type:warning"
+                      query: "+indexingErrorMsg:/Warning.*/"
                     }
                   }
                 }
@@ -232,8 +232,20 @@
             },
             indexingErrorMsg: {
               terms: {
-                field: "indexingErrorMsg.string",
-                size: 10
+                field: "indexingErrorMsg",
+                size: 10,
+                exclude: "Warning.*"
+              }
+            },
+            indexingWarningMsg: {
+              terms: {
+                field: "indexingErrorMsg",
+                size: 10,
+                include: "Warning.*"
+              },
+              meta: {
+                displayFilter: false,
+                field: "indexingErrorMsg"
               }
             }
           },

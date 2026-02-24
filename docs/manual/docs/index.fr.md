@@ -3,7 +3,7 @@ hide:
   - navigation
 ---
 
-# GeoNetwork 4.4 {#toc}
+# GeoNetwork 4.2 {#toc}
 
 Bienvenue à GeoNetwork. Cette documentation est organisée en guides spécifiques destinés à différents publics.
 

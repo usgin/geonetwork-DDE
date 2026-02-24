@@ -18,43 +18,6 @@
   <xsl:import href="../../layout/utility-tpl-multilingual.xsl"/>
   <xsl:import href="../../layout/utility-fn.xsl"/>
 
-  <xsl:function name="gn-fn-iso19115-3.2018:get-author-list">
-    <xsl:param name="authors" as="node()*"/>
-    <xsl:param name="langId" as="xs:string"/>
-
-    <xsl:variable name="authorsNameAndOrgListTmp"
-                  as="node()*">
-      <xsl:for-each select="$authors">
-        <author>
-          <xsl:variable name="name"
-                        select=".//cit:individual/*/cit:name"/>
-
-          <xsl:variable name="listOfNames">
-            <xsl:for-each select="$name">
-              <xsl:call-template name="get-iso19115-3.2018-localised">
-                <xsl:with-param name="langId" select="$langId"/>
-              </xsl:call-template>
-              <xsl:if test="position() != last()">, </xsl:if>
-            </xsl:for-each>
-          </xsl:variable>
-
-          <xsl:value-of select="$listOfNames"/>
-          <xsl:if test="normalize-space($listOfNames) != ''"> (</xsl:if>
-          <xsl:for-each select="cit:party/*/cit:name">
-            <xsl:call-template name="get-iso19115-3.2018-localised">
-              <xsl:with-param name="langId" select="$langId"/>
-            </xsl:call-template>
-          </xsl:for-each>
-          <xsl:if test="normalize-space($listOfNames) != ''">)</xsl:if>
-        </author>
-      </xsl:for-each>
-    </xsl:variable>
-
-    <xsl:for-each-group select="$authorsNameAndOrgListTmp" group-by=".">
-      <xsl:copy-of select="."/>
-    </xsl:for-each-group>
-  </xsl:function>
-
   <xsl:template name="get-iso19115-3.2018-citation">
     <xsl:param name="metadata" as="node()"/>
     <xsl:param name="language" as="xs:string"/>
@@ -62,12 +25,33 @@
     <xsl:variable name="langId"
                   select="gn-fn-iso19115-3.2018:getLangId($metadata, $language)"/>
 
+    <!-- Who is the creator of the data set?  This can be an individual, a group of individuals, or an organization. -->
+    <xsl:variable name="authorRoles"
+                  select="('custodian', 'author')"/>
     <xsl:variable name="authors"
                   select="$metadata/mdb:identificationInfo/*/mri:pointOfContact/
-                                *[cit:role/*/@codeListValue = $authorRolesList]"/>
-    <xsl:variable name="authorsNameAndOrgList"
-                  select="gn-fn-iso19115-3.2018:get-author-list($authors, $langId)"/>
+                                *[cit:role/*/@codeListValue = $authorRoles]"/>
+    <xsl:variable name="authorsNameAndOrgList">
+      <xsl:for-each select="$authors">
+        <author>
+          <xsl:variable name="name"
+                        select=".//cit:individual/*/cit:name[1]"/>
 
+          <xsl:for-each select="$name">
+            <xsl:call-template name="get-iso19115-3.2018-localised">
+              <xsl:with-param name="langId" select="$langId"/>
+            </xsl:call-template>
+          </xsl:for-each>
+          <xsl:if test="normalize-space($name) != ''">(</xsl:if>
+          <xsl:for-each select="cit:party/*/cit:name">
+            <xsl:call-template name="get-iso19115-3.2018-localised">
+              <xsl:with-param name="langId" select="$langId"/>
+            </xsl:call-template>
+          </xsl:for-each>
+          <xsl:if test="normalize-space($name) != ''">)</xsl:if>
+        </author>
+      </xsl:for-each>
+    </xsl:variable>
 
     <!-- What name is the data set called? -->
     <xsl:variable name="title"
@@ -92,7 +76,7 @@
                                     ('publication', 'revision')]/
                                     cit:date/gco:*[. != '']"/>
 
-    <xsl:variable name="publicationDates" as="node()*">
+    <xsl:variable name="publicationDates">
       <xsl:perform-sort select="$dates">
         <xsl:sort select="." order="descending"/>
       </xsl:perform-sort>
@@ -100,12 +84,36 @@
 
     <xsl:variable name="lastPublicationDate"
                   select="$publicationDates[1]"/>
-    <xsl:variable name="publishers" as="node()*"
-                  select="$metadata/mdb:identificationInfo/*/mri:pointOfContact/
-                                *[cit:role/*/@codeListValue = $publisherRolesList]"/>
 
-    <xsl:variable name="publishersNameAndOrgList" as="node()*"
-                  select="gn-fn-iso19115-3.2018:get-author-list($publishers, $langId)"/>
+    <!-- What entity is responsible for producing and/or distributing the data set?  Also, is there a physical location associated with the publisher? -->
+    <xsl:variable name="publisherRoles"
+                  select="('publisher')"/>
+    <xsl:variable name="publishers"
+                  select="$metadata/mdb:identificationInfo/*/mri:pointOfContact/
+                                *[cit:role/*/@codeListValue = $publisherRoles]"/>
+
+    <xsl:variable name="publishersNameAndOrgList">
+      <xsl:for-each select="$publishers">
+        <author>
+          <xsl:variable name="name"
+                        select=".//cit:individual/*/cit:name[1]"/>
+
+          <xsl:for-each select="$name">
+            <xsl:call-template name="get-iso19115-3.2018-localised">
+              <xsl:with-param name="langId" select="$langId"/>
+            </xsl:call-template>
+          </xsl:for-each>
+          <xsl:if test="normalize-space($name) != ''">(</xsl:if>
+          <xsl:for-each select="cit:party/*/cit:name">
+            <xsl:call-template name="get-iso19115-3.2018-localised">
+              <xsl:with-param name="langId" select="$langId"/>
+            </xsl:call-template>
+          </xsl:for-each>
+          <xsl:if test="normalize-space($name) != ''">)</xsl:if>
+        </author>
+      </xsl:for-each>
+    </xsl:variable>
+
 
     <!-- Electronic Retrieval Location -->
     <xsl:variable name="doiInResourceIdentifier"

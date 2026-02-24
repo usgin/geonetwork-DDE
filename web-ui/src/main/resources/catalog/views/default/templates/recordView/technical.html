@@ -105,11 +105,8 @@
     <div>
       <h3 data-translate="">language</h3>
       <ul class="gn-comma-list">
-        <li
-          data-ng-repeat="l in mdView.current.record.resourceLanguage"
-          data-translate=""
-        >
-          {{l}}
+        <li data-ng-repeat="l in mdView.current.record.resourceLanguage">
+          {{l | translate}}
         </li>
       </ul>
     </div>

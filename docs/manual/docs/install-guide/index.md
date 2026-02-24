@@ -2,9 +2,7 @@
 
 !!! info
 
-    GeoNetwork 4.4 requires a Java 11 environment (JRE) to be installed on your system. Later versions of Java will not work at present. This must be done prior to installation.
-
-    Prior versions of GeoNetwork require a Java 8 environment (JRE) to be installed on your system.
+    GeoNetwork requires a Java 8 environment (JRE) to be installed on your system. Later versions of Java will not work at present. This must be done prior to installation.
 
 Before you can use GeoNetwork on your own computer, you need to install it:
 

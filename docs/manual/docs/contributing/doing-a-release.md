@@ -8,22 +8,22 @@ The following script can be used on Linux and Mac. For this a running build envi
 with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
 
 
-1.  Prepare the release (examples prepairs version 4.4.1 as latest release):
+1.  Prepare the release (examples prepairs version 4.2.1 as latest release):
 
     ``` shell
     # Setup properties
     from=origin
     frombranch=origin/main
-    series=4.4
+    series=4.2
     versionbranch=$series.x
-    version=4.4.1
+    version=4.2.1
     minorversion=0
     release=latest
     newversion=$version-$minorversion
-    currentversion=4.4.1-SNAPSHOT
-    previousversion=4.4.0
-    nextversion=4.4.2-SNAPSHOT
-    nextMajorVersion=4.6.0-SNAPSHOT
+    currentversion=4.2.1-SNAPSHOT
+    previousversion=4.2.0
+    nextversion=4.2.2-SNAPSHOT
+    nextMajorVersion=4.4.0-SNAPSHOT
 
 
     # Get the branch
@@ -91,7 +91,7 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
 3.  Create change log page: `docs/manual/docs/overview/change-log/`
 
     ``` shell
-    cat <<EOF > docs/manual/docs/overview/change-log/version-$version.md
+    cat <<EOF > docs/manual/docs/overview/changes/version-$newversion.md
     # Version $version
     
     GeoNetwork $version is a minor release.
@@ -110,9 +110,9 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
     
     EOF
 
-    git log --pretty='format:* %N' $previousversion.. | grep -v "^* $" >> docs/manual/docs/overview/change-log/version-$version.md
+    git log --pretty='format:* %N' $previousversion.. | grep -v "^* $" >> docs/manual/docs/overview/changes/version-$newversion.md
 
-    cat <<EOF > docs/manual/docs/overview/change-log/version-$version.md
+    cat <<EOF > docs/manual/docs/overview/changes/version-$newversion.md
     
     and more \... see [$version issues](https://github.com/geonetwork/core-geonetwork/issues?q=is%3Aissue+milestone%3A$version+is%3Aclosed) and [pull requests](https://github.com/geonetwork/core-geonetwork/pulls?page=3&q=is%3Apr+milestone%3A$version+is%3Aclosed) for full details.
     EOF
@@ -164,7 +164,7 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
 
     # Download Jetty and create the installer
     cd ../release
-    mvn clean install -Pjetty-download,bundle
+    mvn clean install -Djetty-download,bundle
 
     # Deploy to osgeo repository (requires credentials in ~/.m2/settings.xml)
     cd ..
@@ -186,12 +186,10 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
     # Set version number to SNAPSHOT
     ./update-version.sh $newversion $nextversion
 
-    nextversionnosnapshot=${nextversion//[-SNAPSHOT]/}
-    
     # Add SQL migration step for the next version
-    mkdir web/src/main/webapp/WEB-INF/classes/setup/sql/migrate/v${nextversionnosnapshot//[.]/}
-    cat <<EOF > web/src/main/webapp/WEB-INF/classes/setup/sql/migrate/v${nextversionnosnapshot//[.]/}/migrate-default.sql
-    UPDATE Settings SET value='${nextversionnosnapshot}' WHERE name='system/platform/version';
+    mkdir web/src/main/webapp/WEB-INF/classes/setup/sql/migrate/v422
+    cat <<EOF > web/src/main/webapp/WEB-INF/classes/setup/sql/migrate/v422/migrate-default.sql
+    UPDATE Settings SET value='4.2.2' WHERE name='system/platform/version';
     UPDATE Settings SET value='SNAPSHOT' WHERE name='system/platform/subVersion';
     EOF
     vi web/src/main/webResources/WEB-INF/config-db/database_migration.xml
@@ -200,9 +198,9 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
     In `WEB-INF/config-db/database_migration.xml` add an entry for the new version in the 2 steps:
 
     ``` xml
-    <entry key="4.4.2">
+    <entry key="4.2.2">
       <list>
-        <value>WEB-INF/classes/setup/sql/migrate/v442/migrate-</value>
+        <value>WEB-INF/classes/setup/sql/migrate/v422/migrate-</value>
       </list>
     </entry>
     ```
@@ -220,7 +218,7 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
     git push origin $version
     ```
 
-10. Generate checksum files
+10.  Generate checksum files
 
     -   If using Linux:
 
@@ -233,7 +231,7 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
 
         ``` shell
         md5 -r web/target/geonetwork.war > web/target/geonetwork.war.md5
-        md5 -r release/target/GeoNetwork-$version/geonetwork-bundle-$newversion.zip > release/target/GeoNetwork-$version/geonetwork-bundle-$newversion.zip.md5
+        md5 -r release/target/GeoNetwork-$newversion/geonetwork-bundle-$newversion.zip > release/target/GeoNetwork-$newversion/geonetwork-bundle-$newversion.zip.md5
         ```
 
     On sourceforge first:
@@ -244,15 +242,15 @@ with the following utilities: ***sed***, ***xmlstarlet*** and ***sftp***.
     cd /home/frs/project/g/ge/geonetwork/GeoNetwork_opensource
     # or for RC release
     cd /home/frs/project/g/ge/geonetwork/GeoNetwork_unstable_development_versions/
-    mkdir v4.4.1
-    cd v4.4.1
-    put docs/changes/changes4.4.1-0.txt
+    mkdir v4.2.1
+    cd v4.2.1
+    put docs/changes/changes4.2.1-0.txt
     put release/target/GeoNetwork*/geonetwork-bundle*.zip*
     put web/target/geonetwork.war*
     bye
     ```
 
-11.  Close the milestone on github <https://github.com/geonetwork/core-geonetwork/milestones?state=closed> with link to sourceforge download.
+1.  Close the milestone on github <https://github.com/geonetwork/core-geonetwork/milestones?state=closed> with link to sourceforge download.
 
     Publish the release on github <https://github.com/geonetwork/core-geonetwork/releases> .
 

@@ -338,16 +338,7 @@
                 </xsl:element>
               </xsl:when>
               <xsl:otherwise>
-                <indexingErrorMsg type="object">
-                  {
-                    "string": "indexingErrorMsg-invalidDateFormat",
-                    "type": "warning",
-                    "values": {
-                      "dateType": "<xsl:value-of select="util:escapeForJson($dateType)"/>",
-                      "date": "<xsl:value-of select="util:escapeForJson($date)"/>"
-                    }
-                  }
-                </indexingErrorMsg>
+                <indexingErrorMsg>Warning / Date <xsl:value-of select="$dateType"/> with value '<xsl:value-of select="$date"/>' was not a valid date format.</indexingErrorMsg>
               </xsl:otherwise>
             </xsl:choose>
           </xsl:for-each>
@@ -566,7 +557,7 @@
                           select="gn-fn-index:build-thesaurus-index-field-name($thesaurusId, $thesaurusTitle)"/>
 
             <xsl:variable name="keywords"
-                          select="current-group()/mri:keyword[*/normalize-space() != '']"/>
+                          select="mri:keyword[*/normalize-space() != '']"/>
 
             <thesaurus>
               <info type="{$thesaurusType}"
@@ -601,16 +592,7 @@
                      records in the admin. -->
                     <xsl:if test="$thesaurusId != '' and $keywordUri = ''">
                       <errors>
-                        <indexingErrorMsg type="object">
-                          {
-                            "string": "indexingErrorMsg-keywordNotFoundInThesaurus",
-                            "type": "warning",
-                            "values": {
-                              "keyword": "<xsl:value-of select="util:escapeForJson((*/text())[1])"/>",
-                              "thesaurus": "<xsl:value-of select="util:escapeForJson($thesaurusId)"/>"
-                            }
-                          }
-                        </indexingErrorMsg>
+                        <indexingErrorMsg>Warning / Keyword <xsl:value-of select="(*/text())[1]"/> not found in <xsl:value-of select="$thesaurusId"/>.</indexingErrorMsg>
                       </errors>
                     </xsl:if>
 
@@ -692,9 +674,7 @@
 
           <xsl:for-each select="mri:distance/gco:Distance[. != '']">
             <resolutionDistance>
-              <xsl:value-of select="if (contains(@uom, '#'))
-                                    then concat(., ' ', tokenize(@uom, '#')[2])
-                                    else  concat(., ' ', @uom)"/>
+              <xsl:value-of select="concat(., ' ', @uom)"/>
             </resolutionDistance>
           </xsl:for-each>
         </xsl:for-each>
@@ -860,29 +840,14 @@
                 }</resourceTemporalExtentDateRange>
               </xsl:when>
               <xsl:otherwise>
-                <indexingErrorMsg type="object">
-                  {
-                  "string": "indexingErrorMsg-invalidBounds",
-                  "type": "warning",
-                  "values": { }
-                  }
-                </indexingErrorMsg>
+                <indexingErrorMsg>Warning / Field resourceTemporalDateRange / Lower and upper bounds empty. Date range not indexed.</indexingErrorMsg>
               </xsl:otherwise>
             </xsl:choose>
 
             <xsl:if test="$zuluStartDate != ''
                           and $zuluEndDate != ''
                           and $start &gt; $end">
-              <indexingErrorMsg type="object">
-                {
-                  "string": "indexingErrorMsg-temporalRangeLowerGreaterThanUpper",
-                  "type": "warning",
-                  "values": {
-                    "lowerBound": "<xsl:value-of select="util:escapeForJson($start)"/>",
-                    "upperBound": "<xsl:value-of select="util:escapeForJson($end)"/>"
-                  }
-                }
-              </indexingErrorMsg>
+              <indexingErrorMsg>Warning / Field resourceTemporalDateRange / Lower range bound '<xsl:value-of select="$start"/>' can not be greater than upper bound '<xsl:value-of select="$end"/>'.</indexingErrorMsg>
             </xsl:if>
 
 
@@ -904,7 +869,6 @@
                 <xsl:if test="$max castable as xs:double
                               and xs:double($min) &lt; xs:double($max)">
                   ,"lte": <xsl:value-of select="normalize-space($max)"/>
-                  ,"unit": "m"
                 </xsl:if>
                 }</resourceVerticalRange>
             </xsl:if>
@@ -1121,9 +1085,6 @@
             "descriptionObject": <xsl:value-of select="gn-fn-index:add-multilingual-field(
                                 'description', description/*, $allLanguages, true())"/>,
           </xsl:if>
-          <xsl:if test="nilReason">
-            "nilReason": "<xsl:value-of select="nilReason"/>",
-          </xsl:if>
           "applicationProfile": "<xsl:value-of select="util:escapeForJson(
                                         applicationProfile/text())"/>"
           }
@@ -1142,96 +1103,31 @@
           <xsl:copy-of select="gn-fn-index:build-record-link(@uuidref, $xlink, @xlink:title, 'sources')"/>
         </xsl:for-each>
 
-        <xsl:for-each select="mrl:source/*/mrl:description[gco:CharacterString != '']">
+        <xsl:for-each select=".//mrl:source/*/mrl:description[gco:CharacterString != '']">
           <xsl:copy-of select="gn-fn-index:add-multilingual-field('sourceDescription', ., $allLanguages)"/>
         </xsl:for-each>
-
-
-
-        <xsl:variable name="processSteps"
-                      select="mrl:processStep/*[mrl:description/gco:CharacterString != '']"/>
-        <xsl:for-each select="$processSteps">
-          <processSteps type="object">{
-            "descriptionObject": <xsl:value-of select="gn-fn-index:add-multilingual-field(
-                                'description', mrl:description, $allLanguages, true())"/>
-            <xsl:if test="normalize-space(mrl:stepDateTime) != ''">
-              ,"date": "<xsl:value-of select="mrl:stepDateTime//gml:timePosition/text()"/>"
-            </xsl:if>
-            <xsl:if test="normalize-space(mrl:source) != ''">
-              ,"source": [
-              <xsl:for-each select="mrl:source/*[mrl:description/gco:CharacterString != '']">
-                {
-                "descriptionObject": <xsl:value-of
-                select="gn-fn-index:add-multilingual-field(
-                                            'description', mrl:description, $allLanguages, true())"/>
-                }
-                <xsl:if test="position() != last()">,</xsl:if>
-              </xsl:for-each>
-              ]
-            </xsl:if>
-
-            <xsl:variable name="processor"
-                          select="mrl:processor/*[.//cit:CI_Organisation/cit:name != '']"/>
-            <xsl:if test="count($processor) > 0">
-              ,"processor": [
-              <xsl:for-each select="$processor">
-                <xsl:variable name="individualName"
-                              select="(.//cit:CI_Individual/cit:name/gco:CharacterString/text())[1]"/>
-                {
-                  "organisationObject": <xsl:value-of
-                select="gn-fn-index:add-multilingual-field(
-                                            'description', .//cit:CI_Organisation/cit:name,
-                                             $allLanguages, true())"/>
-                <xsl:if test="$individualName != ''">
-                  ,"individual":"<xsl:value-of select="util:escapeForJson($individualName)"/>"
-                </xsl:if>
-                }
-                <xsl:if test="position() != last()">,</xsl:if>
-              </xsl:for-each>
-              ]
-            </xsl:if>
-            }</processSteps>
-        </xsl:for-each>
-
-        <xsl:for-each-group select="mrl:processStep//mrl:processor[.//cit:CI_Organisation/cit:name != '']"
-                            group-by=".//cit:CI_Organisation/cit:name/gco:CharacterString">
-          <xsl:apply-templates mode="index-contact"
-                               select=".">
-            <xsl:with-param name="fieldSuffix" select="'ForProcessing'"/>
-            <xsl:with-param name="languages" select="$allLanguages"/>
-          </xsl:apply-templates>
-        </xsl:for-each-group>
       </xsl:for-each>
 
 
       <xsl:for-each select="mdb:dataQualityInfo/*">
         <xsl:for-each select="mdq:report/*[
-                normalize-space(mdq:measure/*/mdq:nameOfMeasure/gco:CharacterString) != ''
-                or normalize-space(mdq:measure/*/mdq:measureDescription/gco:CharacterString) != ''
-                ]/mdq:result/(mdq:DQ_QuantitativeResult|mdq:DQ_DescriptiveResult)">
+                normalize-space(mdq:measure/*/mdq:nameOfMeasure/gco:CharacterString) != '']">
 
           <xsl:variable name="name"
-                        select="(../../mdq:measure/*/mdq:nameOfMeasure/gco:CharacterString)[1]"/>
+                        select="(mdq:measure/*/mdq:nameOfMeasure/gco:CharacterString)[1]"/>
           <xsl:variable name="value"
-                        select="mdq:value/gco:Record[. != '']|mdq:statement/gco:CharacterString[. != '']"/>
+                        select="(mdq:result/mdq:DQ_QuantitativeResult/mdq:value)[1]"/>
           <xsl:variable name="unit"
-                        select="mdq:valueUnit//gml:identifier"/>
+                        select="(mdq:result/mdq:DQ_QuantitativeResult/mdq:valueUnit//gml:identifier)[1]"/>
           <xsl:variable name="description"
-                        select="(../../mdq:measure/*/mdq:measureDescription/gco:CharacterString)[1]"/>
-
-          <xsl:variable name="measureDate"
-                        select="mdq:dateTime/gco:DateTime"/>
-
+                        select="(mdq:measure/*/mdq:measureDescription/gco:CharacterString)[1]"/>
           <measure type="object">{
             "name": "<xsl:value-of select="util:escapeForJson($name)"/>",
             <xsl:if test="$description != ''">
               "description": "<xsl:value-of select="util:escapeForJson($description)"/>",
             </xsl:if>
-            <xsl:if test="$measureDate != ''">
-              "date": "<xsl:value-of select="util:escapeForJson($measureDate)"/>",
-            </xsl:if>
             <!-- First value only. -->
-            "value": "<xsl:value-of select="util:escapeForJson($value[1])"/>",
+            "value": "<xsl:value-of select="util:escapeForJson($value/gco:Record[1])"/>",
             <xsl:if test="$unit != ''">
               "unit": "<xsl:value-of select="util:escapeForJson($unit)"/>",
             </xsl:if>
@@ -1239,7 +1135,7 @@
             }
           </measure>
 
-          <xsl:for-each select="$value">
+          <xsl:for-each select="mdq:result/mdq:DQ_QuantitativeResult/mdq:value/gco:Record[. != '']">
             <xsl:element name="measure_{gn-fn-index:build-field-name($name)}">
               <xsl:value-of select="."/>
             </xsl:element>
@@ -1303,11 +1199,8 @@
               "descriptionObject": <xsl:value-of select="gn-fn-index:add-multilingual-field(
                                 'description', cit:description, $allLanguages, true())"/>,
             </xsl:if>
-            <xsl:if test="../@gco:nilReason">
-              "nilReason": "<xsl:value-of select="../@gco:nilReason"/>",
-            </xsl:if>
             "function":"<xsl:value-of select="cit:function/cit:CI_OnLineFunctionCode/@codeListValue"/>",
-            "applicationProfile":"<xsl:value-of select="util:escapeForJson(cit:applicationProfile/(gco:CharacterString|gcx:Anchor)/text())"/>",
+            "applicationProfile":"<xsl:value-of select="util:escapeForJson(cit:applicationProfile/gco:CharacterString/text())"/>",
             "group": <xsl:value-of select="$transferGroup"/>
             }
           </link>
@@ -1340,7 +1233,7 @@
             <xsl:copy-of select="gn-fn-index:build-record-link(@uuidref, @xlink:href, @xlink:title, 'parent')"/>
             <!--
             TODOES - Need more work with routing
-            <recordJoin type="object">{"name": "children", "parent": "<xsl:value-of select="util:escapeForJson(.)"/>"}</recordLink>-->
+            <recordJoin type="object">{"name": "children", "parent": "<xsl:value-of select="gn-fn-index:json-escape(.)"/>"}</recordLink>-->
           </xsl:for-each>
         </xsl:when>
         <xsl:otherwise>
@@ -1387,6 +1280,18 @@
           <xsl:element name="{concat('agg_associated_', $associationType)}"><xsl:value-of select="$code"/></xsl:element>
         </xsl:if>
       </xsl:for-each>
+
+      <xsl:variable name="indexingTimeRecordLink"
+                    select="util:getSettingValue('system/index/indexingTimeRecordLink')" />
+      <xsl:if test="$indexingTimeRecordLink = 'true'">
+        <xsl:variable name="parentUuid"
+                      select=".//mri:associatedResource/*[mri:associationType/*/@codeListValue = $parentAssociatedResourceType]/mri:metadataReference/@uuidref[. != '']"/>
+        <xsl:variable name="recordsLinks"
+                      select="util:getTargetAssociatedResourcesAsNode(
+                                        $identifier,
+                                        if ($parentUuid) then $parentUuid else mdb:parentMetadata[@uuidref != '']/@uuidref)"/>
+        <xsl:copy-of select="$recordsLinks//recordLink"/>
+      </xsl:if>
     </doc>
 
     <!-- Index more documents for this element -->
@@ -1445,7 +1350,6 @@
 
     <xsl:variable name="identifiers"
                   select=".//cit:partyIdentifier/*"/>
-
     <xsl:element name="contact{$fieldSuffix}">
       <!-- TODO: Can be multilingual -->
       <xsl:attribute name="type" select="'object'"/>{
@@ -1461,9 +1365,6 @@
       "position":"<xsl:value-of select="util:escapeForJson($positionName)"/>",
       "phone":"<xsl:value-of select="util:escapeForJson($phone)"/>",
       "address":"<xsl:value-of select="util:escapeForJson($address)"/>"
-      <xsl:if test="@gco:nilReason">
-        ,"nilReason": "<xsl:value-of select="@gco:nilReason"/>"
-      </xsl:if>
       <xsl:if test="count($identifiers) > 0">
         ,"identifiers":[
         <xsl:for-each select="$identifiers">

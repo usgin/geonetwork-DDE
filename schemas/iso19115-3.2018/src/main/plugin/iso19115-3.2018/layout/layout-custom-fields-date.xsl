@@ -46,12 +46,10 @@
   <xsl:template mode="mode-iso19115-3.2018" match="*[cit:CI_Date]" priority="2000">
     <xsl:param name="schema" select="$schema" required="no"/>
     <xsl:param name="labels" select="$labels" required="no"/>
-    <xsl:param name="overrideLabel" select="''" required="no"/>
 
     <xsl:apply-templates mode="mode-iso19115-3.2018" select="*/cit:*">
       <xsl:with-param name="schema" select="$schema"/>
       <xsl:with-param name="labels" select="$labels"/>
-      <xsl:with-param name="overrideLabel" select="$overrideLabel"/>
     </xsl:apply-templates>
   </xsl:template>
 
@@ -66,20 +64,9 @@
                 match="cit:CI_Date/cit:date[../cit:dateType]">
     <xsl:param name="schema" select="$schema" required="no"/>
     <xsl:param name="labels" select="$labels" required="no"/>
-    <xsl:param name="overrideLabel" select="''" required="no"/>
 
-    <xsl:variable name="labelConfig" as="node()?">
-      <xsl:choose>
-        <xsl:when test="$overrideLabel != ''">
-          <element>
-            <label><xsl:value-of select="$overrideLabel"/></label>
-          </element>
-        </xsl:when>
-        <xsl:otherwise>
-          <xsl:copy-of select="gn-fn-metadata:getLabel($schema, name(), $labels)"/>
-        </xsl:otherwise>
-      </xsl:choose>
-    </xsl:variable>
+    <xsl:variable name="labelConfig"
+                  select="gn-fn-metadata:getLabel($schema, name(), $labels)"/>
 
     <xsl:variable name="dateTypeElementRef"
                   select="../gn:element/@ref"/>
@@ -117,8 +104,7 @@
         <div data-gn-date-picker="{gco:Date|gco:DateTime}"
              data-label=""
              data-element-name="{name(gco:Date|gco:DateTime)}"
-             data-element-ref="{concat('_X', gn:element/@ref)}"
-             data-hide-time="{if ($viewConfig/@hideTimeInCalendar = 'true') then 'true' else 'false'}">
+             data-element-ref="{concat('_X', gn:element/@ref)}">
         </div>
 
 
@@ -170,8 +156,7 @@
         <div data-gn-date-picker="{gco:Date|gco:DateTime}"
              data-label=""
              data-element-name="{name(gco:Date|gco:DateTime)}"
-             data-element-ref="{concat('_X', gn:element/@ref)}"
-             data-hide-time="{if ($viewConfig/@hideTimeInCalendar = 'true') then 'true' else 'false'}">
+             data-element-ref="{concat('_X', gn:element/@ref)}">
         </div>
 
 

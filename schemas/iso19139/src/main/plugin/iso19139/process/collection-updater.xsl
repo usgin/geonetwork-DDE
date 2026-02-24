@@ -80,8 +80,7 @@
          merge="gmd:LanguageCode"/>
     <tag name="gmd:graphicOverview" context="gmd:MD_DataIdentification|srv:SV_ServiceIdentification"
          groupBy="*/gmd:fileName/*/text()"
-         merge="."
-         limit="1"/>
+         merge="."/>
     <tag name="gmd:characterSet" context="gmd:MD_DataIdentification|srv:SV_ServiceIdentification"
          groupBy="gmd:MD_CharacterSetCode/@codeListValue"
          merge="gmd:characterSet"/>

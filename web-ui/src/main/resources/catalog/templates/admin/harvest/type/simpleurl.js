@@ -23,7 +23,8 @@ var gnHarvestersimpleurl = {
         "pageSizeParam": "",
         "pageFromParam": "",
         "recordIdPath": "",
-        "toISOConversion": ""
+        "toISOConversion": "",
+        "isSitemap": "false"
       },
       "content" : {
         "validate" : "NOVALIDATION",
@@ -90,6 +91,7 @@ var gnHarvestersimpleurl = {
       + '    <pageFromParam>' + h.site.pageFromParam + '</pageFromParam>'
       + '    <pageSizeParam>' + h.site.pageSizeParam + '</pageSizeParam>'
       + '    <toISOConversion>' + h.site.toISOConversion + '</toISOConversion>'
+      + '    <isSitemap>' + h.site.isSitemap + '</isSitemap>'
       + '  </site>'
       + gnHarvestersimpleurl.buildResponseCSWSearch($scope)
       + '  <options>'

@@ -66,14 +66,6 @@
           });
 
           map.setTarget(target);
-          var target = element[0];
-
-          var resizeObserver = new ResizeObserver(function () {
-            map.updateSize();
-            resizeObserver.unobserve(target);
-          });
-
-          map.setTarget(target);
           resizeObserver.observe(target);
         }
     };

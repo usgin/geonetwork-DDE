@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2023 Food and Agriculture Organization of the
+ * Copyright (C) 2001-2021 Food and Agriculture Organization of the
  * United Nations (FAO-UN), United Nations World Food Programme (WFP)
  * and United Nations Environment Programme (UNEP)
  *
@@ -25,7 +25,9 @@ package org.fao.geonet.kernel.csw.services.getrecords.es;
 
 import static junit.framework.TestCase.assertEquals;
 
-import co.elastic.clients.elasticsearch._types.SortOptions;
+import org.checkerframework.checker.units.qual.A;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilder;
 import org.fao.geonet.constants.Geonet;
 import org.fao.geonet.csw.common.Csw;
 import org.fao.geonet.kernel.csw.CatalogConfiguration;
@@ -68,12 +70,12 @@ class CswSortBy2EsTest {
         Element request =  createSortByBaseRequest(
             new Element("Empty", Geonet.Namespaces.OGC));
 
-        List<SortOptions> sortFields = toTest.parseSortBy(request);
+        List<SortBuilder<FieldSortBuilder>> sortFields = toTest.parseSortBy(request);
 
         assertEquals(1, sortFields.size());
-        SortOptions sortField = sortFields.get(0);
-        assertEquals(sortField.field().field(), "resourceTitleObject.default.keyword");
-        assertEquals(sortField.field().order().jsonValue(), "desc");
+        FieldSortBuilder sortField = (FieldSortBuilder)sortFields.get(0);
+        assertEquals(sortField.getFieldName(), "resourceTitleObject.default.keyword");
+        assertEquals(sortField.order().toString(), "desc");
     }
 
     @Test
@@ -84,12 +86,12 @@ class CswSortBy2EsTest {
                                 .addContent(new Element("PropertyName", Geonet.Namespaces.OGC).setText("Relevance"))
                                 .addContent(new Element("SortOrder", Geonet.Namespaces.OGC).setText("DESC"))));
 
-        List<SortOptions> sortFields = toTest.parseSortBy(request);
+        List<SortBuilder<FieldSortBuilder>> sortFields = toTest.parseSortBy(request);
 
         assertEquals(1, sortFields.size());
-        SortOptions sortField = sortFields.get(0);
-        assertEquals(sortField.field().field(), "_score");
-        assertEquals(sortField.field().order().jsonValue(), "desc");
+        FieldSortBuilder sortField = (FieldSortBuilder)sortFields.get(0);
+        assertEquals(sortField.getFieldName(), "_score");
+        assertEquals(sortField.order().toString(), "desc");
     }
 
     @Test
@@ -100,12 +102,12 @@ class CswSortBy2EsTest {
                                 .addContent(new Element("PropertyName", Geonet.Namespaces.OGC).setText("Relevance"))
                                 .addContent(new Element("SortOrder", Geonet.Namespaces.OGC).setText("ASC"))));
 
-        List<SortOptions> sortFields = toTest.parseSortBy(request);
+        List<SortBuilder<FieldSortBuilder>> sortFields = toTest.parseSortBy(request);
 
         assertEquals(1, sortFields.size());
-        SortOptions sortField = sortFields.get(0);
-        assertEquals(sortField.field().field(), "_score");
-        assertEquals(sortField.field().order().jsonValue(), "asc");
+        FieldSortBuilder sortField = (FieldSortBuilder)sortFields.get(0);
+        assertEquals(sortField.getFieldName(), "_score");
+        assertEquals(sortField.order().toString(), "asc");
     }
 
     @Test
@@ -116,12 +118,12 @@ class CswSortBy2EsTest {
                                 .addContent(new Element("PropertyName", Geonet.Namespaces.OGC).setText("title"))
                                 .addContent(new Element("SortOrder", Geonet.Namespaces.OGC).setText("DESC"))));
 
-        List<SortOptions> sortFields = toTest.parseSortBy(request);
+        List<SortBuilder<FieldSortBuilder>> sortFields = toTest.parseSortBy(request);
 
         assertEquals(1, sortFields.size());
-        SortOptions sortField = sortFields.get(0);
-        assertEquals(sortField.field().field(), "title");
-        assertEquals(sortField.field().order().jsonValue(), "desc");
+        FieldSortBuilder sortField = (FieldSortBuilder)sortFields.get(0);
+        assertEquals(sortField.getFieldName(), "title");
+        assertEquals(sortField.order().toString(), "desc");
     }
 
     @Test
@@ -135,15 +137,15 @@ class CswSortBy2EsTest {
                                 .addContent(new Element("PropertyName", Geonet.Namespaces.OGC).setText("Relevance"))
                                 .addContent(new Element("SortOrder", Geonet.Namespaces.OGC).setText("DESC"))));
 
-        List<SortOptions> sortFields = toTest.parseSortBy(request);
+        List<SortBuilder<FieldSortBuilder>> sortFields = toTest.parseSortBy(request);
 
         assertEquals(2, sortFields.size());
-        SortOptions sortField = sortFields.get(0);
-        assertEquals(sortField.field().field(), "title");
-        assertEquals(sortField.field().order().jsonValue(), "desc");
-        SortOptions sortField2 = sortFields.get(1);
-        assertEquals(sortField2.field().field(), "_score");
-        assertEquals(sortField2.field().order().jsonValue(), "desc");
+        FieldSortBuilder sortField = (FieldSortBuilder)sortFields.get(0);
+        assertEquals(sortField.getFieldName(), "title");
+        assertEquals(sortField.order().toString(), "desc");
+        FieldSortBuilder sortField2 = (FieldSortBuilder)sortFields.get(1);
+        assertEquals(sortField2.getFieldName(), "_score");
+        assertEquals(sortField2.order().toString(), "desc");
     }
 
     private Element createSortByBaseRequest(Element SortBy) {

@@ -120,7 +120,7 @@ public class OpenApiController extends AbstractOpenApiResource {
     public String openapiJson(HttpServletRequest request)
         throws JsonProcessingException {
         setServerBaseUrl(request);
-        OpenAPI openAPI = this.getOpenApi(request.getLocale());
+        OpenAPI openAPI = this.getOpenApi();
         return writeJsonValue(openAPI);
     }
 
@@ -129,18 +129,18 @@ public class OpenApiController extends AbstractOpenApiResource {
     public String openapiYaml(HttpServletRequest request)
         throws JsonProcessingException {
         setServerBaseUrl(request);
-        OpenAPI openAPI = this.getOpenApi(request.getLocale());
+        OpenAPI openAPI = this.getOpenApi();
         return writeYamlValue(openAPI);
     }
 
     @Override
-    protected void getPaths(Map<String, Object> restControllers, Locale locale) {
+    protected void getPaths(Map<String, Object> restControllers) {
         Map<RequestMappingInfo, HandlerMethod> map = requestMappingHandlerMapping.getHandlerMethods();
-        calculatePath(restControllers, map, Optional.empty(), locale);
+        calculatePath(restControllers, map, Optional.empty());
 
         if (servletContextProvider.isPresent()) {
             map = servletContextProvider.get().getMethods();
-            calculatePath(restControllers, map, servletContextProvider, locale);
+            calculatePath(restControllers, map, servletContextProvider);
         }
         if (this.springSecurityOAuth2Provider.isPresent()) {
             SecurityOAuth2Provider securityOAuth2Provider = this.springSecurityOAuth2Provider.get();
@@ -148,14 +148,13 @@ public class OpenApiController extends AbstractOpenApiResource {
             Map<String, Object> requestMappingMapSec = securityOAuth2Provider.getFrameworkEndpoints();
             Class[] additionalRestClasses = requestMappingMapSec.values().stream().map(Object::getClass).toArray(Class[]::new);
             AbstractOpenApiResource.addRestControllers(additionalRestClasses);
-            calculatePath(requestMappingMapSec, mapOauth, Optional.empty(), locale);
+            calculatePath(requestMappingMapSec, mapOauth, Optional.empty());
         }
     }
 
     protected void calculatePath(Map<String, Object> restControllers,
                                  Map<RequestMappingInfo, HandlerMethod> map,
-                                 Optional<ActuatorProvider> actuatorProvider,
-                                 Locale locale) {
+                                 Optional<ActuatorProvider> actuatorProvider) {
         for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : map.entrySet()) {
             RequestMappingInfo requestMappingInfo = entry.getKey();
             HandlerMethod handlerMethod = entry.getValue();
@@ -165,8 +164,7 @@ public class OpenApiController extends AbstractOpenApiResource {
             for (String pattern : patterns) {
                 String operationPath = PathUtils.parsePath(pattern, regexMap)
                     .replace("/{portal}/api", "");
-                if (((actuatorProvider.isPresent()
-                    && actuatorProvider.get().isRestController(operationPath, handlerMethod))
+                if (((actuatorProvider.isPresent() && actuatorProvider.get().isRestController(operationPath, handlerMethod.getClass()))
                     || isRestController(restControllers, handlerMethod, operationPath))
                     && isPackageToScan(handlerMethod.getBeanType().getPackage())
                     && isPathToMatch(operationPath)) {
@@ -175,7 +173,7 @@ public class OpenApiController extends AbstractOpenApiResource {
                     // default allowed requestmethods
                     if (requestMethods.isEmpty())
                         requestMethods = this.getDefaultAllowedHttpMethods();
-                    calculatePath(handlerMethod, operationPath, requestMethods, locale);
+                    calculatePath(handlerMethod, operationPath, requestMethods);
 //                } else {
 //                    System.out.println("API path ignored: " + operationPath);
                 }
@@ -183,7 +181,6 @@ public class OpenApiController extends AbstractOpenApiResource {
         }
     }
 
-    @Override
     protected boolean isRestController(Map<String, Object> restControllers,
                                        HandlerMethod handlerMethod,
                                        String operationPath) {

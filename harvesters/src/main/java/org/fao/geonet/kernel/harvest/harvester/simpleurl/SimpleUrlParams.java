@@ -38,6 +38,7 @@ public class SimpleUrlParams extends AbstractParams {
     public String pageSizeParam;
     public String pageFromParam;
     public String toISOConversion;
+    public String isSitemap;
 
     public SimpleUrlParams(DataManager dm) {
         super(dm);
@@ -59,6 +60,7 @@ public class SimpleUrlParams extends AbstractParams {
         pageSizeParam = Util.getParam(site, "pageSizeParam", "");
         pageFromParam = Util.getParam(site, "pageFromParam", "");
         toISOConversion = Util.getParam(site, "toISOConversion", "");
+        isSitemap = Util.getParam(site, "isSitemap", "false");
         icon = Util.getParam(site, "icon", "");
     }
 
@@ -77,6 +79,7 @@ public class SimpleUrlParams extends AbstractParams {
         pageSizeParam = Util.getParam(site, "pageSizeParam", "");
         pageFromParam = Util.getParam(site, "pageFromParam", "");
         toISOConversion = Util.getParam(site, "toISOConversion", "");
+        isSitemap = Util.getParam(site, "isSitemap", isSitemap);
         icon = Util.getParam(site, "icon", icon);
     }
 
@@ -97,6 +100,7 @@ public class SimpleUrlParams extends AbstractParams {
         copy.pageFromParam = pageFromParam;
         copy.recordIdPath = recordIdPath;
         copy.toISOConversion = toISOConversion;
+        copy.isSitemap = isSitemap;
 
         return copy;
     }

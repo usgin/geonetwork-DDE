@@ -19,7 +19,6 @@ public class PageProperties implements Serializable {
     private String link;
     private String content;
     private String label;
-    private String icon;
     private Page.PageFormat format;
     private Page page;
 
@@ -35,7 +34,6 @@ public class PageProperties implements Serializable {
         sections = p.getSections();
         status = p.getStatus();
         label = p.getLabel();
-        icon = p.getIcon();
     }
 
     @Override
@@ -105,13 +103,5 @@ public class PageProperties implements Serializable {
 
     public void setLabel(String label) {
         this.label = label;
-    }
-
-    public String getIcon() {
-        return icon;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
     }
 }

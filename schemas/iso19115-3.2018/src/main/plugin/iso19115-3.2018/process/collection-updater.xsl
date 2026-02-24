@@ -88,8 +88,7 @@
          merge="mri:defaultLocaleCode"/>
     <tag name="mri:graphicOverview" context="mri:MD_DataIdentification|srv:SV_ServiceIdentification"
          groupBy="*/mcc:fileName/*/text()"
-         merge="."
-         limit="1"/>
+         merge="."/>
     <tag name="mri:spatialRepresentationType" context="mri:MD_DataIdentification|srv:SV_ServiceIdentification"
          groupBy="mcc:MD_SpatialRepresentationTypeCode/@codeListValue"
          merge="mri:spatialRepresentationType"/>

@@ -58,6 +58,7 @@ public class SimpleUrlHarvester extends AbstractHarvester<HarvestResult, SimpleU
         harvesterSettingsManager.add("id:" + siteId, "pageFromParam", params.pageFromParam);
         harvesterSettingsManager.add("id:" + siteId, "pageSizeParam", params.pageSizeParam);
         harvesterSettingsManager.add("id:" + siteId, "toISOConversion", params.toISOConversion);
+        harvesterSettingsManager.add("id:" + siteId, "isSitemap", params.isSitemap);
     }
 
     public void doHarvest(Logger log) throws Exception {
