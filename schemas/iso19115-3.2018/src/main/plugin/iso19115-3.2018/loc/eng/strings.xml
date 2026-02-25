@@ -115,6 +115,20 @@
       </div>
     </div>
   </addDoc-help>
+  <calendarExtent>
+    <div class="row">
+      <div class="col-xs-offset-2 col-xs-8">
+        <p class="help-block"><b>Calendar date temporal extent</b> — begin and end positions are calendar dates or dateTimes.</p>
+      </div>
+    </div>
+  </calendarExtent>
+  <geologicAge>
+    <div class="row">
+      <div class="col-xs-offset-2 col-xs-8">
+        <p class="help-block"><b>Geologic age temporal extent</b> — begin and end are named geologic time instants with numeric age (Ma before present) and optional URI identifier.</p>
+      </div>
+    </div>
+  </geologicAge>
   <geotime-help>
     <div class="row">
       <div class="col-xs-offset-2 col-xs-8">
