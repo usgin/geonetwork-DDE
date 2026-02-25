@@ -609,6 +609,7 @@
       <artifactId>gn-schema-csw-record</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- DDE: disabled non-DDE schema plugins
     <dependency>
       <groupId>org.geonetwork-opensource.schemas</groupId>
       <artifactId>gn-schema-iso19110</artifactId>
@@ -619,6 +620,7 @@
       <artifactId>gn-schema-dublin-core</artifactId>
       <version>${project.version}</version>
     </dependency>
+    -->
     <dependency>
       <groupId>org.geonetwork-opensource.schemas</groupId>
       <artifactId>gn-schema-iso19115-3.2018</artifactId>
