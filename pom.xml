@@ -471,6 +471,11 @@
         <type>pom</type>
         <version>4.10.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.github.jsonld-java</groupId>
+        <artifactId>jsonld-java</artifactId>
+        <version>0.13.6</version>
+      </dependency>
 
       <!-- PDF stuff: Managed by Mapfish -->
       <dependency>

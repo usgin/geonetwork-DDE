@@ -25,6 +25,9 @@ package org.fao.geonet.kernel.harvest.harvester.simpleurl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jsonldjava.core.JsonLdOptions;
+import com.github.jsonldjava.core.JsonLdProcessor;
+import com.github.jsonldjava.utils.JsonUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.CharStreams;
 import jeeves.server.context.ServiceContext;
@@ -52,11 +55,13 @@ import org.json.XML;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.ClientHttpResponse;
 
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,6 +93,12 @@ class Harvester implements IHarvester<HarvestResult> {
      * Contains a list of accumulated errors during the executing of this harvest.
      */
     private final List<HarvestError> errors;
+
+    /**
+     * Cached JSON-LD frame for CDIF record normalization.
+     * Loaded on first use from the schema plugin's convert directory.
+     */
+    private volatile Object cdifFrame = null;
 
     public Harvester(AtomicBoolean cancelMonitor, Logger log, ServiceContext context, SimpleUrlParams params, List<HarvestError> errors) {
         this.cancelMonitor = cancelMonitor;
@@ -397,6 +408,11 @@ class Harvester implements IHarvester<HarvestResult> {
     private Element convertJsonRecordToXml(JsonNode jsonRecord, String uuid, String apiUrl, String nodeUrl) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
+            // Apply JSON-LD framing for CDIF records to normalize structure
+            if (isCdifConversion() && jsonRecord.has("@context")) {
+                jsonRecord = frameJsonLd(jsonRecord, uuid);
+            }
+
             String recordAsXml = XML.toString(
                 new JSONObject(
                     objectMapper.writeValueAsString(jsonRecord)), "record");
@@ -414,6 +430,110 @@ class Harvester implements IHarvester<HarvestResult> {
                 uuid, e.getMessage()));
         }
         return null;
+    }
+
+    /**
+     * Check if the harvester is configured for CDIF JSON-LD conversion.
+     */
+    private boolean isCdifConversion() {
+        return StringUtils.isNotEmpty(params.toISOConversion)
+            && params.toISOConversion.contains("fromJsonCdif");
+    }
+
+    /**
+     * Apply JSON-LD framing to normalize a CDIF JSON-LD document.
+     * Framing resolves @list wrappers, embeds referenced objects inline,
+     * and ensures a consistent structure regardless of the input JSON-LD form
+     * (compact, expanded, flattened). This makes the downstream org.json.XML
+     * conversion produce predictable XML for the fromJsonCdif.xsl XSLT.
+     *
+     * @param jsonRecord the JSON-LD document as a Jackson JsonNode
+     * @param uuid       the record identifier (for logging)
+     * @return the framed document, or the original if framing fails
+     */
+    @SuppressWarnings("unchecked")
+    private JsonNode frameJsonLd(JsonNode jsonRecord, String uuid) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            Object frame = loadCdifFrame();
+            if (frame == null) {
+                return jsonRecord;
+            }
+
+            String jsonString = objectMapper.writeValueAsString(jsonRecord);
+            Object input = JsonUtils.fromString(jsonString);
+
+            JsonLdOptions options = new JsonLdOptions();
+            Map<String, Object> framed = JsonLdProcessor.frame(input, frame, options);
+
+            // The framing API wraps results in @graph. Extract the main object.
+            Object graph = framed.get("@graph");
+            if (graph instanceof List) {
+                List<?> graphList = (List<?>) graph;
+                if (graphList.isEmpty()) {
+                    log.warning(String.format(
+                        "JSON-LD framing produced empty @graph for record %s — "
+                        + "document may not match frame @type. Using unframed document.", uuid));
+                    return jsonRecord;
+                }
+                Object mainObj = graphList.get(0);
+                if (mainObj instanceof Map) {
+                    Map<String, Object> mainMap = (Map<String, Object>) mainObj;
+                    // Preserve @context from the framed output for downstream processing
+                    if (framed.containsKey("@context")) {
+                        mainMap.put("@context", framed.get("@context"));
+                    }
+                    String result = JsonUtils.toString(mainMap);
+                    log.debug("JSON-LD framing applied for CDIF record: " + uuid);
+                    return objectMapper.readTree(result);
+                }
+            }
+
+            // No @graph — properties at top level (single match, older API behavior)
+            String result = JsonUtils.toString(framed);
+            log.debug("JSON-LD framing applied for CDIF record: " + uuid);
+            return objectMapper.readTree(result);
+        } catch (Exception e) {
+            log.warning(String.format(
+                "JSON-LD framing failed for record %s, proceeding with unframed document: %s",
+                uuid, e.getMessage()));
+            return jsonRecord;
+        }
+    }
+
+    /**
+     * Load the CDIF JSON-LD frame document from the schema plugin's convert directory.
+     * The frame is cached after first load.
+     */
+    private Object loadCdifFrame() throws Exception {
+        if (cdifFrame != null) {
+            return cdifFrame;
+        }
+        synchronized (this) {
+            if (cdifFrame != null) {
+                return cdifFrame;
+            }
+            // Resolve frame file from the schema plugin directory
+            Path schemaPluginsDir = ApplicationContextHolder.get()
+                .getBean(GeonetworkDataDirectory.class)
+                .getSchemaPluginsDir();
+            Path framePath = schemaPluginsDir
+                .resolve("iso19115-3.2018")
+                .resolve("convert")
+                .resolve("cdif-frame.jsonld");
+
+            if (!Files.exists(framePath)) {
+                log.warning("CDIF frame file not found at " + framePath
+                    + " — JSON-LD framing will be skipped.");
+                return null;
+            }
+
+            try (InputStream is = Files.newInputStream(framePath)) {
+                cdifFrame = JsonUtils.fromInputStream(is);
+                log.info("Loaded CDIF JSON-LD frame from " + framePath);
+            }
+            return cdifFrame;
+        }
     }
 
     private Element applyConversion(Element input, String uuid) {
