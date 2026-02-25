@@ -133,10 +133,14 @@
 
         <!-- ================================================================
              4. contact — creator (existing)
+             Handle both direct schema_creator children and @list-wrapped
+             (schema_creator/list) from JSON-LD framing.
              ================================================================ -->
+        <xsl:variable name="creators"
+                      select="schema_creator[schema_name] | schema_creator/list[schema_name]"/>
         <xsl:choose>
-          <xsl:when test="schema_creator[1]">
-            <xsl:for-each select="schema_creator[1]">
+          <xsl:when test="$creators">
+            <xsl:for-each select="$creators[1]">
               <mdb:contact>
                 <xsl:call-template name="buildResponsibility">
                   <xsl:with-param name="role">author</xsl:with-param>
@@ -163,8 +167,8 @@
         </xsl:choose>
 
         <!-- 4b. contact — provider as distributor -->
-        <xsl:if test="schema_provider">
-          <xsl:for-each select="schema_provider[1]">
+        <xsl:if test="schema_provider[schema_name != '']">
+          <xsl:for-each select="schema_provider[schema_name != ''][1]">
             <mdb:contact>
               <xsl:call-template name="buildResponsibility">
                 <xsl:with-param name="role">distributor</xsl:with-param>
@@ -392,8 +396,8 @@
                   </cit:identifier>
                 </xsl:for-each>
 
-                <!-- Cited Responsible Parties: creators -->
-                <xsl:for-each select="schema_creator">
+                <!-- Cited Responsible Parties: creators (handle @list wrapper) -->
+                <xsl:for-each select="schema_creator[schema_name] | schema_creator/list[schema_name]">
                   <cit:citedResponsibleParty>
                     <xsl:call-template name="buildResponsibility">
                       <xsl:with-param name="role">author</xsl:with-param>
@@ -462,8 +466,8 @@
               </gco:CharacterString>
             </mri:abstract>
 
-            <!-- Point of Contact (creators) -->
-            <xsl:for-each select="schema_creator">
+            <!-- Point of Contact (creators, handle @list wrapper) -->
+            <xsl:for-each select="schema_creator[schema_name] | schema_creator/list[schema_name]">
               <mri:pointOfContact>
                 <xsl:call-template name="buildResponsibility">
                   <xsl:with-param name="role">author</xsl:with-param>
@@ -671,7 +675,7 @@
             </xsl:if>
 
             <!-- Extent: spatial + temporal combined -->
-            <xsl:if test="schema_spatialCoverage/schema_geo or schema_temporalCoverage">
+            <xsl:if test="schema_spatialCoverage/schema_geo or schema_temporalCoverage[normalize-space(.) != '']">
               <mri:extent>
                 <gex:EX_Extent>
                   <!-- Geographic element -->
@@ -1351,9 +1355,9 @@
       </xsl:if>
 
       <!-- Measurement Technique -->
-      <xsl:if test="schema_measurementTechnique">
+      <xsl:if test="schema_measurementTechnique[normalize-space(.) != '']">
         <xsl:text>MEASUREMENT TECHNIQUE: </xsl:text>
-        <xsl:for-each select="schema_measurementTechnique">
+        <xsl:for-each select="schema_measurementTechnique[normalize-space(.) != '']">
           <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
           <xsl:choose>
             <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
@@ -1366,9 +1370,9 @@
       </xsl:if>
 
       <!-- Publishing Principles -->
-      <xsl:if test="schema_publishingPrinciples">
+      <xsl:if test="schema_publishingPrinciples[normalize-space(.) != '']">
         <xsl:text>PUBLISHING PRINCIPLES: </xsl:text>
-        <xsl:for-each select="schema_publishingPrinciples">
+        <xsl:for-each select="schema_publishingPrinciples[normalize-space(.) != '']">
           <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
           <xsl:choose>
             <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
