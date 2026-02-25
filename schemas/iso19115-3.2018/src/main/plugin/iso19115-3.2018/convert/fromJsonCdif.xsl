@@ -31,7 +31,7 @@
                 xmlns:mds="http://standards.iso.org/iso/19115/-3/mds/2.0"
                 xmlns:mmi="http://standards.iso.org/iso/19115/-3/mmi/1.0"
                 xmlns:mpc="http://standards.iso.org/iso/19115/-3/mpc/1.0"
-                xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/1.0"
+                xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/2.0"
                 xmlns:mrd="http://standards.iso.org/iso/19115/-3/mrd/1.0"
                 xmlns:mri="http://standards.iso.org/iso/19115/-3/mri/1.0"
                 xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0"
@@ -42,7 +42,7 @@
                 xmlns:gml="http://www.opengis.net/gml/3.2"
                 xmlns:xlink="http://www.w3.org/1999/xlink"
                 xmlns:xd="http://www.oxygenxml.com/ns/doc/xsl"
-                exclude-result-prefixes="#all">
+                exclude-result-prefixes="xsl xs gmd gcoold gmi gmx gsr gss gts srvold gml30 xd">
 
     <xsl:output method="xml" indent="yes"/>
 
@@ -70,7 +70,9 @@
                        xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
                        xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
                        xmlns:gfc="http://standards.iso.org/iso/19110/gfc/1.1"
-                       xmlns:gml="http://www.opengis.net/gml/3.2">
+                       xmlns:gml="http://www.opengis.net/gml/3.2"
+                       xsi:schemaLocation="http://standards.iso.org/iso/19115/-3/mdb/2.0 https://standards.iso.org/iso/19115/-3/mdb/2.0/mdb.xsd
+                                            http://www.opengis.net/gml/3.2 https://standards.iso.org/iso/19136/gml.xsd">
 
         <!-- ================================================================
              1. metadataIdentifier
@@ -195,7 +197,9 @@
           <mdb:dateInfo>
             <cit:CI_Date>
               <cit:date>
-                <gco:DateTime><xsl:value-of select="schema_subjectOf/schema_dateModified"/></gco:DateTime>
+                <xsl:call-template name="formatDateOrDateTime">
+                  <xsl:with-param name="dateValue" select="schema_subjectOf/schema_dateModified"/>
+                </xsl:call-template>
               </cit:date>
               <cit:dateType>
                 <cit:CI_DateTypeCode codeList="codeListLocation#CI_DateTypeCode" codeListValue="revision"/>
@@ -209,7 +213,9 @@
           <mdb:dateInfo>
             <cit:CI_Date>
               <cit:date>
-                <gco:DateTime><xsl:value-of select="schema_subjectOf/schema_sdDatePublished"/></gco:DateTime>
+                <xsl:call-template name="formatDateOrDateTime">
+                  <xsl:with-param name="dateValue" select="schema_subjectOf/schema_sdDatePublished"/>
+                </xsl:call-template>
               </cit:date>
               <cit:dateType>
                 <cit:CI_DateTypeCode codeList="codeListLocation#CI_DateTypeCode" codeListValue="creation"/>
@@ -223,7 +229,9 @@
           <mdb:dateInfo>
             <cit:CI_Date>
               <cit:date>
-                <gco:DateTime><xsl:value-of select="schema_datePublished"/></gco:DateTime>
+                <xsl:call-template name="formatDateOrDateTime">
+                  <xsl:with-param name="dateValue" select="schema_datePublished"/>
+                </xsl:call-template>
               </cit:date>
               <cit:dateType>
                 <cit:CI_DateTypeCode codeList="codeListLocation#CI_DateTypeCode" codeListValue="publication"/>
@@ -334,7 +342,9 @@
                   <cit:date>
                     <cit:CI_Date>
                       <cit:date>
-                        <gco:DateTime><xsl:value-of select="schema_datePublished"/></gco:DateTime>
+                        <xsl:call-template name="formatDateOrDateTime">
+                          <xsl:with-param name="dateValue" select="schema_datePublished"/>
+                        </xsl:call-template>
                       </cit:date>
                       <cit:dateType>
                         <cit:CI_DateTypeCode codeList="codeListLocation#CI_DateTypeCode" codeListValue="publication"/>
@@ -475,29 +485,118 @@
               </mri:pointOfContact>
             </xsl:for-each>
 
-            <!-- Default Locale for resource (moved to correct position per ISO ordering) -->
-            <mri:defaultLocale>
-              <lan:PT_Locale>
-                <lan:language>
-                  <xsl:variable name="resLangCode">
-                    <xsl:choose>
-                      <xsl:when test="schema_inLanguage != ''">
-                        <xsl:call-template name="mapLanguageCode">
-                          <xsl:with-param name="lang" select="schema_inLanguage"/>
-                        </xsl:call-template>
-                      </xsl:when>
-                      <xsl:otherwise>eng</xsl:otherwise>
-                    </xsl:choose>
-                  </xsl:variable>
-                  <lan:LanguageCode codeList="codeListLocation#LanguageCode"
-                                    codeListValue="{$resLangCode}"/>
-                </lan:language>
-                <lan:characterEncoding>
-                  <lan:MD_CharacterSetCode codeList="codeListLocation#MD_CharacterSetCode"
-                                           codeListValue="utf8"/>
-                </lan:characterEncoding>
-              </lan:PT_Locale>
-            </mri:defaultLocale>
+            <!-- Extent: spatial + temporal combined -->
+            <xsl:if test="schema_spatialCoverage/schema_geo or schema_temporalCoverage[normalize-space(.) != '']">
+              <mri:extent>
+                <gex:EX_Extent>
+                  <!-- Geographic element -->
+                  <xsl:if test="schema_spatialCoverage/schema_geo">
+                    <gex:geographicElement>
+                      <gex:EX_GeographicBoundingBox>
+                        <gex:westBoundLongitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[2]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>-180</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:westBoundLongitude>
+                        <gex:eastBoundLongitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[4]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>180</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:eastBoundLongitude>
+                        <gex:southBoundLatitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[1]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>-90</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:southBoundLatitude>
+                        <gex:northBoundLatitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[3]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>90</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:northBoundLatitude>
+                      </gex:EX_GeographicBoundingBox>
+                    </gex:geographicElement>
+                  </xsl:if>
+
+                  <!-- Temporal element -->
+                  <xsl:for-each select="schema_temporalCoverage">
+                    <xsl:variable name="tempStart">
+                      <xsl:choose>
+                        <xsl:when test="time_hasBeginning/time_inTimePosition/schema_value != ''">
+                          <xsl:value-of select="time_hasBeginning/time_inTimePosition/schema_value"/>
+                        </xsl:when>
+                        <xsl:when test="time_intervalStartedBy != ''">
+                          <xsl:value-of select="time_intervalStartedBy"/>
+                        </xsl:when>
+                      </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="tempEnd">
+                      <xsl:choose>
+                        <xsl:when test="time_hasEnd/time_inTimePosition/schema_value != ''">
+                          <xsl:value-of select="time_hasEnd/time_inTimePosition/schema_value"/>
+                        </xsl:when>
+                        <xsl:when test="time_intervalFinishedBy != ''">
+                          <xsl:value-of select="time_intervalFinishedBy"/>
+                        </xsl:when>
+                      </xsl:choose>
+                    </xsl:variable>
+                    <xsl:if test="$tempStart != '' or $tempEnd != ''">
+                      <gex:temporalElement>
+                        <gex:EX_TemporalExtent>
+                          <gex:extent>
+                            <gml:TimePeriod gml:id="temporal-extent-1">
+                              <gml:beginPosition>
+                                <xsl:if test="$tempStart = ''">
+                                  <xsl:attribute name="indeterminatePosition">unknown</xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="$tempStart"/>
+                              </gml:beginPosition>
+                              <gml:endPosition>
+                                <xsl:if test="$tempEnd = ''">
+                                  <xsl:attribute name="indeterminatePosition">unknown</xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="$tempEnd"/>
+                              </gml:endPosition>
+                            </gml:TimePeriod>
+                          </gex:extent>
+                        </gex:EX_TemporalExtent>
+                      </gex:temporalElement>
+                    </xsl:if>
+                  </xsl:for-each>
+                </gex:EX_Extent>
+              </mri:extent>
+            </xsl:if>
 
             <!-- Keywords -->
             <xsl:if test="schema_keywords">
@@ -664,6 +763,30 @@
               </mri:associatedResource>
             </xsl:for-each>
 
+            <!-- Default Locale for resource -->
+            <mri:defaultLocale>
+              <lan:PT_Locale>
+                <lan:language>
+                  <xsl:variable name="resLangCode">
+                    <xsl:choose>
+                      <xsl:when test="schema_inLanguage != ''">
+                        <xsl:call-template name="mapLanguageCode">
+                          <xsl:with-param name="lang" select="schema_inLanguage"/>
+                        </xsl:call-template>
+                      </xsl:when>
+                      <xsl:otherwise>eng</xsl:otherwise>
+                    </xsl:choose>
+                  </xsl:variable>
+                  <lan:LanguageCode codeList="codeListLocation#LanguageCode"
+                                    codeListValue="{$resLangCode}"/>
+                </lan:language>
+                <lan:characterEncoding>
+                  <lan:MD_CharacterSetCode codeList="codeListLocation#MD_CharacterSetCode"
+                                           codeListValue="utf8"/>
+                </lan:characterEncoding>
+              </lan:PT_Locale>
+            </mri:defaultLocale>
+
             <!-- Supplemental Information (funding, measurementTechnique, publishingPrinciples, variable summaries) -->
             <xsl:variable name="supplementalText">
               <xsl:call-template name="buildSupplementalInformation"/>
@@ -672,119 +795,6 @@
               <mri:supplementalInformation>
                 <gco:CharacterString><xsl:value-of select="$supplementalText"/></gco:CharacterString>
               </mri:supplementalInformation>
-            </xsl:if>
-
-            <!-- Extent: spatial + temporal combined -->
-            <xsl:if test="schema_spatialCoverage/schema_geo or schema_temporalCoverage[normalize-space(.) != '']">
-              <mri:extent>
-                <gex:EX_Extent>
-                  <!-- Geographic element -->
-                  <xsl:if test="schema_spatialCoverage/schema_geo">
-                    <gex:geographicElement>
-                      <gex:EX_GeographicBoundingBox>
-                        <gex:westBoundLongitude>
-                          <gco:Decimal>
-                            <xsl:choose>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[2]"/>
-                              </xsl:when>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
-                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
-                              </xsl:when>
-                              <xsl:otherwise>-180</xsl:otherwise>
-                            </xsl:choose>
-                          </gco:Decimal>
-                        </gex:westBoundLongitude>
-                        <gex:eastBoundLongitude>
-                          <gco:Decimal>
-                            <xsl:choose>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[4]"/>
-                              </xsl:when>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
-                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
-                              </xsl:when>
-                              <xsl:otherwise>180</xsl:otherwise>
-                            </xsl:choose>
-                          </gco:Decimal>
-                        </gex:eastBoundLongitude>
-                        <gex:southBoundLatitude>
-                          <gco:Decimal>
-                            <xsl:choose>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[1]"/>
-                              </xsl:when>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
-                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
-                              </xsl:when>
-                              <xsl:otherwise>-90</xsl:otherwise>
-                            </xsl:choose>
-                          </gco:Decimal>
-                        </gex:southBoundLatitude>
-                        <gex:northBoundLatitude>
-                          <gco:Decimal>
-                            <xsl:choose>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[3]"/>
-                              </xsl:when>
-                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
-                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
-                              </xsl:when>
-                              <xsl:otherwise>90</xsl:otherwise>
-                            </xsl:choose>
-                          </gco:Decimal>
-                        </gex:northBoundLatitude>
-                      </gex:EX_GeographicBoundingBox>
-                    </gex:geographicElement>
-                  </xsl:if>
-
-                  <!-- Temporal element -->
-                  <xsl:for-each select="schema_temporalCoverage">
-                    <xsl:variable name="tempStart">
-                      <xsl:choose>
-                        <xsl:when test="time_hasBeginning/time_inTimePosition/schema_value != ''">
-                          <xsl:value-of select="time_hasBeginning/time_inTimePosition/schema_value"/>
-                        </xsl:when>
-                        <xsl:when test="time_intervalStartedBy != ''">
-                          <xsl:value-of select="time_intervalStartedBy"/>
-                        </xsl:when>
-                      </xsl:choose>
-                    </xsl:variable>
-                    <xsl:variable name="tempEnd">
-                      <xsl:choose>
-                        <xsl:when test="time_hasEnd/time_inTimePosition/schema_value != ''">
-                          <xsl:value-of select="time_hasEnd/time_inTimePosition/schema_value"/>
-                        </xsl:when>
-                        <xsl:when test="time_intervalFinishedBy != ''">
-                          <xsl:value-of select="time_intervalFinishedBy"/>
-                        </xsl:when>
-                      </xsl:choose>
-                    </xsl:variable>
-                    <xsl:if test="$tempStart != '' or $tempEnd != ''">
-                      <gex:temporalElement>
-                        <gex:EX_TemporalExtent>
-                          <gex:extent>
-                            <gml:TimePeriod gml:id="temporal-extent-1">
-                              <gml:beginPosition>
-                                <xsl:if test="$tempStart = ''">
-                                  <xsl:attribute name="indeterminatePosition">unknown</xsl:attribute>
-                                </xsl:if>
-                                <xsl:value-of select="$tempStart"/>
-                              </gml:beginPosition>
-                              <gml:endPosition>
-                                <xsl:if test="$tempEnd = ''">
-                                  <xsl:attribute name="indeterminatePosition">unknown</xsl:attribute>
-                                </xsl:if>
-                                <xsl:value-of select="$tempEnd"/>
-                              </gml:endPosition>
-                            </gml:TimePeriod>
-                          </gex:extent>
-                        </gex:EX_TemporalExtent>
-                      </gex:temporalElement>
-                    </xsl:if>
-                  </xsl:for-each>
-                </gex:EX_Extent>
-              </mri:extent>
             </xsl:if>
 
           </mri:MD_DataIdentification>
@@ -967,16 +977,7 @@
                         <mrd:onLine>
                           <cit:CI_OnlineResource>
                             <cit:linkage>
-                              <gco:CharacterString>
-                                <xsl:choose>
-                                  <xsl:when test="schema_contentUrl != ''">
-                                    <xsl:value-of select="schema_contentUrl"/>
-                                  </xsl:when>
-                                  <xsl:otherwise>
-                                    <xsl:value-of select="$archiveUrl"/>
-                                  </xsl:otherwise>
-                                </xsl:choose>
-                              </gco:CharacterString>
+                              <gco:CharacterString>http://www.opengis.net/def/nil/OGC/0/inapplicable</gco:CharacterString>
                             </cit:linkage>
                             <xsl:if test="schema_encodingFormat != ''">
                               <cit:protocol>
@@ -1237,6 +1238,23 @@
       </mdb:MD_Metadata>
     </xsl:template>
 
+
+    <!-- ==================================================================
+         Named template: formatDateOrDateTime
+         Output gco:Date for date-only values (YYYY-MM-DD), gco:DateTime
+         for full datetime values (containing 'T').
+         ================================================================== -->
+    <xsl:template name="formatDateOrDateTime">
+      <xsl:param name="dateValue"/>
+      <xsl:choose>
+        <xsl:when test="contains($dateValue, 'T')">
+          <gco:DateTime><xsl:value-of select="$dateValue"/></gco:DateTime>
+        </xsl:when>
+        <xsl:otherwise>
+          <gco:Date><xsl:value-of select="$dateValue"/></gco:Date>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:template>
 
     <!-- ==================================================================
          Named template: mapLanguageCode
