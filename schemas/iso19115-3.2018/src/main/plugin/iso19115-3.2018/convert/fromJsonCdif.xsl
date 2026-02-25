@@ -878,10 +878,10 @@
         <xsl:if test="schema_distribution or schema_url">
           <mdb:distributionInfo>
             <mrd:MD_Distribution>
-              <!-- Distribution formats (globally deduplicated, skip empties) -->
+              <!-- Distribution formats: top-level only, component file formats
+                   are carried in cit:protocol on their onLine resources -->
               <xsl:for-each select="distinct-values(
-                  (schema_distribution/schema_encodingFormat[normalize-space(.) != ''],
-                   schema_distribution/schema_hasPart/schema_encodingFormat[normalize-space(.) != '']))">
+                  schema_distribution/schema_encodingFormat[normalize-space(.) != ''])">
                 <mrd:distributionFormat>
                   <mrd:MD_Format>
                     <mrd:formatSpecificationCitation>
@@ -899,7 +899,8 @@
 
               <!-- Transfer options from schema_distribution -->
               <xsl:for-each select="schema_distribution">
-                <xsl:if test="schema_contentUrl">
+                <xsl:if test="schema_contentUrl != ''">
+                  <xsl:variable name="archiveUrl" select="schema_contentUrl"/>
                   <mrd:transferOptions>
                     <mrd:MD_DigitalTransferOptions>
                       <!-- Transfer size from cdi_fileSize -->
@@ -913,6 +914,7 @@
                           </gco:Real>
                         </mrd:transferSize>
                       </xsl:if>
+                      <!-- Primary resource: the distribution itself -->
                       <mrd:onLine>
                         <cit:CI_OnlineResource>
                           <cit:linkage>
@@ -920,25 +922,28 @@
                               <xsl:value-of select="schema_contentUrl"/>
                             </gco:CharacterString>
                           </cit:linkage>
-                          <xsl:if test="schema_encodingFormat">
-                            <cit:protocol>
-                              <gco:CharacterString>
-                                <xsl:value-of select="schema_encodingFormat"/>
-                              </gco:CharacterString>
-                            </cit:protocol>
-                          </xsl:if>
-                          <xsl:if test="schema_name">
+                          <cit:protocol>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="starts-with(schema_contentUrl, 'https')">https</xsl:when>
+                                <xsl:when test="starts-with(schema_contentUrl, 'http')">http</xsl:when>
+                                <xsl:when test="starts-with(schema_contentUrl, 'ftp')">ftp</xsl:when>
+                                <xsl:otherwise>https</xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </cit:protocol>
+                          <xsl:if test="schema_name != ''">
                             <cit:name>
                               <gco:CharacterString>
                                 <xsl:value-of select="schema_name"/>
                               </gco:CharacterString>
                             </cit:name>
                           </xsl:if>
-                          <xsl:if test="schema_description or cdi_characterSet">
+                          <xsl:if test="normalize-space(schema_description) != '' or cdi_characterSet != ''">
                             <cit:description>
                               <gco:CharacterString>
                                 <xsl:value-of select="schema_description"/>
-                                <xsl:if test="schema_description != '' and cdi_characterSet != ''">
+                                <xsl:if test="normalize-space(schema_description) != '' and cdi_characterSet != ''">
                                   <xsl:text> </xsl:text>
                                 </xsl:if>
                                 <xsl:if test="cdi_characterSet != ''">
@@ -949,52 +954,76 @@
                               </gco:CharacterString>
                             </cit:description>
                           </xsl:if>
+                          <xsl:if test="schema_hasPart[schema_name != '']">
+                            <cit:function>
+                              <cit:CI_OnLineFunctionCode codeList="codeListLocation#CI_OnLineFunctionCode"
+                                                         codeListValue="download"/>
+                            </cit:function>
+                          </xsl:if>
                         </cit:CI_OnlineResource>
                       </mrd:onLine>
-                    </mrd:MD_DigitalTransferOptions>
-                  </mrd:transferOptions>
-                </xsl:if>
-
-                <!-- Transfer options from hasPart sub-distributions -->
-                <xsl:for-each select="schema_hasPart[schema_contentUrl]">
-                  <mrd:transferOptions>
-                    <mrd:MD_DigitalTransferOptions>
-                      <xsl:if test="cdi_fileSize != ''">
-                        <mrd:transferSize>
-                          <gco:Real>
-                            <xsl:call-template name="convertToMegabytes">
-                              <xsl:with-param name="size" select="cdi_fileSize"/>
-                              <xsl:with-param name="unit" select="cdi_fileSizeUofM"/>
-                            </xsl:call-template>
-                          </gco:Real>
-                        </mrd:transferSize>
-                      </xsl:if>
-                      <mrd:onLine>
-                        <cit:CI_OnlineResource>
-                          <cit:linkage>
-                            <gco:CharacterString>
-                              <xsl:value-of select="schema_contentUrl"/>
-                            </gco:CharacterString>
-                          </cit:linkage>
-                          <xsl:if test="schema_encodingFormat">
-                            <cit:protocol>
+                      <!-- Archive component files from hasPart (function=information) -->
+                      <xsl:for-each select="schema_hasPart[schema_name != '']">
+                        <mrd:onLine>
+                          <cit:CI_OnlineResource>
+                            <cit:linkage>
                               <gco:CharacterString>
-                                <xsl:value-of select="schema_encodingFormat"/>
+                                <xsl:choose>
+                                  <xsl:when test="schema_contentUrl != ''">
+                                    <xsl:value-of select="schema_contentUrl"/>
+                                  </xsl:when>
+                                  <xsl:otherwise>
+                                    <xsl:value-of select="$archiveUrl"/>
+                                  </xsl:otherwise>
+                                </xsl:choose>
                               </gco:CharacterString>
-                            </cit:protocol>
-                          </xsl:if>
-                          <xsl:if test="schema_name">
+                            </cit:linkage>
+                            <xsl:if test="schema_encodingFormat != ''">
+                              <cit:protocol>
+                                <gco:CharacterString>
+                                  <xsl:value-of select="schema_encodingFormat"/>
+                                </gco:CharacterString>
+                              </cit:protocol>
+                            </xsl:if>
                             <cit:name>
                               <gco:CharacterString>
                                 <xsl:value-of select="schema_name"/>
                               </gco:CharacterString>
                             </cit:name>
-                          </xsl:if>
-                        </cit:CI_OnlineResource>
-                      </mrd:onLine>
+                            <xsl:variable name="partDesc">
+                              <xsl:if test="normalize-space(schema_description) != ''">
+                                <xsl:value-of select="schema_description"/>
+                              </xsl:if>
+                              <xsl:if test="schema_size/schema_value != ''">
+                                <xsl:if test="normalize-space(schema_description) != ''">
+                                  <xsl:text> </xsl:text>
+                                </xsl:if>
+                                <xsl:text>[size: </xsl:text>
+                                <xsl:value-of select="schema_size/schema_value"/>
+                                <xsl:if test="schema_size/schema_unitText != ''">
+                                  <xsl:text> </xsl:text>
+                                  <xsl:value-of select="schema_size/schema_unitText"/>
+                                </xsl:if>
+                                <xsl:text>]</xsl:text>
+                              </xsl:if>
+                            </xsl:variable>
+                            <xsl:if test="normalize-space($partDesc) != ''">
+                              <cit:description>
+                                <gco:CharacterString>
+                                  <xsl:value-of select="$partDesc"/>
+                                </gco:CharacterString>
+                              </cit:description>
+                            </xsl:if>
+                            <cit:function>
+                              <cit:CI_OnLineFunctionCode codeList="codeListLocation#CI_OnLineFunctionCode"
+                                                         codeListValue="information"/>
+                            </cit:function>
+                          </cit:CI_OnlineResource>
+                        </mrd:onLine>
+                      </xsl:for-each>
                     </mrd:MD_DigitalTransferOptions>
                   </mrd:transferOptions>
-                </xsl:for-each>
+                </xsl:if>
               </xsl:for-each>
 
               <!-- Simple URL fallback -->
