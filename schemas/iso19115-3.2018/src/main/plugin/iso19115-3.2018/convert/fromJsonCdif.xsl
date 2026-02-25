@@ -878,25 +878,10 @@
         <xsl:if test="schema_distribution or schema_url">
           <mdb:distributionInfo>
             <mrd:MD_Distribution>
-              <!-- Distribution formats -->
-              <xsl:for-each select="schema_distribution/schema_encodingFormat[not(. = preceding-sibling::schema_encodingFormat)]">
-                <mrd:distributionFormat>
-                  <mrd:MD_Format>
-                    <mrd:formatSpecificationCitation>
-                      <cit:CI_Citation>
-                        <cit:title>
-                          <gco:CharacterString>
-                            <xsl:value-of select="."/>
-                          </gco:CharacterString>
-                        </cit:title>
-                      </cit:CI_Citation>
-                    </mrd:formatSpecificationCitation>
-                  </mrd:MD_Format>
-                </mrd:distributionFormat>
-              </xsl:for-each>
-
-              <!-- Distribution formats from hasPart sub-elements -->
-              <xsl:for-each select="schema_distribution/schema_hasPart/schema_encodingFormat[not(. = preceding-sibling::schema_encodingFormat)]">
+              <!-- Distribution formats (globally deduplicated, skip empties) -->
+              <xsl:for-each select="distinct-values(
+                  (schema_distribution/schema_encodingFormat[normalize-space(.) != ''],
+                   schema_distribution/schema_hasPart/schema_encodingFormat[normalize-space(.) != '']))">
                 <mrd:distributionFormat>
                   <mrd:MD_Format>
                     <mrd:formatSpecificationCitation>
@@ -1467,7 +1452,7 @@
                             <gco:CharacterString>
                               <xsl:choose>
                                 <xsl:when test="schema_email != ''"><xsl:value-of select="schema_email"/></xsl:when>
-                                <xsl:otherwise><xsl:value-of select="schema_contactPoint/schema_email"/></xsl:otherwise>
+                                <xsl:otherwise><xsl:value-of select="schema_contactPoint[1]/schema_email"/></xsl:otherwise>
                               </xsl:choose>
                             </gco:CharacterString>
                           </cit:electronicMailAddress>
@@ -1521,7 +1506,7 @@
                             <gco:CharacterString>
                               <xsl:choose>
                                 <xsl:when test="schema_email != ''"><xsl:value-of select="schema_email"/></xsl:when>
-                                <xsl:otherwise><xsl:value-of select="schema_contactPoint/schema_email"/></xsl:otherwise>
+                                <xsl:otherwise><xsl:value-of select="schema_contactPoint[1]/schema_email"/></xsl:otherwise>
                               </xsl:choose>
                             </gco:CharacterString>
                           </cit:electronicMailAddress>
@@ -1567,7 +1552,7 @@
                             <gco:CharacterString>
                               <xsl:choose>
                                 <xsl:when test="schema_email != ''"><xsl:value-of select="schema_email"/></xsl:when>
-                                <xsl:otherwise><xsl:value-of select="schema_contactPoint/schema_email"/></xsl:otherwise>
+                                <xsl:otherwise><xsl:value-of select="schema_contactPoint[1]/schema_email"/></xsl:otherwise>
                               </xsl:choose>
                             </gco:CharacterString>
                           </cit:electronicMailAddress>
