@@ -1136,6 +1136,7 @@
                       <overWrite>false</overWrite>
                       <outputDirectory>${schema-plugins.dir}</outputDirectory>
                     </artifactItem>
+                    <!-- DDE: disabled non-DDE schema plugins
                     <artifactItem>
                       <groupId>org.geonetwork-opensource.schemas</groupId>
                       <artifactId>gn-schema-iso19110</artifactId>
@@ -1150,6 +1151,7 @@
                       <overWrite>false</overWrite>
                       <outputDirectory>${schema-plugins.dir}</outputDirectory>
                     </artifactItem>
+                    -->
                     <artifactItem>
                       <groupId>org.geonetwork-opensource.schemas</groupId>
                       <artifactId>gn-schema-iso19115-3.2018</artifactId>
