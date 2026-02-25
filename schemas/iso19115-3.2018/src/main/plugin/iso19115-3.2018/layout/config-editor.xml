@@ -24,6 +24,7 @@
         xmlns:mac="http://standards.iso.org/iso/19115/-3/mac/2.0"
         xmlns:gfc="http://standards.iso.org/iso/19110/gfc/1.1"
         xmlns:gml="http://www.opengis.net/gml/3.2"
+        xmlns:gts="http://www.isotc211.org/2005/gts"
         xmlns:xlink="http://www.w3.org/1999/xlink">
 
   <!-- Form field type configuration. Default is text. -->
@@ -414,6 +415,14 @@
                                             mcc:code/gcx:Anchor/
                                               concat('-', substring-after(text()[. != ''], 'geonetwork.thesaurus.')), ',')"/>
     </for>
+
+    <!-- DDE-specific field types -->
+    <for name="gml:description" use="textarea"/>
+    <for name="srv:operationName" use="textarea"/>
+    <for name="dqm:abstract" use="textarea"/>
+    <for name="gml:timePosition" use="number"/>
+    <for name="gml:beginPosition" use="data-gn-date-picker"/>
+    <for name="gml:endPosition" use="data-gn-date-picker"/>
   </fields>
 
 
@@ -643,8 +652,955 @@
 
   <!-- View configuration -->
   <views>
+
+    <!-- DDE view. This is the default view for DDE metadata editing. -->
+    <view name="ddeview" class="gn-label-above-input gn-indent-bluescale" default="true">
+      <sidePanel>
+        <directive data-gn-overview-manager="" data-file-types=".png,.gif,.jpeg,.jpg"/>
+
+        <directive data-gn-onlinesrc-list=""
+          data-types="sibling|associated|source|dataset|service"/>
+
+        <directive data-gn-geo-publisher="" data-ng-if="gnCurrentEdit.geoPublisherConfig"
+          data-config="{{gnCurrentEdit.geoPublisherConfig}}" data-lang="lang"/>
+
+        <directive data-gn-validation-report=""/>
+
+        <directive data-gn-suggestion-list=""/>
+      </sidePanel>
+
+      <tab id="basicmetadata" default="true" mode="flat">
+        <section name="basicmetadata">
+          <!-- title and alt title -->
+          <field
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:title"/>
+          <field
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:alternateTitle"
+            or="alternateTitle"
+            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation"/>
+          <field
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:edition"
+            or="edition"
+            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation" del="."/>
+          <text ref="horizontalRule"/>
+          <!-- resource identifier -->
+          <action type="add" btnLabel="Add the resource identifier" or="identifier"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:citation/cit:CI_Citation"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:citation/cit:CI_Citation/cit:identifier//mcc:code) = 0">
+            <template>
+              <snippet>
+                <cit:identifier>
+                  <mcc:MD_Identifier>
+                    <mcc:authority>
+                      <cit:CI_Citation>
+                        <cit:title>
+                          <gco:CharacterString>authority</gco:CharacterString>
+                        </cit:title>
+                      </cit:CI_Citation>
+                    </mcc:authority>
+                    <mcc:code>
+                      <gco:CharacterString>identifercode</gco:CharacterString>
+                    </mcc:code>
+                    <mcc:codeSpace>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mcc:codeSpace>
+                    <mcc:description>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mcc:description>
+                  </mcc:MD_Identifier>
+                </cit:identifier>
+              </snippet>
+            </template>
+          </action>
+          <field name="ResourceIdentifier"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:identifier"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:citation/cit:CI_Citation/cit:identifier) > 0"/>
+          <text ref="horizontalRule"/>
+        </section>
+
+        <!-- ISO Resource type and name; use name for DDE resource type. -->
+        <section name="resourceType" forEach="/mdb:MD_Metadata/mdb:metadataScope">
+          <field name="ISOresourceScope" xpath="*/mdb:resourceScope" or="resourceScope" in="*"
+            del="."/>
+          <field name="scopeName" xpath="*/mdb:name" or="name" in="*" del="."
+            use="data-gn-keyword-picker">
+            <directiveAttributes data-thesaurus-key="local.theme.resourcetypeskos" data-transformation="to-iso19115-3.2018-keyword"/>
+          </field>
+        </section>
+
+        <!-- abstract, dates, responsibilities -->
+        <section>
+          <action type="add" name=" " btnLabel="Add resource type" or="metadataScope"
+            in="/mdb:MD_Metadata">
+            <template>
+              <snippet>
+                <mdb:metadataScope>
+                  <mdb:MD_MetadataScope>
+                    <mdb:resourceScope>
+                      <mcc:MD_ScopeCode
+                        codeList=" http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode"
+                        codeListValue=""/>
+                    </mdb:resourceScope>
+                    <mdb:name>
+                      <gco:CharacterString/>
+                    </mdb:name>
+                  </mdb:MD_MetadataScope>
+                </mdb:metadataScope>
+              </snippet>
+            </template>
+          </action>
+          <text ref="horizontalRule"/>
+
+          <field
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:abstract"
+            or="abstract" in="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification"/>
+          <action type="add" name=" " btnLabel="Add abstract (required, 250 characters)" or="abstract"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:abstract) = 0">
+            <template>
+              <snippet>
+                <mri:abstract>
+                  <gco:CharacterString></gco:CharacterString>
+                </mri:abstract>
+              </snippet>
+            </template>
+          </action>
+
+          <!-- resource dates -->
+          <field name="resourceDates"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:date"
+            or="date" in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation"
+            del="."/>
+          <!-- add metadata history dates -->
+          <action type="add" name=" " btnLabel="Add date" or="date"
+            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation">
+            <template>
+              <snippet>
+                <cit:date>
+                  <cit:CI_Date>
+                    <cit:date>
+                      <gco:DateTime/>
+                    </cit:date>
+                    <cit:dateType>
+                      <cit:CI_DateTypeCode
+                        codeList="https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_DateTypeCode"
+                        codeListValue=""/>
+                    </cit:dateType>
+                  </cit:CI_Date>
+                </cit:date>
+              </snippet>
+            </template>
+          </action>
+
+          <!-- metadata responsible parties -->
+          <field
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation/cit:citedResponsibleParty"
+            or="citedResponsibleParty"
+            in="/mdb:MD_Metadata/mdb:identificationInfo//mri:citation/cit:CI_Citation" del="."/>
+        </section>
+
+        <!-- keywords, topic category, acquisitionCode -->
+        <section name="keywords">
+          <field
+            xpath="//mri:descriptiveKeywords[ not (*//mri:thesaurusName) or *//mri:thesaurusName//cit:title/child::*/text() != 'DDE topic category extensions']"
+            or="descriptiveKeywords"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*"/>
+          <text ref="horizontalRule"/>
+          <!-- DDE topic category -->
+          <field name="DDEtopicCategory"
+            xpath="//mri:descriptiveKeywords[ *//mri:thesaurusName//cit:title/child::*/text() = 'DDE topic category extensions']"/>
+          <text ref="horizontalRule"/>
+          <field name="ISOtopicCategory"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:topicCategory" or="topicCategory"
+            in="/mdb:MD_Metadata/mdb:identificationInfo"/>
+          <action type="add" btnLabel="Add topic category" or="topicCategory"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo//mri:topicCategory)=0">
+            <template>
+              <snippet>
+                <mri:topicCategory>
+                  <mri:MD_TopicCategoryCode>geoscientificInformation</mri:MD_TopicCategoryCode>
+                </mri:topicCategory>
+              </snippet>
+            </template>
+          </action>
+          <text ref="horizontalRule"/>
+        </section>
+
+        <!-- DDE acquisition type codes -->
+        <section forEach="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:operation">
+          <field name="DDEacquisitionType" xpath="mac:MI_Operation/mac:description"
+            or="description" in="mac:MI_Operation"
+            use="data-gn-keyword-picker" del="../../../..">
+            <directiveAttributes data-thesaurus-key="local.theme.acquisitioncodeskos" data-transformation="to-iso19115-3.2018-keyword"/>
+          </field>
+        </section>
+
+        <section>
+          <action type="add" btnLabel="Add DDE aquisition type" or="acquisitionInformation"
+            in="/mdb:MD_Metadata">
+            <template>
+              <snippet>
+                <mdb:acquisitionInformation>
+                  <mac:MI_AcquisitionInformation>
+                    <mac:operation>
+                      <mac:MI_Operation>
+                        <mac:description>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mac:description>
+                        <mac:status gco:nilReason="unknown"/>
+                      </mac:MI_Operation>
+                    </mac:operation>
+                  </mac:MI_AcquisitionInformation>
+                </mdb:acquisitionInformation>
+              </snippet>
+            </template>
+          </action>
+          <text ref="horizontalRule"/>
+        </section>
+      </tab>
+
+      <tab id="firstdetail" mode="flat">
+        <section>
+          <field name="browseGraphic"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:graphicOverview" del="."/>
+          <action type="add" btnLabel="Add browse graphic" or="graphicOverview"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*">
+            <template>
+              <snippet>
+                <mri:graphicOverview>
+                  <mcc:MD_BrowseGraphic>
+                    <mcc:fileName>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mcc:fileName>
+                    <mcc:fileDescription>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mcc:fileDescription>
+                    <mcc:fileType>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mcc:fileType>
+                    <mcc:linkage>
+                      <cit:CI_OnlineResource>
+                        <cit:linkage>
+                          <gco:CharacterString></gco:CharacterString>
+                        </cit:linkage>
+                      </cit:CI_OnlineResource>
+                    </mcc:linkage>
+                  </mcc:MD_BrowseGraphic>
+                </mri:graphicOverview>
+              </snippet>
+            </template>
+          </action>
+
+          <field name="lineageSummary"
+            xpath="/mdb:MD_Metadata/mdb:resourceLineage/mrl:LI_Lineage/mrl:statement" or="statement"
+            in="/mdb:MD_Metadata/mdb:resourceLineage/mrl:LI_Lineage" del="../.."/>
+
+          <action type="add" name=" " btnLabel="Add data quality summary" or="dataQualityInfo"
+            in="/mdb:MD_Metadata"
+            if="count(//*[local-name() = 'DQ_DataQuality']//*[local-name()='DQ_StandaloneQualityReportInformation']//*[local-name()='abstract'])=0">
+            <template>
+              <snippet>
+                <mdb:dataQualityInfo>
+                  <dqm:DQ_DataQuality xmlns:dqm="http://standards.iso.org/iso/19157/-2/mdq/1.0">
+                    <dqm:scope gco:nilReason="missing"/>
+                    <dqm:standaloneQualityReport>
+                      <dqm:DQ_StandaloneQualityReportInformation>
+                        <dqm:reportReference gco:nilReason="missing"/>
+                        <dqm:abstract>
+                          <gco:CharacterString></gco:CharacterString>
+                        </dqm:abstract>
+                      </dqm:DQ_StandaloneQualityReportInformation>
+                    </dqm:standaloneQualityReport>
+                    <dqm:report gco:nilReason="missing"/>
+                  </dqm:DQ_DataQuality>
+                </mdb:dataQualityInfo>
+              </snippet>
+            </template>
+          </action>
+          <field name="dataQualityReport"
+            xpath="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQualityReport/mdq:DQ_StandaloneQualityReportInformation/mdq:abstract"
+            or="abstract"
+            in="/mdb:MD_Metadata/mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:standaloneQualityReport/mdq:DQ_StandaloneQualityReportInformation"
+            del="../../../.."/>
+
+          <text ref="addDoc-help"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo//mri:supplementalInformation)=0"/>
+          <field name="additionalDocumentation"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:supplementalInformation"
+            or="supplementalInformation" in="/mdb:MD_Metadata/mdb:identificationInfo/*" del="."/>
+
+          <action type="add" name=" " btnLabel="Add supplemental information"
+            or="supplementalInformation" in="/*/mdb:identificationInfo/*"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo//mri:supplementalInformation)=0">
+            <template>
+              <snippet>
+                <mri:supplementalInformation>
+                  <gco:CharacterString/>
+                </mri:supplementalInformation>
+              </snippet>
+            </template>
+          </action>
+        </section>
+
+        <!-- resource constraints -->
+        <section name="resourceconstraints">
+          <field xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:resourceConstraints" del="."/>
+          <action type="add" name=" " btnLabel="Add usage or access constraint"
+            or="resourceConstraints" in="/*/mdb:identificationInfo/*">
+            <template>
+              <snippet>
+                <mri:resourceConstraints>
+                  <mco:MD_LegalConstraints>
+                    <mco:reference>
+                      <cit:CI_Citation>
+                        <cit:title>
+                          <gco:CharacterString>   </gco:CharacterString>
+                        </cit:title>
+                        <cit:onlineResource>
+                          <cit:CI_OnlineResource>
+                            <cit:linkage>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:linkage>
+                          </cit:CI_OnlineResource>
+                        </cit:onlineResource>
+                      </cit:CI_Citation>
+                    </mco:reference>
+                    <mco:useConstraints>
+                      <mco:MD_RestrictionCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_RestrictionCode"
+                        codeListValue=""/>
+                    </mco:useConstraints>
+                    <mco:otherConstraints>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mco:otherConstraints>
+                  </mco:MD_LegalConstraints>
+                </mri:resourceConstraints>
+              </snippet>
+            </template>
+          </action>
+        </section>
+      </tab>
+
+      <!-- spatial and temporal extent -->
+      <tab id="extent" mode="flat">
+        <section name="spatialExtent">
+          <field name="boundingBox"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/gex:EX_Extent/gex:geographicElement"
+            or="geographicElement"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/gex:EX_Extent"
+            del="../.."/>
+          <action type="add" btnLabel="Add bounding box"
+            name="extent"
+            or="extent"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*">
+            <template>
+              <snippet>
+                <mri:extent>
+                  <gex:EX_Extent>
+                    <gex:geographicElement>
+                      <gex:EX_GeographicBoundingBox>
+                        <gex:westBoundLongitude>
+                          <gco:Decimal></gco:Decimal>
+                        </gex:westBoundLongitude>
+                        <gex:eastBoundLongitude>
+                          <gco:Decimal></gco:Decimal>
+                        </gex:eastBoundLongitude>
+                        <gex:southBoundLatitude>
+                          <gco:Decimal></gco:Decimal>
+                        </gex:southBoundLatitude>
+                        <gex:northBoundLatitude>
+                          <gco:Decimal></gco:Decimal>
+                        </gex:northBoundLatitude>
+                      </gex:EX_GeographicBoundingBox>
+                    </gex:geographicElement>
+                  </gex:EX_Extent>
+                </mri:extent>
+              </snippet>
+            </template>
+          </action>
+
+          <field
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification/mri:spatialRepresentationType"
+            or="spatialRepresentationType"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/mri:MD_DataIdentification" del="."/>
+
+          <action type="add" name=" " btnLabel="Add spatial resolution" or="spatialResolution"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:spatialResolution/*//mri:levelOfDetail) = 0">
+            <template>
+              <snippet>
+                <mri:spatialResolution>
+                  <mri:MD_Resolution>
+                    <mri:levelOfDetail>
+                      <gco:CharacterString/>
+                    </mri:levelOfDetail>
+                  </mri:MD_Resolution>
+                </mri:spatialResolution>
+              </snippet>
+            </template>
+          </action>
+          <field name="levelOfDetail"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/mri:spatialResolution/*//mri:levelOfDetail"
+            del="ancestor::mri:spatialResolution"/>
+        </section>
+
+        <section name="temporalExtent">
+          <text ref="geotime-help"/>
+          <text ref="horizontalRule"/>
+
+          <action type="add" name=" " btnLabel="Add a calendar date time period" or="extent"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod//gml:begin)=0">
+            <template>
+              <snippet>
+                <mri:extent>
+                  <gex:EX_Extent>
+                    <gex:temporalElement>
+                      <gex:EX_TemporalExtent>
+                        <gex:extent>
+                          <gml:TimePeriod gml:id="">
+                            <gml:description/>
+                            <gml:beginPosition/>
+                            <gml:endPosition/>
+                          </gml:TimePeriod>
+                        </gex:extent>
+                      </gex:EX_TemporalExtent>
+                    </gex:temporalElement>
+                  </gex:EX_Extent>
+                </mri:extent>
+              </snippet>
+            </template>
+          </action>
+          <action type="add" name=" " btnLabel="Add a geologic age" or="extent"
+            in="/*/mdb:identificationInfo/*"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod)=0">
+            <template>
+              <snippet>
+                <mri:extent>
+                  <gex:EX_Extent>
+                    <gex:temporalElement>
+                      <gex:EX_TemporalExtent>
+                        <gex:extent>
+                          <gml:TimePeriod gml:id="">
+                            <gml:description/>
+                            <gml:begin>
+                              <gml:TimeInstant>
+                                <gml:identifier>http://</gml:identifier>
+                                <gml:name>begin extent name</gml:name>
+                                <gml:timePosition frame="Ma before present">1870</gml:timePosition>
+                              </gml:TimeInstant>
+                            </gml:begin>
+                            <gml:end>
+                              <gml:TimeInstant>
+                                <gml:identifier>http://</gml:identifier>
+                                <gml:name>end extent name</gml:name>
+                                <gml:timePosition frame="Ma before present">1870</gml:timePosition>
+                              </gml:TimeInstant>
+                            </gml:end>
+                          </gml:TimePeriod>
+                        </gex:extent>
+                      </gex:EX_TemporalExtent>
+                    </gex:temporalElement>
+                  </gex:EX_Extent>
+                </mri:extent>
+              </snippet>
+            </template>
+          </action>
+
+          <text ref="calendarExtent"/>
+          <field
+            xpath="/*/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod[.//gml:beginPosition]"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod//gml:begin)=0"
+            del="ancestor::gex:temporalElement"/>
+          <text ref="horizontalRule"/>
+          <text ref="geologicAge"/>
+          <field
+            xpath="/*/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod[.//gml:begin]"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent//gml:TimePeriod//gml:beginPosition)=0"
+            del="ancestor::gex:temporalElement"/>
+          <text ref="horizontalRule"/>
+        </section>
+      </tab>
+
+      <!-- imagery information -->
+      <tab id="imagery" mode="flat"
+        displayIfRecord="count(mdb:MD_Metadata/mdb:metadataScope/*/mdb:name[gco:CharacterString='image'])>0">
+        <section>
+          <text ref="wavelengthsignalgenerator"/>
+          <field name="image-wavelength"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:operation//mac:description[starts-with(gco:CharacterString,'wavelength')]"
+            del="../../../.."/>
+          <action type="add" btnLabel="add image wavelength"
+            name="Image wavelength(s)"
+            or="acquisitionInformation"
+            in="/mdb:MD_Metadata">
+            <template>
+              <snippet>
+                <mdb:acquisitionInformation>
+                  <mac:MI_AcquisitionInformation>
+                    <mac:operation>
+                      <mac:MI_Operation>
+                        <mac:description>
+                          <gco:CharacterString>wavelength: </gco:CharacterString>
+                        </mac:description>
+                        <mac:status gco:nilReason="unknown"/>
+                      </mac:MI_Operation>
+                    </mac:operation>
+                  </mac:MI_AcquisitionInformation>
+                </mdb:acquisitionInformation>
+              </snippet>
+            </template>
+          </action>
+
+          <field name="image-signalGenerator"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:operation//mac:description[starts-with(gco:CharacterString,'signalGenerator')]"
+            del="../../../.."/>
+          <action type="add" btnLabel="add signal generator informaiton"
+            name="Signal generator"
+            or="acquisitionInformation"
+            in="/mdb:MD_Metadata">
+            <template>
+              <snippet>
+                <mdb:acquisitionInformation>
+                  <mac:MI_AcquisitionInformation>
+                    <mac:operation>
+                      <mac:MI_Operation>
+                        <mac:description>
+                          <gco:CharacterString>signalGenerator: </gco:CharacterString>
+                        </mac:description>
+                        <mac:status gco:nilReason="unknown"/>
+                      </mac:MI_Operation>
+                    </mac:operation>
+                  </mac:MI_AcquisitionInformation>
+                </mdb:acquisitionInformation>
+              </snippet>
+            </template>
+          </action>
+
+          <field name="image-sensor"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:instrument/mac:MI_Sensor"
+            del="../../.."/>
+          <action type="add" btnLabel="data acquisition sensor"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation">
+            <template>
+              <snippet>
+                <mdb:acquisitionInformation>
+                  <mac:MI_AcquisitionInformation>
+                    <mac:instrument>
+                      <mac:MI_Sensor>
+                        <mac:identifier>
+                          <mcc:MD_Identifier>
+                            <mcc:code>
+                              <gco:CharacterString> </gco:CharacterString>
+                            </mcc:code>
+                          </mcc:MD_Identifier>
+                        </mac:identifier>
+                        <mac:type>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mac:type>
+                      </mac:MI_Sensor>
+                    </mac:instrument>
+                  </mac:MI_AcquisitionInformation>
+                </mdb:acquisitionInformation>
+              </snippet>
+            </template>
+          </action>
+
+          <field name="image-instrument"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:instrument/mac:MI_Instrument"
+            del="../../.."/>
+          <action type="add" btnLabel="data acquisition instrument"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation">
+            <template>
+              <snippet>
+                <mdb:acquisitionInformation>
+                  <mac:MI_AcquisitionInformation>
+                    <mac:instrument>
+                      <mac:MI_Instrument>
+                        <mac:identifier>
+                          <mcc:MD_Identifier>
+                            <mcc:code>
+                              <gco:CharacterString></gco:CharacterString>
+                            </mcc:code>
+                          </mcc:MD_Identifier>
+                        </mac:identifier>
+                        <mac:type>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mac:type>
+                      </mac:MI_Instrument>
+                    </mac:instrument>
+                  </mac:MI_AcquisitionInformation>
+                </mdb:acquisitionInformation>
+              </snippet>
+            </template>
+          </action>
+
+          <text ref="platform-help"/>
+          <field name="image-platform"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation/mac:MI_AcquisitionInformation/mac:platform"
+            del="../.."/>
+          <action type="add" btnLabel="data acquisition platform"
+            xpath="/mdb:MD_Metadata/mdb:acquisitionInformation">
+            <template>
+              <snippet>
+                <mdb:acquisitionInformation>
+                  <mac:MI_AcquisitionInformation>
+                    <mac:platform>
+                      <mac:MI_Platform>
+                        <mac:identifier>
+                          <mcc:MD_Identifier>
+                            <mcc:code>
+                              <gco:CharacterString></gco:CharacterString>
+                            </mcc:code>
+                          </mcc:MD_Identifier>
+                        </mac:identifier>
+                        <mac:description>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mac:description>
+                        <mac:instrument gco:nilReason="missing"/>
+                      </mac:MI_Platform>
+                    </mac:platform>
+                  </mac:MI_AcquisitionInformation>
+                </mdb:acquisitionInformation>
+              </snippet>
+            </template>
+          </action>
+        </section>
+      </tab>
+
+      <!-- service information -->
+      <tab id="service" mode="flat"
+        displayIfRecord="(count(//mdb:metadataScope//mdb:name[gco:CharacterString = 'service']) + count(//mdb:metadataScope//mcc:MD_ScopeCode[@codeListValue = 'service'])) > 0">
+        <section xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0">
+          <field name="serviceType"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/srv:serviceType" or="serviceType"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification"
+            use="data-gn-keyword-picker">
+            <directiveAttributes data-thesaurus-key="local.theme.servicetypeskos" data-transformation="to-iso19115-3.2018-keyword"/>
+          </field>
+
+          <field name="accessProperties"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/*/srv:accessProperties/*/mrd:orderingInstructions"
+            or="orderingInstructions"
+            in="//srv:SV_ServiceIdentification/srv:accessProperties/mrd:MD_StandardOrderProcess" del="../.."/>
+          <action type="add" btnLabel="Service access instructions"
+            name="ordering instructions"
+            or="accessProperties"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification"
+            if="count(mdb:MD_Metadata/mdb:identificationInfo/*/srv:accessProperties/*/mrd:orderingInstructions)=0">
+            <template>
+              <snippet>
+                <srv:accessProperties>
+                  <mrd:MD_StandardOrderProcess>
+                    <mrd:orderingInstructions>
+                      <gco:CharacterString></gco:CharacterString>
+                    </mrd:orderingInstructions>
+                  </mrd:MD_StandardOrderProcess>
+                </srv:accessProperties>
+              </snippet>
+            </template>
+          </action>
+        </section>
+
+        <text><hr/></text>
+        <section name="Target datasets" xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0">
+          <field name="operatedDataset"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification/srv:operatedDataset"
+            or="operatedDataset"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification" del="."/>
+          <field name="operatesOn"
+            xpath="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification/srv:operatesOn"
+            or="operatesOn"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification/srv:operatesOn" del="."/>
+          <action type="add" btnLabel="Add a target dataset"
+            name="operated Dataset"
+            or="operatedDataset"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification">
+            <template>
+              <snippet>
+                <srv:operatedDataset>
+                  <cit:CI_Citation>
+                    <cit:title>
+                      <gco:CharacterString></gco:CharacterString>
+                    </cit:title>
+                    <cit:identifier>
+                      <mcc:MD_Identifier>
+                        <mcc:authority>
+                          <cit:CI_Citation>
+                            <cit:title>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:title>
+                          </cit:CI_Citation>
+                        </mcc:authority>
+                        <mcc:code>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mcc:code>
+                        <mcc:codeSpace>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mcc:codeSpace>
+                        <mcc:version></mcc:version>
+                        <mcc:description>
+                          <gco:CharacterString></gco:CharacterString>
+                        </mcc:description>
+                      </mcc:MD_Identifier>
+                    </cit:identifier>
+                  </cit:CI_Citation>
+                </srv:operatedDataset>
+              </snippet>
+            </template>
+          </action>
+        </section>
+        <section name="Service operations" xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0">
+          <field name="containsOperation"
+            xpath="//srv:SV_ServiceIdentification/srv:containsOperations/srv:SV_OperationMetadata/srv:operationName"
+            or="operationName"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification" del="../.."/>
+          <action type="add" btnLabel="describe service operation"
+            name="contains operation"
+            or="containsOperations"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/srv:SV_ServiceIdentification">
+            <template>
+              <snippet>
+                <srv:containsOperations>
+                  <srv:SV_OperationMetadata>
+                    <srv:operationName>
+                      <gco:CharacterString></gco:CharacterString>
+                    </srv:operationName>
+                    <srv:distributedComputingPlatform gco:nilReason="missing"/>
+                    <srv:connectPoint gco:nilReason="missing"/>
+                  </srv:SV_OperationMetadata>
+                </srv:containsOperations>
+              </snippet>
+            </template>
+          </action>
+        </section>
+      </tab>
+
+      <!-- related resources -->
+      <tab id="relatedresource" mode="flat">
+        <section>
+          <field xpath="/mdb:MD_Metadata/mdb:identificationInfo//mri:associatedResource" del="."/>
+          <action type="add" btnLabel="Add link to related resource"
+            name="related resource link"
+            or="associatedResource"
+            in="/mdb:MD_Metadata/mdb:identificationInfo/*">
+            <template>
+              <snippet>
+                <mri:associatedResource>
+                  <mri:MD_AssociatedResource>
+                    <mri:name>
+                      <cit:CI_Citation>
+                        <cit:title>
+                          <gco:CharacterString></gco:CharacterString>
+                        </cit:title>
+                        <cit:onlineResource>
+                          <cit:CI_OnlineResource>
+                            <cit:linkage>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:linkage>
+                            <cit:description>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:description>
+                            <cit:function>
+                              <cit:CI_OnLineFunctionCode codeList="https://www.ddeworld.org/resource/codelist/FunctionCode"
+                                codeListValue=""/>
+                            </cit:function>
+                          </cit:CI_OnlineResource>
+                        </cit:onlineResource>
+                      </cit:CI_Citation>
+                    </mri:name>
+                    <mri:associationType>
+                      <mri:DS_AssociationTypeCode codeList="https://www.ddeworld.org/resource/codelist/#DS_AssociationTypeCode"
+                        codeListValue=""/>
+                    </mri:associationType>
+                  </mri:MD_AssociatedResource>
+                </mri:associatedResource>
+              </snippet>
+            </template>
+          </action>
+        </section>
+      </tab>
+
+      <!-- distributions -->
+      <tab id="dde-distributionInfo" mode="flat">
+        <section forEach="/mdb:MD_Metadata/mdb:distributionInfo">
+          <text><h2>Distribution</h2></text>
+          <field xpath="mrd:MD_Distribution/mrd:distributionFormat" or="distributionFormat"
+            in="mrd:MD_Distribution" del="."/>
+          <field xpath="mrd:MD_Distribution/mrd:distributor" or="distributor"
+            in="mrd:MD_Distribution" del="."/>
+          <field xpath="mrd:MD_Distribution/mrd:transferOptions/*/mrd:onLine" name="linkage" del="."
+            or="online" in="mrd:MD_Distribution/mrd:transferOptions/mrd:MD_DigitalTransferOptions"/>
+          <text><hr/></text>
+        </section>
+        <section>
+          <action type="add" btnLabel="Add a distribution" or="distributionInfo"
+            in="/mdb:MD_Metadata">
+            <template>
+              <snippet>
+                <mdb:distributionInfo>
+                  <mrd:MD_Distribution>
+                    <mrd:distributionFormat>
+                      <mrd:MD_Format>
+                        <mrd:formatSpecificationCitation>
+                          <cit:CI_Citation>
+                            <cit:title>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:title>
+                            <cit:onlineResource>
+                              <cit:CI_OnlineResource>
+                                <cit:linkage>
+                                  <gco:CharacterString></gco:CharacterString>
+                                </cit:linkage>
+                              </cit:CI_OnlineResource>
+                            </cit:onlineResource>
+                          </cit:CI_Citation>
+                        </mrd:formatSpecificationCitation>
+                      </mrd:MD_Format>
+                    </mrd:distributionFormat>
+                    <mrd:distributor>
+                      <mrd:MD_Distributor>
+                        <mrd:distributorContact>
+                          <cit:CI_Responsibility>
+                            <cit:role>
+                              <cit:CI_RoleCode codeList="https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                                codeListValue="distributor">distributor</cit:CI_RoleCode>
+                            </cit:role>
+                            <cit:party>
+                              <cit:CI_Individual>
+                                <cit:name>
+                                  <gco:CharacterString></gco:CharacterString>
+                                </cit:name>
+                                <cit:contactInfo>
+                                  <cit:CI_Contact>
+                                    <cit:address>
+                                      <cit:CI_Address>
+                                        <cit:country>
+                                          <gco:CharacterString/>
+                                        </cit:country>
+                                        <cit:electronicMailAddress>
+                                          <gco:CharacterString></gco:CharacterString>
+                                        </cit:electronicMailAddress>
+                                      </cit:CI_Address>
+                                    </cit:address>
+                                  </cit:CI_Contact>
+                                </cit:contactInfo>
+                                <cit:partyIdentifier>
+                                  <mcc:MD_Identifier>
+                                    <mcc:code>
+                                      <gco:CharacterString></gco:CharacterString>
+                                    </mcc:code>
+                                  </mcc:MD_Identifier>
+                                </cit:partyIdentifier>
+                              </cit:CI_Individual>
+                            </cit:party>
+                          </cit:CI_Responsibility>
+                        </mrd:distributorContact>
+                      </mrd:MD_Distributor>
+                    </mrd:distributor>
+                    <mrd:transferOptions>
+                      <mrd:MD_DigitalTransferOptions>
+                        <mrd:onLine>
+                          <cit:CI_OnlineResource>
+                            <cit:linkage>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:linkage>
+                            <cit:applicationProfile>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:applicationProfile>
+                            <cit:name>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:name>
+                            <cit:description>
+                              <gco:CharacterString></gco:CharacterString>
+                            </cit:description>
+                            <cit:function>
+                              <cit:CI_OnLineFunctionCode codeList="https://www.ddeworld.org/resource/codelist/FunctionCode"
+                                codeListValue=""/>
+                            </cit:function>
+                          </cit:CI_OnlineResource>
+                        </mrd:onLine>
+                      </mrd:MD_DigitalTransferOptions>
+                    </mrd:transferOptions>
+                  </mrd:MD_Distribution>
+                </mdb:distributionInfo>
+              </snippet>
+            </template>
+          </action>
+        </section>
+      </tab>
+
+      <!-- metadata about the metadata -->
+      <tab id="metadatametadata" mode="flat">
+        <section name="metadata">
+          <field xpath="/mdb:MD_Metadata/mdb:metadataIdentifier"/>
+          <field xpath="/mdb:MD_Metadata/mdb:metadataStandard"/>
+
+          <text ref="metadataprofiletext"/>
+          <field name="metadataprofile" xpath="/mdb:MD_Metadata/mdb:metadataProfile/cit:CI_Citation/cit:title" del="../.."/>
+          <action type="add" btnLabel="Add DDE metadata profile"
+            name="DDE metadata profile"
+            or="metadataProfile"
+            in="/mdb:MD_Metadata"
+            if="count(mdb:MD_Metadata/mdb:metadataProfile/cit:CI_Citation/cit:title[child::*/text()='DDE S01-2023: Geosciences Information Metadata'])=0">
+            <template>
+              <snippet>
+                <mdb:metadataProfile>
+                  <cit:CI_Citation>
+                    <cit:title>
+                      <gco:CharacterString>DDE S01-2023: Geosciences Information Metadata</gco:CharacterString>
+                    </cit:title>
+                  </cit:CI_Citation>
+                </mdb:metadataProfile>
+              </snippet>
+            </template>
+          </action>
+          <text ref="horizontalRule"/>
+
+          <text ref="ddedefaultlocale"/>
+          <field xpath="/mdb:MD_Metadata/mdb:defaultLocale" or="defaultLocale" in="/mdb:MD_Metadata"/>
+          <text ref="metadatacontact"/>
+          <field name="mdContactInfo" xpath="/mdb:MD_Metadata/mdb:contact" or="contact" in="/mdb:MD_Metadata"/>
+
+          <field xpath="/mdb:MD_Metadata/mdb:alternativeMetadataReference"
+            or="alternativeMetadataReference" in="/mdb:MD_Metadata"/>
+          <field xpath="/mdb:MD_Metadata/mdb:metadataLinkage" or="metadataLinkage"
+            in="/mdb:MD_Metadata"/>
+          <field name="metadatadates" xpath="/mdb:MD_Metadata/mdb:dateInfo"/>
+        </section>
+      </tab>
+
+      <!-- Elements that should not use the "flat" mode -->
+      <flatModeExceptions>
+        <for name="mri:descriptiveKeywords"/>
+        <for name="mrl:processor"/>
+        <for name="cit:citedResponsibleParty"/>
+        <for name="mri:pointOfContact"/>
+        <for name="mdb:contact"/>
+        <for name="mcc:processor"/>
+        <for name="mrl:statement"/>
+        <for name="mdq:abstract"/>
+        <for name="dqm:abstract"/>
+        <for name="mri:spatialResolution"/>
+        <for name="gex:temporalElement"/>
+        <for name="cit:alternateTitle"/>
+        <for name="mri:levelOfDetail"/>
+        <for name="mdb:name"/>
+        <for name="mac:description"/>
+        <for name="mcc:codeSpace"/>
+        <for name="mrd:distributorContact"/>
+        <for name="operatedDataset"/>
+      </flatModeExceptions>
+
+      <thesaurusList>
+        <thesaurus key="local.theme.topiccategoryskos" maxtags="10"/>
+        <thesaurus key="local.theme.acquisitioncodeskos" maxtags="10"/>
+        <thesaurus key="local.theme.resourcetypeskos" maxtags="10"/>
+        <thesaurus key="local.theme.servicetypeskos" maxtags="10"/>
+      </thesaurusList>
+    </view>
+
     <view name="default"
-          default="true"
           class="gn-label-above-input gn-indent-bluescale">
       <sidePanel>
         <directive data-gn-need-help="creating-metadata"/>
