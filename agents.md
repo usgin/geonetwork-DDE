@@ -207,6 +207,66 @@ The Simple URL Harvester supports several presets beyond CDIF:
 | **Page from param** (`pageFromParam`) | Query parameter name for page offset. Not used for sitemap mode. |
 | **Conversion** (`toISOConversion`) | XSLT to convert intermediate XML to ISO metadata. Format: `schema:<schema>:convert/<xslt-name>`. |
 
+## DDE Editor Customizations
+
+The iso19115-3.2018 schema plugin includes a custom editor view (`ddeview`) and supporting infrastructure ported from the earlier DDEcore GeoNetwork deployment (~4.4.4).
+
+### DDE Editor View
+
+The `ddeview` is defined in `config-editor.xml` as the default editor view with 8 tabs:
+
+| Tab | Key Fields |
+|-----|------------|
+| **basicmetadata** | Title, abstract, status, DDE topic/acquisition/resource type keyword pickers, dates, contacts, constraints, lineage |
+| **firstdetail** | Supplemental info, credits, reference system, aggregation |
+| **extent** | Geographic bounding box, spatial resolution, temporal extent (calendar dates + geologic age in Ma before present) |
+| **imagery** | Wavelength, sensors, instruments, platforms (conditional: `mdb:name='image'`) |
+| **service** | Service type, access properties, operated datasets, operations (conditional: scope='service') |
+| **relatedresource** | Associated resources with DDE codelist URLs |
+| **dde-distributionInfo** | Format, distributor, transfer options |
+| **metadatametadata** | Identifier, DDE profile stamp ("DDE S01-2023"), locale, contact, dates |
+
+The upstream `default`, `advanced`, and `xml` views remain accessible via the view switcher.
+
+### DDE Controlled Vocabularies
+
+Four SKOS thesauri in `web/.../codelist/local/thesauri/theme/`:
+
+| File | Thesaurus Key | Used By |
+|------|---------------|---------|
+| `topiccategoryskos.rdf` | `local.theme.topiccategoryskos` | basicmetadata tab |
+| `acquisitioncodeskos.rdf` | `local.theme.acquisitioncodeskos` | basicmetadata tab |
+| `resourcetypeskos.rdf` | `local.theme.resourcetypeskos` | basicmetadata tab |
+| `servicetypeskos.rdf` | `local.theme.servicetypeskos` | service tab |
+
+### DDE Format Converters
+
+XSLT files in `schemas/iso19115-3.2018/.../convert/`:
+
+| File | Direction |
+|------|-----------|
+| `toDDE_20240204.xsl` | ISO 19115-3 → DDE |
+| `fromDDE-20240405.xsl` | DDE → ISO 19115-3 |
+| `ISO19115-3ToDDE_20240204.xsl` | ISO 19115-3 → DDE (alternate) |
+| `ddeToISO19115-3_20240208.xsl` | DDE → ISO 19115-3 (alternate) |
+| `fromISO19139-DDE.xsl` | ISO 19139 → DDE |
+| `fromDDE-any.xsl` | DDE auto-detect entry point |
+| `utilityDDE/` | 12 shared XSLT utility files |
+
+### DDE Layout/Indexing Modifications
+
+| File | Change |
+|------|--------|
+| `layout/layout.xsl` | Added `xmlns:gts` namespace + `gts:*` matching for geologic time elements |
+| `layout/layout-custom-fields-date.xsl` | Added `$overrideLabel` parameter and `data-hide-time` calendar control |
+| `index-fields/link-utility.xsl` | Added `nilReason` element output during indexing |
+| `formatter/dde/view.xsl` | DDE output format template |
+| `loc/eng/strings.xml` | DDE help text entries (geologic age, calendar extent, etc.) |
+
+### Build Configuration
+
+Dublin Core and ISO 19110 schema plugins are disabled in the build (`schemas/pom.xml` and `web/pom.xml`) since they are not needed for DDE workflows.
+
 ## Components
 
 ### New Files

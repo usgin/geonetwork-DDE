@@ -10,6 +10,76 @@ See [agents.md](agents.md) for full technical documentation of the CDIF harveste
 
 ---
 
+## DDE Metadata Editor
+
+The iso19115-3.2018 schema plugin includes a custom **DDE editor view** (`ddeview`) with 8 tabs designed for geoscience metadata:
+
+| Tab | Contents |
+|-----|----------|
+| **Basic Metadata** | Title, abstract, status, DDE topic/acquisition/resource type keywords, dates, contacts, constraints, lineage |
+| **First Detail** | Supplemental info, credits, reference system, aggregation |
+| **Extent** | Geographic bounding box, spatial resolution, temporal extent (calendar dates and geologic age in Ma) |
+| **Imagery** | Wavelength, sensors, instruments, platforms (conditional on image scope) |
+| **Service** | Service type, access properties, operated datasets, operations (conditional on service scope) |
+| **Related Resource** | Associated resources with DDE codelist integration |
+| **Distribution Info** | Format, distributor, transfer options |
+| **Metadata about Metadata** | Identifier, DDE profile stamp, locale, contact, dates |
+
+The ddeview is the default editor view. The upstream `default`, `advanced`, and `xml` views remain accessible via the view switcher.
+
+### DDE Controlled Vocabularies (SKOS)
+
+Four SKOS thesauri in `web/.../codelist/local/thesauri/theme/`:
+
+- `topiccategoryskos.rdf` — DDE topic categories
+- `acquisitioncodeskos.rdf` — Data acquisition methods
+- `resourcetypeskos.rdf` — Resource types
+- `servicetypeskos.rdf` — Service types
+
+### DDE Format Converters
+
+XSLT pipelines in `schemas/iso19115-3.2018/.../convert/`:
+
+| File | Direction |
+|------|-----------|
+| `toDDE_20240204.xsl` | ISO 19115-3 → DDE |
+| `fromDDE-20240405.xsl` | DDE → ISO 19115-3 |
+| `ISO19115-3ToDDE_20240204.xsl` | ISO 19115-3 → DDE (alternate) |
+| `ddeToISO19115-3_20240208.xsl` | DDE → ISO 19115-3 (alternate) |
+| `fromISO19139-DDE.xsl` | ISO 19139 → DDE |
+| `fromDDE-any.xsl` | DDE auto-detect entry point |
+| `utilityDDE/` | 12 shared utility stylesheets |
+
+### Metadata Schemes
+
+| Schema | Status |
+|--------|--------|
+| **ISO 19115-3:2018** | Primary — DDE editor view, converters, indexing |
+| **ISO 19139** | Enabled — standard GeoNetwork support |
+| **CSW Record** | Enabled — OGC CSW catalogue records |
+| Dublin Core | Disabled in build |
+| ISO 19110 | Disabled in build |
+
+## DDE Schema Plugin File Layout
+
+```
+schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/
+├── layout/
+│   ├── config-editor.xml              # ddeview + upstream views
+│   ├── layout.xsl                     # + gts:* geologic time support
+│   └── layout-custom-fields-date.xsl  # + overrideLabel, hideTimeInCalendar
+├── convert/
+│   ├── toDDE_20240204.xsl
+│   ├── fromDDE-20240405.xsl
+│   ├── utilityDDE/                    # 12 shared XSLT utilities
+│   └── ...
+├── formatter/dde/view.xsl            # DDE output format
+├── index-fields/link-utility.xsl     # + nilReason indexing
+└── loc/eng/strings.xml               # DDE help text and labels
+```
+
+---
+
 ## Prerequisites
 
 - **Java 11** (e.g. [Adoptium OpenJDK 11 LTS](https://adoptium.net/temurin/archive/?version=11))
