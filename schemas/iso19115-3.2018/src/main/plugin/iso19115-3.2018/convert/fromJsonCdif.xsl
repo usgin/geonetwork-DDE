@@ -27,7 +27,7 @@
                 xmlns:mex="http://standards.iso.org/iso/19115/-3/mex/1.0"
                 xmlns:mic="http://standards.iso.org/iso/19115/-3/mic/1.0"
                 xmlns:mil="http://standards.iso.org/iso/19115/-3/mil/1.0"
-                xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/1.0"
+                xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/2.0"
                 xmlns:mds="http://standards.iso.org/iso/19115/-3/mds/2.0"
                 xmlns:mmi="http://standards.iso.org/iso/19115/-3/mmi/1.0"
                 xmlns:mpc="http://standards.iso.org/iso/19115/-3/mpc/1.0"
@@ -67,11 +67,14 @@
                        xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/2.0"
                        xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0"
                        xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/2.0"
+                       xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
                        xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
                        xmlns:gfc="http://standards.iso.org/iso/19110/gfc/1.1"
                        xmlns:gml="http://www.opengis.net/gml/3.2">
 
-        <!-- Metadata Identifier: use uuid injected by harvester -->
+        <!-- ================================================================
+             1. metadataIdentifier
+             ================================================================ -->
         <mdb:metadataIdentifier>
           <mcc:MD_Identifier>
             <mcc:code>
@@ -82,11 +85,24 @@
           </mcc:MD_Identifier>
         </mdb:metadataIdentifier>
 
-        <!-- Default Locale -->
+        <!-- ================================================================
+             2. defaultLocale (use schema_inLanguage when available)
+             ================================================================ -->
         <mdb:defaultLocale>
           <lan:PT_Locale>
             <lan:language>
-              <lan:LanguageCode codeList="codeListLocation#LanguageCode" codeListValue="eng"/>
+              <xsl:variable name="langCode">
+                <xsl:choose>
+                  <xsl:when test="schema_inLanguage != ''">
+                    <xsl:call-template name="mapLanguageCode">
+                      <xsl:with-param name="lang" select="schema_inLanguage"/>
+                    </xsl:call-template>
+                  </xsl:when>
+                  <xsl:otherwise>eng</xsl:otherwise>
+                </xsl:choose>
+              </xsl:variable>
+              <lan:LanguageCode codeList="codeListLocation#LanguageCode"
+                                codeListValue="{$langCode}"/>
             </lan:language>
             <lan:characterEncoding>
               <lan:MD_CharacterSetCode codeList="codeListLocation#MD_CharacterSetCode"
@@ -95,7 +111,9 @@
           </lan:PT_Locale>
         </mdb:defaultLocale>
 
-        <!-- Metadata Scope: map @type to MD_ScopeCode -->
+        <!-- ================================================================
+             3. metadataScope
+             ================================================================ -->
         <mdb:metadataScope>
           <mdb:MD_MetadataScope>
             <mdb:resourceScope>
@@ -113,7 +131,9 @@
           </mdb:MD_MetadataScope>
         </mdb:metadataScope>
 
-        <!-- Metadata Contact: first creator as metadata contact -->
+        <!-- ================================================================
+             4. contact — creator (existing)
+             ================================================================ -->
         <xsl:choose>
           <xsl:when test="schema_creator[1]">
             <xsl:for-each select="schema_creator[1]">
@@ -142,7 +162,31 @@
           </xsl:otherwise>
         </xsl:choose>
 
-        <!-- Metadata Date: dateModified from subjectOf (metadata about metadata) -->
+        <!-- 4b. contact — provider as distributor -->
+        <xsl:if test="schema_provider">
+          <xsl:for-each select="schema_provider[1]">
+            <mdb:contact>
+              <xsl:call-template name="buildResponsibility">
+                <xsl:with-param name="role">distributor</xsl:with-param>
+              </xsl:call-template>
+            </mdb:contact>
+          </xsl:for-each>
+        </xsl:if>
+
+        <!-- 4c. contact — subjectOf/maintainer as pointOfContact -->
+        <xsl:if test="schema_subjectOf/schema_maintainer">
+          <xsl:for-each select="schema_subjectOf/schema_maintainer[1]">
+            <mdb:contact>
+              <xsl:call-template name="buildResponsibility">
+                <xsl:with-param name="role">pointOfContact</xsl:with-param>
+              </xsl:call-template>
+            </mdb:contact>
+          </xsl:for-each>
+        </xsl:if>
+
+        <!-- ================================================================
+             5. dateInfo — revision (metadata dateModified)
+             ================================================================ -->
         <xsl:if test="schema_subjectOf/schema_dateModified">
           <mdb:dateInfo>
             <cit:CI_Date>
@@ -156,7 +200,21 @@
           </mdb:dateInfo>
         </xsl:if>
 
-        <!-- Resource publication date at metadata level -->
+        <!-- 5b. dateInfo — creation (metadata sdDatePublished) -->
+        <xsl:if test="schema_subjectOf/schema_sdDatePublished">
+          <mdb:dateInfo>
+            <cit:CI_Date>
+              <cit:date>
+                <gco:DateTime><xsl:value-of select="schema_subjectOf/schema_sdDatePublished"/></gco:DateTime>
+              </cit:date>
+              <cit:dateType>
+                <cit:CI_DateTypeCode codeList="codeListLocation#CI_DateTypeCode" codeListValue="creation"/>
+              </cit:dateType>
+            </cit:CI_Date>
+          </mdb:dateInfo>
+        </xsl:if>
+
+        <!-- 5c. dateInfo — publication (resource datePublished) -->
         <xsl:if test="schema_datePublished">
           <mdb:dateInfo>
             <cit:CI_Date>
@@ -170,7 +228,9 @@
           </mdb:dateInfo>
         </xsl:if>
 
-        <!-- Metadata Standard -->
+        <!-- ================================================================
+             6. metadataStandard
+             ================================================================ -->
         <mdb:metadataStandard>
           <cit:CI_Citation>
             <cit:title>
@@ -179,7 +239,81 @@
           </cit:CI_Citation>
         </mdb:metadataStandard>
 
-        <!-- Identification Info -->
+        <!-- ================================================================
+             7. metadataProfile (from subjectOf/dcterms_conformsTo)
+             ================================================================ -->
+        <xsl:for-each select="schema_subjectOf/dcterms_conformsTo">
+          <mdb:metadataProfile>
+            <cit:CI_Citation>
+              <cit:title>
+                <gco:CharacterString>
+                  <xsl:choose>
+                    <xsl:when test="schema_name != ''">
+                      <xsl:value-of select="schema_name"/>
+                    </xsl:when>
+                    <xsl:when test="id != ''">
+                      <xsl:value-of select="id"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                      <xsl:value-of select="."/>
+                    </xsl:otherwise>
+                  </xsl:choose>
+                </gco:CharacterString>
+              </cit:title>
+              <xsl:variable name="profileUrl">
+                <xsl:choose>
+                  <xsl:when test="schema_url != ''"><xsl:value-of select="schema_url"/></xsl:when>
+                  <xsl:when test="id != '' and starts-with(id, 'http')"><xsl:value-of select="id"/></xsl:when>
+                  <xsl:when test="not(*) and starts-with(., 'http')"><xsl:value-of select="."/></xsl:when>
+                </xsl:choose>
+              </xsl:variable>
+              <xsl:if test="$profileUrl != ''">
+                <cit:onlineResource>
+                  <cit:CI_OnlineResource>
+                    <cit:linkage>
+                      <gco:CharacterString><xsl:value-of select="$profileUrl"/></gco:CharacterString>
+                    </cit:linkage>
+                  </cit:CI_OnlineResource>
+                </cit:onlineResource>
+              </xsl:if>
+            </cit:CI_Citation>
+          </mdb:metadataProfile>
+        </xsl:for-each>
+
+        <!-- ================================================================
+             8. metadataLinkage (from subjectOf/includedInDataCatalog)
+             ================================================================ -->
+        <xsl:for-each select="schema_subjectOf/schema_includedInDataCatalog">
+          <xsl:variable name="catalogUrl">
+            <xsl:choose>
+              <xsl:when test="schema_url != ''"><xsl:value-of select="schema_url"/></xsl:when>
+              <xsl:when test="id != '' and starts-with(id, 'http')"><xsl:value-of select="id"/></xsl:when>
+              <xsl:when test="not(*) and starts-with(., 'http')"><xsl:value-of select="."/></xsl:when>
+            </xsl:choose>
+          </xsl:variable>
+          <xsl:if test="$catalogUrl != ''">
+            <mdb:metadataLinkage>
+              <cit:CI_OnlineResource>
+                <cit:linkage>
+                  <gco:CharacterString><xsl:value-of select="$catalogUrl"/></gco:CharacterString>
+                </cit:linkage>
+                <xsl:if test="schema_name != ''">
+                  <cit:name>
+                    <gco:CharacterString><xsl:value-of select="schema_name"/></gco:CharacterString>
+                  </cit:name>
+                </xsl:if>
+                <cit:function>
+                  <cit:CI_OnLineFunctionCode codeList="codeListLocation#CI_OnLineFunctionCode"
+                                             codeListValue="completeMetadata"/>
+                </cit:function>
+              </cit:CI_OnlineResource>
+            </mdb:metadataLinkage>
+          </xsl:if>
+        </xsl:for-each>
+
+        <!-- ================================================================
+             9. identificationInfo
+             ================================================================ -->
         <mdb:identificationInfo>
           <mri:MD_DataIdentification>
             <mri:citation>
@@ -205,7 +339,14 @@
                   </cit:date>
                 </xsl:if>
 
-                <!-- Resource Identifier (DOI) -->
+                <!-- Edition (version) -->
+                <xsl:if test="schema_version != ''">
+                  <cit:edition>
+                    <gco:CharacterString><xsl:value-of select="schema_version"/></gco:CharacterString>
+                  </cit:edition>
+                </xsl:if>
+
+                <!-- Resource Identifier (DOI or structured) -->
                 <xsl:if test="schema_identifier">
                   <cit:identifier>
                     <mcc:MD_Identifier>
@@ -232,13 +373,77 @@
                   </cit:identifier>
                 </xsl:if>
 
-                <!-- Cited Responsible Parties (creators) -->
+                <!-- sameAs as additional identifier -->
+                <xsl:for-each select="schema_sameAs">
+                  <cit:identifier>
+                    <mcc:MD_Identifier>
+                      <mcc:code>
+                        <gco:CharacterString>
+                          <xsl:choose>
+                            <xsl:when test="id != ''"><xsl:value-of select="id"/></xsl:when>
+                            <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+                          </xsl:choose>
+                        </gco:CharacterString>
+                      </mcc:code>
+                      <mcc:codeSpace>
+                        <gco:CharacterString>sameAs</gco:CharacterString>
+                      </mcc:codeSpace>
+                    </mcc:MD_Identifier>
+                  </cit:identifier>
+                </xsl:for-each>
+
+                <!-- Cited Responsible Parties: creators -->
                 <xsl:for-each select="schema_creator">
                   <cit:citedResponsibleParty>
                     <xsl:call-template name="buildResponsibility">
                       <xsl:with-param name="role">author</xsl:with-param>
                     </xsl:call-template>
                   </cit:citedResponsibleParty>
+                </xsl:for-each>
+
+                <!-- Cited Responsible Parties: publisher -->
+                <xsl:for-each select="schema_publisher">
+                  <cit:citedResponsibleParty>
+                    <xsl:call-template name="buildResponsibility">
+                      <xsl:with-param name="role">publisher</xsl:with-param>
+                    </xsl:call-template>
+                  </cit:citedResponsibleParty>
+                </xsl:for-each>
+
+                <!-- Cited Responsible Parties: contributors with role mapping.
+                     CDIF uses a Role wrapper: schema_contributor/schema_contributor holds
+                     the actual person/org, and schema_contributor/schema_roleName holds the role. -->
+                <xsl:for-each select="schema_contributor">
+                  <xsl:variable name="mappedRole">
+                    <xsl:choose>
+                      <xsl:when test="schema_roleName != ''">
+                        <xsl:call-template name="mapRoleName">
+                          <xsl:with-param name="roleName" select="schema_roleName"/>
+                        </xsl:call-template>
+                      </xsl:when>
+                      <xsl:otherwise>contributor</xsl:otherwise>
+                    </xsl:choose>
+                  </xsl:variable>
+                  <xsl:choose>
+                    <!-- Role wrapper pattern: inner schema_contributor holds the actual agent -->
+                    <xsl:when test="schema_contributor">
+                      <xsl:for-each select="schema_contributor">
+                        <cit:citedResponsibleParty>
+                          <xsl:call-template name="buildResponsibility">
+                            <xsl:with-param name="role" select="$mappedRole"/>
+                          </xsl:call-template>
+                        </cit:citedResponsibleParty>
+                      </xsl:for-each>
+                    </xsl:when>
+                    <!-- Direct contributor (no Role wrapper) -->
+                    <xsl:when test="schema_name">
+                      <cit:citedResponsibleParty>
+                        <xsl:call-template name="buildResponsibility">
+                          <xsl:with-param name="role" select="$mappedRole"/>
+                        </xsl:call-template>
+                      </cit:citedResponsibleParty>
+                    </xsl:when>
+                  </xsl:choose>
                 </xsl:for-each>
               </cit:CI_Citation>
             </mri:citation>
@@ -265,6 +470,30 @@
                 </xsl:call-template>
               </mri:pointOfContact>
             </xsl:for-each>
+
+            <!-- Default Locale for resource (moved to correct position per ISO ordering) -->
+            <mri:defaultLocale>
+              <lan:PT_Locale>
+                <lan:language>
+                  <xsl:variable name="resLangCode">
+                    <xsl:choose>
+                      <xsl:when test="schema_inLanguage != ''">
+                        <xsl:call-template name="mapLanguageCode">
+                          <xsl:with-param name="lang" select="schema_inLanguage"/>
+                        </xsl:call-template>
+                      </xsl:when>
+                      <xsl:otherwise>eng</xsl:otherwise>
+                    </xsl:choose>
+                  </xsl:variable>
+                  <lan:LanguageCode codeList="codeListLocation#LanguageCode"
+                                    codeListValue="{$resLangCode}"/>
+                </lan:language>
+                <lan:characterEncoding>
+                  <lan:MD_CharacterSetCode codeList="codeListLocation#MD_CharacterSetCode"
+                                           codeListValue="utf8"/>
+                </lan:characterEncoding>
+              </lan:PT_Locale>
+            </mri:defaultLocale>
 
             <!-- Keywords -->
             <xsl:if test="schema_keywords">
@@ -380,86 +609,268 @@
               </mri:resourceConstraints>
             </xsl:if>
 
-            <!-- Spatial Coverage -->
-            <xsl:if test="schema_spatialCoverage/schema_geo">
+            <!-- Associated Resources (relatedLink) -->
+            <xsl:for-each select="schema_relatedLink">
+              <xsl:variable name="assocType">
+                <xsl:choose>
+                  <xsl:when test="schema_linkRelationship != ''">
+                    <xsl:call-template name="mapAssociationType">
+                      <xsl:with-param name="relType" select="schema_linkRelationship"/>
+                    </xsl:call-template>
+                  </xsl:when>
+                  <xsl:otherwise>crossReference</xsl:otherwise>
+                </xsl:choose>
+              </xsl:variable>
+              <mri:associatedResource>
+                <mri:MD_AssociatedResource>
+                  <mri:associationType>
+                    <mri:DS_AssociationTypeCode codeList="codeListLocation#DS_AssociationTypeCode"
+                                                codeListValue="{$assocType}"/>
+                  </mri:associationType>
+                  <mri:metadataReference>
+                    <cit:CI_Citation>
+                      <cit:title>
+                        <gco:CharacterString>
+                          <xsl:choose>
+                            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                            <xsl:when test="schema_target/schema_name != ''"><xsl:value-of select="schema_target/schema_name"/></xsl:when>
+                            <xsl:otherwise><xsl:value-of select="schema_linkRelationship"/></xsl:otherwise>
+                          </xsl:choose>
+                        </gco:CharacterString>
+                      </cit:title>
+                      <xsl:variable name="targetUrl">
+                        <xsl:choose>
+                          <xsl:when test="schema_target/schema_url != ''"><xsl:value-of select="schema_target/schema_url"/></xsl:when>
+                          <xsl:when test="schema_target/id != ''"><xsl:value-of select="schema_target/id"/></xsl:when>
+                          <xsl:when test="schema_target != '' and starts-with(schema_target, 'http')"><xsl:value-of select="schema_target"/></xsl:when>
+                        </xsl:choose>
+                      </xsl:variable>
+                      <xsl:if test="$targetUrl != ''">
+                        <cit:onlineResource>
+                          <cit:CI_OnlineResource>
+                            <cit:linkage>
+                              <gco:CharacterString><xsl:value-of select="$targetUrl"/></gco:CharacterString>
+                            </cit:linkage>
+                          </cit:CI_OnlineResource>
+                        </cit:onlineResource>
+                      </xsl:if>
+                    </cit:CI_Citation>
+                  </mri:metadataReference>
+                </mri:MD_AssociatedResource>
+              </mri:associatedResource>
+            </xsl:for-each>
+
+            <!-- Supplemental Information (funding, measurementTechnique, publishingPrinciples, variable summaries) -->
+            <xsl:variable name="supplementalText">
+              <xsl:call-template name="buildSupplementalInformation"/>
+            </xsl:variable>
+            <xsl:if test="normalize-space($supplementalText) != ''">
+              <mri:supplementalInformation>
+                <gco:CharacterString><xsl:value-of select="$supplementalText"/></gco:CharacterString>
+              </mri:supplementalInformation>
+            </xsl:if>
+
+            <!-- Extent: spatial + temporal combined -->
+            <xsl:if test="schema_spatialCoverage/schema_geo or schema_temporalCoverage">
               <mri:extent>
                 <gex:EX_Extent>
-                  <gex:geographicElement>
-                    <gex:EX_GeographicBoundingBox>
-                      <gex:westBoundLongitude>
-                        <gco:Decimal>
-                          <xsl:choose>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                              <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[2]"/>
-                            </xsl:when>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
-                              <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
-                            </xsl:when>
-                            <xsl:otherwise>-180</xsl:otherwise>
-                          </xsl:choose>
-                        </gco:Decimal>
-                      </gex:westBoundLongitude>
-                      <gex:eastBoundLongitude>
-                        <gco:Decimal>
-                          <xsl:choose>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                              <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[4]"/>
-                            </xsl:when>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
-                              <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
-                            </xsl:when>
-                            <xsl:otherwise>180</xsl:otherwise>
-                          </xsl:choose>
-                        </gco:Decimal>
-                      </gex:eastBoundLongitude>
-                      <gex:southBoundLatitude>
-                        <gco:Decimal>
-                          <xsl:choose>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                              <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[1]"/>
-                            </xsl:when>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
-                              <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
-                            </xsl:when>
-                            <xsl:otherwise>-90</xsl:otherwise>
-                          </xsl:choose>
-                        </gco:Decimal>
-                      </gex:southBoundLatitude>
-                      <gex:northBoundLatitude>
-                        <gco:Decimal>
-                          <xsl:choose>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
-                              <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[3]"/>
-                            </xsl:when>
-                            <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
-                              <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
-                            </xsl:when>
-                            <xsl:otherwise>90</xsl:otherwise>
-                          </xsl:choose>
-                        </gco:Decimal>
-                      </gex:northBoundLatitude>
-                    </gex:EX_GeographicBoundingBox>
-                  </gex:geographicElement>
+                  <!-- Geographic element -->
+                  <xsl:if test="schema_spatialCoverage/schema_geo">
+                    <gex:geographicElement>
+                      <gex:EX_GeographicBoundingBox>
+                        <gex:westBoundLongitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[2]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>-180</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:westBoundLongitude>
+                        <gex:eastBoundLongitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[4]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_longitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_longitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>180</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:eastBoundLongitude>
+                        <gex:southBoundLatitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[1]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>-90</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:southBoundLatitude>
+                        <gex:northBoundLatitude>
+                          <gco:Decimal>
+                            <xsl:choose>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_box">
+                                <xsl:value-of select="tokenize(schema_spatialCoverage/schema_geo/schema_box, '\s+')[3]"/>
+                              </xsl:when>
+                              <xsl:when test="schema_spatialCoverage/schema_geo/schema_latitude">
+                                <xsl:value-of select="schema_spatialCoverage/schema_geo/schema_latitude"/>
+                              </xsl:when>
+                              <xsl:otherwise>90</xsl:otherwise>
+                            </xsl:choose>
+                          </gco:Decimal>
+                        </gex:northBoundLatitude>
+                      </gex:EX_GeographicBoundingBox>
+                    </gex:geographicElement>
+                  </xsl:if>
+
+                  <!-- Temporal element -->
+                  <xsl:for-each select="schema_temporalCoverage">
+                    <xsl:variable name="tempStart">
+                      <xsl:choose>
+                        <xsl:when test="time_hasBeginning/time_inTimePosition/schema_value != ''">
+                          <xsl:value-of select="time_hasBeginning/time_inTimePosition/schema_value"/>
+                        </xsl:when>
+                        <xsl:when test="time_intervalStartedBy != ''">
+                          <xsl:value-of select="time_intervalStartedBy"/>
+                        </xsl:when>
+                      </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="tempEnd">
+                      <xsl:choose>
+                        <xsl:when test="time_hasEnd/time_inTimePosition/schema_value != ''">
+                          <xsl:value-of select="time_hasEnd/time_inTimePosition/schema_value"/>
+                        </xsl:when>
+                        <xsl:when test="time_intervalFinishedBy != ''">
+                          <xsl:value-of select="time_intervalFinishedBy"/>
+                        </xsl:when>
+                      </xsl:choose>
+                    </xsl:variable>
+                    <xsl:if test="$tempStart != '' or $tempEnd != ''">
+                      <gex:temporalElement>
+                        <gex:EX_TemporalExtent>
+                          <gex:extent>
+                            <gml:TimePeriod gml:id="temporal-extent-1">
+                              <gml:beginPosition>
+                                <xsl:if test="$tempStart = ''">
+                                  <xsl:attribute name="indeterminatePosition">unknown</xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="$tempStart"/>
+                              </gml:beginPosition>
+                              <gml:endPosition>
+                                <xsl:if test="$tempEnd = ''">
+                                  <xsl:attribute name="indeterminatePosition">unknown</xsl:attribute>
+                                </xsl:if>
+                                <xsl:value-of select="$tempEnd"/>
+                              </gml:endPosition>
+                            </gml:TimePeriod>
+                          </gex:extent>
+                        </gex:EX_TemporalExtent>
+                      </gex:temporalElement>
+                    </xsl:if>
+                  </xsl:for-each>
                 </gex:EX_Extent>
               </mri:extent>
             </xsl:if>
 
-            <!-- Default Locale for resource -->
-            <mri:defaultLocale>
-              <lan:PT_Locale>
-                <lan:language>
-                  <lan:LanguageCode codeList="codeListLocation#LanguageCode" codeListValue="eng"/>
-                </lan:language>
-                <lan:characterEncoding>
-                  <lan:MD_CharacterSetCode codeList="codeListLocation#MD_CharacterSetCode"
-                                           codeListValue="utf8"/>
-                </lan:characterEncoding>
-              </lan:PT_Locale>
-            </mri:defaultLocale>
           </mri:MD_DataIdentification>
         </mdb:identificationInfo>
 
-        <!-- Distribution Info -->
+        <!-- ================================================================
+             10. contentInfo — Feature Catalogue (variableMeasured)
+             ================================================================ -->
+        <xsl:if test="schema_variableMeasured">
+          <mdb:contentInfo>
+            <mrc:MD_FeatureCatalogue>
+              <mrc:featureCatalogue>
+                <gfc:FC_FeatureCatalogue>
+                  <gfc:producer/>
+                  <gfc:featureType>
+                    <gfc:FC_FeatureType>
+                      <gfc:typeName>
+                        <xsl:value-of select="schema_name"/>
+                      </gfc:typeName>
+                      <gfc:isAbstract>
+                        <gco:Boolean>false</gco:Boolean>
+                      </gfc:isAbstract>
+                      <xsl:for-each select="schema_variableMeasured">
+                        <gfc:carrierOfCharacteristics>
+                          <gfc:FC_FeatureAttribute>
+                            <gfc:memberName>
+                              <xsl:choose>
+                                <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                                <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+                              </xsl:choose>
+                            </gfc:memberName>
+                            <xsl:if test="schema_description != ''">
+                              <gfc:definition>
+                                <gco:CharacterString><xsl:value-of select="schema_description"/></gco:CharacterString>
+                              </gfc:definition>
+                            </xsl:if>
+                            <xsl:if test="schema_propertyID">
+                              <gfc:code>
+                                <gco:CharacterString>
+                                  <xsl:choose>
+                                    <xsl:when test="schema_propertyID/id != ''"><xsl:value-of select="schema_propertyID/id"/></xsl:when>
+                                    <xsl:when test="schema_propertyID/schema_value != ''"><xsl:value-of select="schema_propertyID/schema_value"/></xsl:when>
+                                    <xsl:otherwise><xsl:value-of select="schema_propertyID"/></xsl:otherwise>
+                                  </xsl:choose>
+                                </gco:CharacterString>
+                              </gfc:code>
+                            </xsl:if>
+                            <xsl:if test="cdi_intendedDataType != ''">
+                              <gfc:valueType>
+                                <gco:TypeName>
+                                  <gco:aName>
+                                    <gco:CharacterString><xsl:value-of select="cdi_intendedDataType"/></gco:CharacterString>
+                                  </gco:aName>
+                                </gco:TypeName>
+                              </gfc:valueType>
+                            </xsl:if>
+                            <xsl:if test="schema_unitText != '' or schema_unitCode != ''">
+                              <gfc:valueMeasurementUnit>
+                                <gml:BaseUnit gml:id="unit-{position()}">
+                                  <gml:identifier codeSpace="http://www.bipm.org/en/measurement-units/">
+                                    <xsl:choose>
+                                      <xsl:when test="schema_unitCode != ''"><xsl:value-of select="schema_unitCode"/></xsl:when>
+                                      <xsl:otherwise><xsl:value-of select="schema_unitText"/></xsl:otherwise>
+                                    </xsl:choose>
+                                  </gml:identifier>
+                                  <gml:name>
+                                    <xsl:choose>
+                                      <xsl:when test="schema_unitText != ''"><xsl:value-of select="schema_unitText"/></xsl:when>
+                                      <xsl:otherwise><xsl:value-of select="schema_unitCode"/></xsl:otherwise>
+                                    </xsl:choose>
+                                  </gml:name>
+                                  <gml:unitsSystem xlink:href="http://www.bipm.org/en/measurement-units/"/>
+                                </gml:BaseUnit>
+                              </gfc:valueMeasurementUnit>
+                            </xsl:if>
+                          </gfc:FC_FeatureAttribute>
+                        </gfc:carrierOfCharacteristics>
+                      </xsl:for-each>
+                      <gfc:featureCatalogue/>
+                    </gfc:FC_FeatureType>
+                  </gfc:featureType>
+                </gfc:FC_FeatureCatalogue>
+              </mrc:featureCatalogue>
+            </mrc:MD_FeatureCatalogue>
+          </mdb:contentInfo>
+        </xsl:if>
+
+        <!-- ================================================================
+             11. distributionInfo
+             ================================================================ -->
         <xsl:if test="schema_distribution or schema_url">
           <mdb:distributionInfo>
             <mrd:MD_Distribution>
@@ -502,6 +913,17 @@
                 <xsl:if test="schema_contentUrl">
                   <mrd:transferOptions>
                     <mrd:MD_DigitalTransferOptions>
+                      <!-- Transfer size from cdi_fileSize -->
+                      <xsl:if test="cdi_fileSize != ''">
+                        <mrd:transferSize>
+                          <gco:Real>
+                            <xsl:call-template name="convertToMegabytes">
+                              <xsl:with-param name="size" select="cdi_fileSize"/>
+                              <xsl:with-param name="unit" select="cdi_fileSizeUofM"/>
+                            </xsl:call-template>
+                          </gco:Real>
+                        </mrd:transferSize>
+                      </xsl:if>
                       <mrd:onLine>
                         <cit:CI_OnlineResource>
                           <cit:linkage>
@@ -523,10 +945,18 @@
                               </gco:CharacterString>
                             </cit:name>
                           </xsl:if>
-                          <xsl:if test="schema_description">
+                          <xsl:if test="schema_description or cdi_characterSet">
                             <cit:description>
                               <gco:CharacterString>
                                 <xsl:value-of select="schema_description"/>
+                                <xsl:if test="schema_description != '' and cdi_characterSet != ''">
+                                  <xsl:text> </xsl:text>
+                                </xsl:if>
+                                <xsl:if test="cdi_characterSet != ''">
+                                  <xsl:text>[characterSet: </xsl:text>
+                                  <xsl:value-of select="cdi_characterSet"/>
+                                  <xsl:text>]</xsl:text>
+                                </xsl:if>
                               </gco:CharacterString>
                             </cit:description>
                           </xsl:if>
@@ -540,6 +970,16 @@
                 <xsl:for-each select="schema_hasPart[schema_contentUrl]">
                   <mrd:transferOptions>
                     <mrd:MD_DigitalTransferOptions>
+                      <xsl:if test="cdi_fileSize != ''">
+                        <mrd:transferSize>
+                          <gco:Real>
+                            <xsl:call-template name="convertToMegabytes">
+                              <xsl:with-param name="size" select="cdi_fileSize"/>
+                              <xsl:with-param name="unit" select="cdi_fileSizeUofM"/>
+                            </xsl:call-template>
+                          </gco:Real>
+                        </mrd:transferSize>
+                      </xsl:if>
                       <mrd:onLine>
                         <cit:CI_OnlineResource>
                           <cit:linkage>
@@ -588,12 +1028,185 @@
           </mdb:distributionInfo>
         </xsl:if>
 
-        <!-- Resource Lineage (required by schema) -->
+        <!-- ================================================================
+             12. dataQualityInfo (from dqv_hasQualityMeasurement)
+             ================================================================ -->
+        <xsl:if test="dqv_hasQualityMeasurement">
+          <mdb:dataQualityInfo>
+            <mdq:DQ_DataQuality>
+              <mdq:scope>
+                <mcc:MD_Scope>
+                  <mcc:level>
+                    <mcc:MD_ScopeCode codeList="codeListLocation#MD_ScopeCode" codeListValue="dataset"/>
+                  </mcc:level>
+                </mcc:MD_Scope>
+              </mdq:scope>
+              <xsl:for-each select="dqv_hasQualityMeasurement">
+                <mdq:report>
+                  <mdq:DQ_UsabilityElement>
+                    <xsl:if test="dqv_isMeasurementOf">
+                      <mdq:measure>
+                        <mdq:DQ_MeasureReference>
+                          <mdq:nameOfMeasure>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="dqv_isMeasurementOf/schema_name != ''">
+                                  <xsl:value-of select="dqv_isMeasurementOf/schema_name"/>
+                                </xsl:when>
+                                <xsl:when test="dqv_isMeasurementOf/id != ''">
+                                  <xsl:value-of select="dqv_isMeasurementOf/id"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                  <xsl:value-of select="dqv_isMeasurementOf"/>
+                                </xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </mdq:nameOfMeasure>
+                        </mdq:DQ_MeasureReference>
+                      </mdq:measure>
+                    </xsl:if>
+                    <xsl:if test="dqv_value">
+                      <mdq:result>
+                        <mdq:DQ_DescriptiveResult>
+                          <mdq:statement>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="dqv_value/schema_value != ''">
+                                  <xsl:value-of select="dqv_value/schema_value"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                  <xsl:value-of select="dqv_value"/>
+                                </xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </mdq:statement>
+                        </mdq:DQ_DescriptiveResult>
+                      </mdq:result>
+                    </xsl:if>
+                  </mdq:DQ_UsabilityElement>
+                </mdq:report>
+              </xsl:for-each>
+            </mdq:DQ_DataQuality>
+          </mdb:dataQualityInfo>
+        </xsl:if>
+
+        <!-- ================================================================
+             13. resourceLineage (from prov_wasGeneratedBy / prov_wasDerivedFrom)
+             ================================================================ -->
         <mdb:resourceLineage>
           <mrl:LI_Lineage>
-            <mrl:statement>
-              <gco:CharacterString/>
-            </mrl:statement>
+            <xsl:choose>
+              <xsl:when test="prov_wasGeneratedBy or prov_wasDerivedFrom">
+                <!-- statement: auto-generated summary from activity descriptions -->
+                <mrl:statement>
+                  <gco:CharacterString>
+                    <xsl:for-each select="prov_wasGeneratedBy">
+                      <xsl:if test="schema_description != '' or schema_name != ''">
+                        <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
+                        <xsl:choose>
+                          <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+                          <xsl:otherwise><xsl:value-of select="schema_name"/></xsl:otherwise>
+                        </xsl:choose>
+                      </xsl:if>
+                    </xsl:for-each>
+                  </gco:CharacterString>
+                </mrl:statement>
+
+                <!-- Process steps from prov_wasGeneratedBy -->
+                <xsl:for-each select="prov_wasGeneratedBy">
+                  <mrl:processStep>
+                    <mrl:LI_ProcessStep>
+                      <mrl:description>
+                        <gco:CharacterString>
+                          <xsl:choose>
+                            <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+                            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                            <xsl:otherwise>Processing activity</xsl:otherwise>
+                          </xsl:choose>
+                        </gco:CharacterString>
+                      </mrl:description>
+                      <xsl:if test="schema_endTime != ''">
+                        <mrl:stepDateTime>
+                          <gml:TimeInstant gml:id="step-time-{position()}">
+                            <gml:timePosition><xsl:value-of select="schema_endTime"/></gml:timePosition>
+                          </gml:TimeInstant>
+                        </mrl:stepDateTime>
+                      </xsl:if>
+                      <!-- Sources from prov:used -->
+                      <xsl:for-each select="prov_used">
+                        <mrl:source>
+                          <mrl:LI_Source>
+                            <mrl:description>
+                              <gco:CharacterString>
+                                <xsl:choose>
+                                  <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+                                  <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                                  <xsl:when test="id != ''"><xsl:value-of select="id"/></xsl:when>
+                                  <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+                                </xsl:choose>
+                              </gco:CharacterString>
+                            </mrl:description>
+                          </mrl:LI_Source>
+                        </mrl:source>
+                      </xsl:for-each>
+                    </mrl:LI_ProcessStep>
+                  </mrl:processStep>
+                </xsl:for-each>
+
+                <!-- Sources from prov_wasDerivedFrom -->
+                <xsl:for-each select="prov_wasDerivedFrom">
+                  <mrl:source>
+                    <mrl:LI_Source>
+                      <mrl:description>
+                        <gco:CharacterString>
+                          <xsl:choose>
+                            <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+                            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                            <xsl:when test="id != ''"><xsl:value-of select="id"/></xsl:when>
+                            <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+                          </xsl:choose>
+                        </gco:CharacterString>
+                      </mrl:description>
+                      <xsl:variable name="sourceUrl">
+                        <xsl:choose>
+                          <xsl:when test="schema_url != ''"><xsl:value-of select="schema_url"/></xsl:when>
+                          <xsl:when test="id != '' and starts-with(id, 'http')"><xsl:value-of select="id"/></xsl:when>
+                        </xsl:choose>
+                      </xsl:variable>
+                      <xsl:if test="$sourceUrl != '' or schema_name != ''">
+                        <mrl:sourceCitation>
+                          <cit:CI_Citation>
+                            <cit:title>
+                              <gco:CharacterString>
+                                <xsl:choose>
+                                  <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                                  <xsl:otherwise><xsl:value-of select="$sourceUrl"/></xsl:otherwise>
+                                </xsl:choose>
+                              </gco:CharacterString>
+                            </cit:title>
+                            <xsl:if test="$sourceUrl != ''">
+                              <cit:onlineResource>
+                                <cit:CI_OnlineResource>
+                                  <cit:linkage>
+                                    <gco:CharacterString><xsl:value-of select="$sourceUrl"/></gco:CharacterString>
+                                  </cit:linkage>
+                                </cit:CI_OnlineResource>
+                              </cit:onlineResource>
+                            </xsl:if>
+                          </cit:CI_Citation>
+                        </mrl:sourceCitation>
+                      </xsl:if>
+                    </mrl:LI_Source>
+                  </mrl:source>
+                </xsl:for-each>
+              </xsl:when>
+              <xsl:otherwise>
+                <!-- Empty fallback when no provenance properties exist -->
+                <mrl:statement>
+                  <gco:CharacterString/>
+                </mrl:statement>
+              </xsl:otherwise>
+            </xsl:choose>
             <mrl:scope>
               <mcc:MD_Scope>
                 <mcc:level>
@@ -606,7 +1219,224 @@
       </mdb:MD_Metadata>
     </xsl:template>
 
-    <!-- Named template: build a CI_Responsibility from a schema_creator element -->
+
+    <!-- ==================================================================
+         Named template: mapLanguageCode
+         Map 2-letter ISO 639-1 codes to 3-letter ISO 639-2/B codes
+         ================================================================== -->
+    <xsl:template name="mapLanguageCode">
+      <xsl:param name="lang"/>
+      <xsl:variable name="lc" select="lower-case(normalize-space($lang))"/>
+      <xsl:choose>
+        <xsl:when test="string-length($lc) = 3"><xsl:value-of select="$lc"/></xsl:when>
+        <xsl:when test="$lc = 'en'">eng</xsl:when>
+        <xsl:when test="$lc = 'fr'">fra</xsl:when>
+        <xsl:when test="$lc = 'de'">deu</xsl:when>
+        <xsl:when test="$lc = 'es'">spa</xsl:when>
+        <xsl:when test="$lc = 'it'">ita</xsl:when>
+        <xsl:when test="$lc = 'pt'">por</xsl:when>
+        <xsl:when test="$lc = 'nl'">nld</xsl:when>
+        <xsl:when test="$lc = 'ru'">rus</xsl:when>
+        <xsl:when test="$lc = 'zh'">zho</xsl:when>
+        <xsl:when test="$lc = 'ja'">jpn</xsl:when>
+        <xsl:when test="$lc = 'ko'">kor</xsl:when>
+        <xsl:when test="$lc = 'ar'">ara</xsl:when>
+        <xsl:when test="$lc = 'pl'">pol</xsl:when>
+        <xsl:when test="$lc = 'sv'">swe</xsl:when>
+        <xsl:when test="$lc = 'no'">nor</xsl:when>
+        <xsl:when test="$lc = 'da'">dan</xsl:when>
+        <xsl:when test="$lc = 'fi'">fin</xsl:when>
+        <xsl:when test="$lc = 'el'">gre</xsl:when>
+        <xsl:when test="$lc = 'cs'">cze</xsl:when>
+        <xsl:when test="$lc = 'tr'">tur</xsl:when>
+        <xsl:when test="$lc = 'hu'">hun</xsl:when>
+        <xsl:when test="$lc = 'ro'">rum</xsl:when>
+        <xsl:when test="$lc = 'uk'">ukr</xsl:when>
+        <xsl:when test="$lc = 'vi'">vie</xsl:when>
+        <xsl:when test="$lc = 'th'">tha</xsl:when>
+        <xsl:when test="$lc = 'hi'">hin</xsl:when>
+        <xsl:otherwise>eng</xsl:otherwise>
+      </xsl:choose>
+    </xsl:template>
+
+
+    <!-- ==================================================================
+         Named template: mapRoleName
+         Map CDIF/schema.org roleName values to ISO CI_RoleCode
+         ================================================================== -->
+    <xsl:template name="mapRoleName">
+      <xsl:param name="roleName"/>
+      <xsl:variable name="lc" select="lower-case(normalize-space($roleName))"/>
+      <xsl:choose>
+        <xsl:when test="$lc = 'contributor'">contributor</xsl:when>
+        <xsl:when test="$lc = 'editor'">editor</xsl:when>
+        <xsl:when test="$lc = 'funder' or $lc = 'funding agency'">funder</xsl:when>
+        <xsl:when test="$lc = 'principal investigator' or $lc = 'principalinvestigator' or $lc = 'pi'">principalInvestigator</xsl:when>
+        <xsl:when test="$lc = 'publisher'">publisher</xsl:when>
+        <xsl:when test="$lc = 'author' or $lc = 'creator'">author</xsl:when>
+        <xsl:when test="$lc = 'custodian'">custodian</xsl:when>
+        <xsl:when test="$lc = 'distributor'">distributor</xsl:when>
+        <xsl:when test="$lc = 'originator'">originator</xsl:when>
+        <xsl:when test="$lc = 'point of contact' or $lc = 'pointofcontact' or $lc = 'contact'">pointOfContact</xsl:when>
+        <xsl:when test="$lc = 'processor'">processor</xsl:when>
+        <xsl:when test="$lc = 'resource provider' or $lc = 'resourceprovider'">resourceProvider</xsl:when>
+        <xsl:when test="$lc = 'user'">user</xsl:when>
+        <xsl:when test="$lc = 'sponsor'">sponsor</xsl:when>
+        <xsl:when test="$lc = 'collaborator'">collaborator</xsl:when>
+        <xsl:when test="$lc = 'stakeholder'">stakeholder</xsl:when>
+        <xsl:when test="$lc = 'coauthor' or $lc = 'co-author'">coAuthor</xsl:when>
+        <xsl:when test="$lc = 'rights holder' or $lc = 'rightsholder'">rightsHolder</xsl:when>
+        <xsl:when test="$lc = 'mediator'">mediator</xsl:when>
+        <xsl:otherwise>contributor</xsl:otherwise>
+      </xsl:choose>
+    </xsl:template>
+
+
+    <!-- ==================================================================
+         Named template: mapAssociationType
+         Map relationship types to ISO DS_AssociationTypeCode
+         ================================================================== -->
+    <xsl:template name="mapAssociationType">
+      <xsl:param name="relType"/>
+      <xsl:variable name="lc" select="lower-case(normalize-space($relType))"/>
+      <xsl:choose>
+        <xsl:when test="$lc = 'ispartof' or $lc = 'is part of'">largerWorkCitation</xsl:when>
+        <xsl:when test="$lc = 'haspart' or $lc = 'has part'">partOfSeamlessDatabase</xsl:when>
+        <xsl:when test="$lc = 'references'">crossReference</xsl:when>
+        <xsl:when test="$lc = 'isreferencedby' or $lc = 'is referenced by'">crossReference</xsl:when>
+        <xsl:when test="$lc = 'isbasedon' or $lc = 'is based on'">dependency</xsl:when>
+        <xsl:when test="$lc = 'isbasisfor' or $lc = 'is basis for'">revisionOf</xsl:when>
+        <xsl:when test="$lc = 'issupplementto' or $lc = 'is supplement to'">isComposedOf</xsl:when>
+        <xsl:when test="$lc = 'issupplementedby' or $lc = 'is supplemented by'">isComposedOf</xsl:when>
+        <xsl:when test="contains($lc, 'stereo')">stereoMate</xsl:when>
+        <xsl:otherwise>crossReference</xsl:otherwise>
+      </xsl:choose>
+    </xsl:template>
+
+
+    <!-- ==================================================================
+         Named template: buildSupplementalInformation
+         Collect funding, measurementTechnique, publishingPrinciples,
+         and variable summaries into a structured text block
+         ================================================================== -->
+    <xsl:template name="buildSupplementalInformation">
+      <!-- Funding -->
+      <xsl:if test="schema_funding">
+        <xsl:text>FUNDING: </xsl:text>
+        <xsl:for-each select="schema_funding">
+          <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
+          <xsl:if test="schema_name != ''">
+            <xsl:value-of select="schema_name"/>
+          </xsl:if>
+          <xsl:if test="schema_funder/schema_name != ''">
+            <xsl:text> (funder: </xsl:text>
+            <xsl:value-of select="schema_funder/schema_name"/>
+            <xsl:text>)</xsl:text>
+          </xsl:if>
+          <xsl:if test="schema_identifier">
+            <xsl:text> [</xsl:text>
+            <xsl:choose>
+              <xsl:when test="schema_identifier/schema_value != ''">
+                <xsl:value-of select="schema_identifier/schema_value"/>
+              </xsl:when>
+              <xsl:otherwise>
+                <xsl:value-of select="schema_identifier"/>
+              </xsl:otherwise>
+            </xsl:choose>
+            <xsl:text>]</xsl:text>
+          </xsl:if>
+        </xsl:for-each>
+        <xsl:text>
+</xsl:text>
+      </xsl:if>
+
+      <!-- Measurement Technique -->
+      <xsl:if test="schema_measurementTechnique">
+        <xsl:text>MEASUREMENT TECHNIQUE: </xsl:text>
+        <xsl:for-each select="schema_measurementTechnique">
+          <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
+          <xsl:choose>
+            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+            <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+            <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+          </xsl:choose>
+        </xsl:for-each>
+        <xsl:text>
+</xsl:text>
+      </xsl:if>
+
+      <!-- Publishing Principles -->
+      <xsl:if test="schema_publishingPrinciples">
+        <xsl:text>PUBLISHING PRINCIPLES: </xsl:text>
+        <xsl:for-each select="schema_publishingPrinciples">
+          <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
+          <xsl:choose>
+            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+            <xsl:when test="id != ''"><xsl:value-of select="id"/></xsl:when>
+            <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+          </xsl:choose>
+        </xsl:for-each>
+        <xsl:text>
+</xsl:text>
+      </xsl:if>
+
+      <!-- Variable summaries (name, unit, range) -->
+      <xsl:if test="schema_variableMeasured[schema_name]">
+        <xsl:text>VARIABLES MEASURED: </xsl:text>
+        <xsl:for-each select="schema_variableMeasured[schema_name]">
+          <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
+          <xsl:value-of select="schema_name"/>
+          <xsl:if test="schema_unitText != ''">
+            <xsl:text> (</xsl:text>
+            <xsl:value-of select="schema_unitText"/>
+            <xsl:text>)</xsl:text>
+          </xsl:if>
+          <xsl:if test="schema_minValue != '' or schema_maxValue != ''">
+            <xsl:text> [</xsl:text>
+            <xsl:value-of select="schema_minValue"/>
+            <xsl:text>..</xsl:text>
+            <xsl:value-of select="schema_maxValue"/>
+            <xsl:text>]</xsl:text>
+          </xsl:if>
+        </xsl:for-each>
+      </xsl:if>
+    </xsl:template>
+
+
+    <!-- ==================================================================
+         Named template: convertToMegabytes
+         Convert file size with unit string to megabytes (Real)
+         ================================================================== -->
+    <xsl:template name="convertToMegabytes">
+      <xsl:param name="size"/>
+      <xsl:param name="unit"/>
+      <xsl:variable name="numSize" select="number($size)"/>
+      <xsl:variable name="lcUnit" select="lower-case(normalize-space($unit))"/>
+      <xsl:choose>
+        <xsl:when test="$lcUnit = 'bytes' or $lcUnit = 'byte' or $lcUnit = 'b'">
+          <xsl:value-of select="format-number($numSize div 1048576, '#.######')"/>
+        </xsl:when>
+        <xsl:when test="$lcUnit = 'kb' or $lcUnit = 'kilobytes' or $lcUnit = 'kilobyte'">
+          <xsl:value-of select="format-number($numSize div 1024, '#.######')"/>
+        </xsl:when>
+        <xsl:when test="$lcUnit = 'gb' or $lcUnit = 'gigabytes' or $lcUnit = 'gigabyte'">
+          <xsl:value-of select="format-number($numSize * 1024, '#.######')"/>
+        </xsl:when>
+        <xsl:when test="$lcUnit = 'tb' or $lcUnit = 'terabytes' or $lcUnit = 'terabyte'">
+          <xsl:value-of select="format-number($numSize * 1048576, '#.######')"/>
+        </xsl:when>
+        <!-- Default: assume MB -->
+        <xsl:otherwise>
+          <xsl:value-of select="$numSize"/>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:template>
+
+
+    <!-- ==================================================================
+         Named template: buildResponsibility
+         Build a CI_Responsibility from a person/organization context node
+         ================================================================== -->
     <xsl:template name="buildResponsibility">
       <xsl:param name="role" select="'author'"/>
 
@@ -624,6 +1454,24 @@
                     <xsl:value-of select="schema_name"/>
                   </gco:CharacterString>
                 </cit:name>
+                <xsl:if test="schema_email != '' or schema_contactPoint/schema_email != ''">
+                  <cit:contactInfo>
+                    <cit:CI_Contact>
+                      <cit:address>
+                        <cit:CI_Address>
+                          <cit:electronicMailAddress>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="schema_email != ''"><xsl:value-of select="schema_email"/></xsl:when>
+                                <xsl:otherwise><xsl:value-of select="schema_contactPoint/schema_email"/></xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </cit:electronicMailAddress>
+                        </cit:CI_Address>
+                      </cit:address>
+                    </cit:CI_Contact>
+                  </cit:contactInfo>
+                </xsl:if>
                 <!-- ORCID or other identifier -->
                 <xsl:if test="schema_identifier">
                   <cit:partyIdentifier>
@@ -660,6 +1508,24 @@
                     <xsl:value-of select="schema_name"/>
                   </gco:CharacterString>
                 </cit:name>
+                <xsl:if test="schema_email != '' or schema_contactPoint/schema_email != ''">
+                  <cit:contactInfo>
+                    <cit:CI_Contact>
+                      <cit:address>
+                        <cit:CI_Address>
+                          <cit:electronicMailAddress>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="schema_email != ''"><xsl:value-of select="schema_email"/></xsl:when>
+                                <xsl:otherwise><xsl:value-of select="schema_contactPoint/schema_email"/></xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </cit:electronicMailAddress>
+                        </cit:CI_Address>
+                      </cit:address>
+                    </cit:CI_Contact>
+                  </cit:contactInfo>
+                </xsl:if>
                 <xsl:if test="schema_identifier">
                   <cit:partyIdentifier>
                     <mcc:MD_Identifier>
@@ -680,7 +1546,7 @@
                 </xsl:if>
               </cit:CI_Organisation>
             </xsl:when>
-            <!-- Default: treat as Individual if has a name, otherwise Organisation -->
+            <!-- Default: treat as Individual -->
             <xsl:otherwise>
               <cit:CI_Individual>
                 <cit:name>
@@ -688,6 +1554,24 @@
                     <xsl:value-of select="schema_name"/>
                   </gco:CharacterString>
                 </cit:name>
+                <xsl:if test="schema_email != '' or schema_contactPoint/schema_email != ''">
+                  <cit:contactInfo>
+                    <cit:CI_Contact>
+                      <cit:address>
+                        <cit:CI_Address>
+                          <cit:electronicMailAddress>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="schema_email != ''"><xsl:value-of select="schema_email"/></xsl:when>
+                                <xsl:otherwise><xsl:value-of select="schema_contactPoint/schema_email"/></xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </cit:electronicMailAddress>
+                        </cit:CI_Address>
+                      </cit:address>
+                    </cit:CI_Contact>
+                  </cit:contactInfo>
+                </xsl:if>
                 <xsl:if test="schema_identifier">
                   <cit:partyIdentifier>
                     <mcc:MD_Identifier>
