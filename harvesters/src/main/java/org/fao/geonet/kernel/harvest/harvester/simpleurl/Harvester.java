@@ -52,8 +52,6 @@ import org.json.XML;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.ClientHttpResponse;
 
-import org.jdom.Namespace;
-
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -481,35 +479,24 @@ class Harvester implements IHarvester<HarvestResult> {
     private List<String> extractUrlsFromSitemap(String content) throws Exception {
         List<String> urls = new ArrayList<>();
         Element sitemapRoot = Xml.loadString(content, false);
-        Namespace sitemapNs = Namespace.getNamespace("sm", "http://www.sitemaps.org/schemas/sitemap/0.9");
-        List<Namespace> nsList = new ArrayList<>();
-        nsList.add(sitemapNs);
 
-        // Try with namespace: //sm:url/sm:loc
-        List<?> locNodes = Xml.selectNodes(sitemapRoot, "//sm:url/sm:loc", nsList);
-        if (locNodes != null && !locNodes.isEmpty()) {
-            for (Object node : locNodes) {
-                String locText = getXmlElementTextValue(node);
-                if (locText == null && node instanceof Element) {
-                    locText = ((Element) node).getTextTrim();
-                }
-                if (StringUtils.isNotEmpty(locText)) {
-                    urls.add(locText.trim());
-                }
-            }
-        }
-
-        // Fallback: try without namespace (some sitemaps don't use the namespace)
-        if (urls.isEmpty()) {
-            locNodes = Xml.selectNodes(sitemapRoot, "//url/loc", sitemapRoot.getAdditionalNamespaces());
-            if (locNodes != null) {
-                for (Object node : locNodes) {
-                    String locText = getXmlElementTextValue(node);
-                    if (locText == null && node instanceof Element) {
-                        locText = ((Element) node).getTextTrim();
-                    }
-                    if (StringUtils.isNotEmpty(locText)) {
-                        urls.add(locText.trim());
+        // Direct JDOM child traversal — avoids XPath issues with detached elements.
+        // Sitemap elements may be in namespace http://www.sitemaps.org/schemas/sitemap/0.9
+        // or in no namespace, so we check children by local name.
+        for (Object child : sitemapRoot.getChildren()) {
+            if (child instanceof Element) {
+                Element urlElement = (Element) child;
+                if ("url".equals(urlElement.getName())) {
+                    for (Object locChild : urlElement.getChildren()) {
+                        if (locChild instanceof Element) {
+                            Element locElement = (Element) locChild;
+                            if ("loc".equals(locElement.getName())) {
+                                String locText = locElement.getTextTrim();
+                                if (StringUtils.isNotEmpty(locText)) {
+                                    urls.add(locText);
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -1,9 +1,9 @@
 {
   "settings": {
     "index": {
-      "max_result_window": ${es.index.max_result_window.limit},
+      "max_result_window": 15000,
       "query.default_field": "any.default",
-      "mapping.total_fields.limit": ${es.index.mapping.total_fields.limit},
+      "mapping.total_fields.limit": 4000,
       "analysis": {
         "normalizer": {
           "sorting": {
@@ -1134,16 +1134,16 @@
             "properties": {
               "default": {
                 "type": "text",
-                "analyzer": "${es.index.analyzer.default}",
+                "analyzer": "standard",
                 "copy_to": ["any.default", "anytext"],
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   },
                   "sort": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above},
+                    "ignore_above": 2000,
                     "normalizer": "sorting"
                   },
                   "trigram": {
@@ -1163,7 +1163,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1174,7 +1174,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1185,7 +1185,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1198,7 +1198,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1211,7 +1211,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1222,7 +1222,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1233,7 +1233,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1244,29 +1244,29 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
               "langaze": {
                 "type": "text",
-                "analyzer": "${es.index.analyzer.default}",
+                "analyzer": "standard",
                 "copy_to": ["any.langaze"],
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
               "langgeo": {
                 "type": "text",
-                "analyzer": "${es.index.analyzer.default}",
+                "analyzer": "standard",
                 "copy_to": ["any.langgeo"],
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1277,40 +1277,40 @@
                   "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
               "langukr": {
                 "type": "text",
-                "analyzer": "${es.index.analyzer.default}",
+                "analyzer": "standard",
                 "copy_to": ["any.langukr"],
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
               "langroh": {
                 "type": "text",
-                "analyzer": "${es.index.analyzer.default}",
+                "analyzer": "standard",
                 "copy_to": ["any.langroh"],
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
               "langpol": {
                 "type": "text",
-                "analyzer": "${es.index.analyzer.default}",
+                "analyzer": "standard",
                 "copy_to": ["any.langpol"],
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1321,7 +1321,7 @@
                 "fields": {
                   "keyword": {
                     "type": "keyword",
-                    "ignore_above": ${es.index.ignore_above}
+                    "ignore_above": 2000
                   }
                 }
               },
@@ -1383,7 +1383,6 @@
           "match": "th_*",
           "mapping": {
             "type": "object",
-            "copy_to": ["tag"],
             "properties": {
               "default": {
                 "type": "keyword",
@@ -1564,7 +1563,7 @@
         "synInspireAnnexesType": {
           "match": "inspireAnnex*",
           "mapping": {
-            "type": "keyword",
+            "type": "text",
             "fielddata": true,
             "analyzer": "synInspireAnnexes",
             "search_analyzer": "keyword"
@@ -1575,7 +1574,7 @@
         "synInspireThemeType": {
           "match": "inspireTheme*",
           "mapping": {
-            "type": "keyword",
+            "type": "text",
             "fielddata": true,
             "analyzer": "synInspireThemes",
             "search_analyzer": "keyword"
@@ -1586,7 +1585,7 @@
         "inspireServiceType": {
           "match": "inspireServiceType",
           "mapping": {
-            "type": "keyword",
+            "type": "text",
             "fielddata": true,
             "analyzer": "keepInspireServiceTypes",
             "search_analyzer": "keyword"
@@ -1600,11 +1599,11 @@
         "properties": {
           "default": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "common": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "langeng": {
             "type": "text",
@@ -1640,11 +1639,11 @@
           },
           "langaze": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "langgeo": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "langrum": {
             "type": "text",
@@ -1652,15 +1651,15 @@
           },
           "langukr": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "langroh": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "langpol": {
             "type": "text",
-            "analyzer": "${es.index.analyzer.default}"
+            "analyzer": "standard"
           },
           "langpor": {
             "type": "text",
@@ -1747,8 +1746,7 @@
       },
       "document": {
         "type": "text",
-        "index": false,
-        "doc_values": false
+        "index": false
       },
       "documentStandard": {
         "type": "keyword"
@@ -1908,7 +1906,7 @@
         "fields": {
           "keyword": {
             "type": "keyword",
-            "ignore_above": ${es.index.ignore_above}
+            "ignore_above": 2000
           }
         }
       },
@@ -1917,7 +1915,7 @@
         "fields": {
           "keyword": {
             "type": "keyword",
-            "ignore_above": ${es.index.ignore_above}
+            "ignore_above": 2000
           }
         }
       },
@@ -1935,7 +1933,7 @@
         "fields": {
           "keyword": {
             "type": "keyword",
-            "ignore_above": ${es.index.ignore_above}
+            "ignore_above": 2000
           }
         }
       },
@@ -1944,7 +1942,7 @@
         "fields": {
           "keyword": {
             "type": "keyword",
-            "ignore_above": ${es.index.ignore_above}
+            "ignore_above": 2000
           }
         }
       },
@@ -2108,15 +2106,14 @@
       },
       "validReport": {
         "type": "text",
-        "index": false,
-        "doc_values": false
+        "index": false
       },
       "useLimitation": {
         "type": "text",
         "fields": {
           "keyword": {
             "type": "keyword",
-            "ignore_above": ${es.index.ignore_above}
+            "ignore_above": 2000
           }
         }
       },

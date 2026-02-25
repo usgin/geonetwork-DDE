@@ -47,8 +47,7 @@
         "dateType": {
           "match": "ft_*_d",
           "mapping": {
-            "type": "double",
-            "format": ""
+            "type": "double"
           }
         }
       },
@@ -65,7 +64,7 @@
         "stringType": {
           "match": "ft_*_s",
           "mapping": {
-            "type": "keyword",
+            "type": "text",
             "fielddata": true,
             "copy_to": "any"
           }
@@ -75,7 +74,7 @@
         "stringPathType": {
           "match": "ft_*_s_tree",
           "mapping": {
-            "type":     "keyword",
+            "type":     "text",
             "fielddata": true,
             "analyzer": "pathAnalyzer",
             "search_analyzer": "keyword"
@@ -86,7 +85,7 @@
         "operationType": {
           "match": "_op*",
           "mapping": {
-            "type": "keyword",
+            "type": "text",
             "fielddata": true
           }
         }
