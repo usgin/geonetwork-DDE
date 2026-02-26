@@ -24,7 +24,7 @@ var gnHarvestersimpleurl = {
         "pageFromParam": "",
         "recordIdPath": "",
         "toISOConversion": "",
-        "isSitemap": "false"
+        "isSitemap": false
       },
       "content" : {
         "validate" : "NOVALIDATION",

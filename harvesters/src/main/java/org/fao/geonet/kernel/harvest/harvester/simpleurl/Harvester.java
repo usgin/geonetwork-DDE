@@ -424,7 +424,7 @@ class Harvester implements IHarvester<HarvestResult> {
             recordAsElement.addContent(new Element("uuid").setText(uuid));
             recordAsElement.addContent(new Element("apiUrl").setText(apiUrl));
             recordAsElement.addContent(new Element("nodeUrl").setText(nodeUrl));
-            return applyConversion(recordAsElement, null);
+            return applyConversion(recordAsElement, uuid);
         } catch (Exception e) {
             log.error(String.format("Failed to convert JSON record %s to XML. Error is: %s",
                 uuid, e.getMessage()));

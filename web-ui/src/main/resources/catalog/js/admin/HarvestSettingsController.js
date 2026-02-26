@@ -707,7 +707,7 @@
             pageFromParam: "",
             recordIdPath: "/@id",
             toISOConversion: "schema:iso19115-3.2018:convert/fromJsonCdif",
-            isSitemap: "true"
+            isSitemap: true
           }
         }
       };

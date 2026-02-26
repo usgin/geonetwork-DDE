@@ -666,12 +666,12 @@
                               <xsl:value-of select="schema_license/schema_text"/>
                             </xsl:when>
                             <xsl:otherwise>
-                              <xsl:value-of select="schema_license"/>
+                              <xsl:value-of select="string-join(schema_license, '; ')"/>
                             </xsl:otherwise>
                           </xsl:choose>
                         </gco:CharacterString>
                       </cit:title>
-                      <xsl:if test="schema_license/schema_url or (not(schema_license/*) and starts-with(schema_license, 'http'))">
+                      <xsl:if test="schema_license/schema_url or (not(schema_license/*) and schema_license[starts-with(., 'http')])">
                         <cit:onlineResource>
                           <cit:CI_OnlineResource>
                             <cit:linkage>
@@ -681,7 +681,7 @@
                                     <xsl:value-of select="schema_license/schema_url"/>
                                   </xsl:when>
                                   <xsl:otherwise>
-                                    <xsl:value-of select="schema_license"/>
+                                    <xsl:value-of select="(schema_license[starts-with(., 'http')])[1]"/>
                                   </xsl:otherwise>
                                 </xsl:choose>
                               </gco:CharacterString>
@@ -766,7 +766,7 @@
                         <xsl:choose>
                           <xsl:when test="schema_target/schema_url != ''"><xsl:value-of select="schema_target/schema_url"/></xsl:when>
                           <xsl:when test="schema_target/id != ''"><xsl:value-of select="schema_target/id"/></xsl:when>
-                          <xsl:when test="schema_target != '' and starts-with(schema_target, 'http')"><xsl:value-of select="schema_target"/></xsl:when>
+                          <xsl:when test="schema_target != '' and starts-with(schema_target[1], 'http')"><xsl:value-of select="schema_target[1]"/></xsl:when>
                         </xsl:choose>
                       </xsl:variable>
                       <xsl:if test="$targetUrl != ''">
@@ -962,9 +962,9 @@
                           <cit:protocol>
                             <gco:CharacterString>
                               <xsl:choose>
-                                <xsl:when test="starts-with(schema_contentUrl, 'https')">https</xsl:when>
-                                <xsl:when test="starts-with(schema_contentUrl, 'http')">http</xsl:when>
-                                <xsl:when test="starts-with(schema_contentUrl, 'ftp')">ftp</xsl:when>
+                                <xsl:when test="starts-with(schema_contentUrl[1], 'https')">https</xsl:when>
+                                <xsl:when test="starts-with(schema_contentUrl[1], 'http')">http</xsl:when>
+                                <xsl:when test="starts-with(schema_contentUrl[1], 'ftp')">ftp</xsl:when>
                                 <xsl:otherwise>https</xsl:otherwise>
                               </xsl:choose>
                             </gco:CharacterString>
