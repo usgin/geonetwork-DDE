@@ -70,9 +70,17 @@
                        xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
                        xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
                        xmlns:gfc="http://standards.iso.org/iso/19110/gfc/1.1"
+                       xmlns:cat="http://standards.iso.org/iso/19115/-3/cat/1.0"
+                       xmlns:fcc="http://standards.iso.org/iso/19110/fcc/1.0"
                        xmlns:gml="http://www.opengis.net/gml/3.2"
-                       xsi:schemaLocation="http://standards.iso.org/iso/19115/-3/mdb/2.0 https://standards.iso.org/iso/19115/-3/mdb/2.0/mdb.xsd
-                                            http://www.opengis.net/gml/3.2 https://standards.iso.org/iso/19136/gml.xsd">
+                       xsi:schemaLocation="http://standards.iso.org/iso/19115/-3/mdb/2.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mdb/2.0/mdb.xsd
+                                            http://standards.iso.org/iso/19115/-3/mco/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mco/1.0/mco.xsd
+                                            http://standards.iso.org/iso/19115/-3/mrc/2.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mrc/2.0/mrc.xsd
+                                            http://standards.iso.org/iso/19115/-3/mrd/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mrd/1.0/mrd.xsd
+                                            http://standards.iso.org/iso/19115/-3/mrl/2.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mrl/2.0/mrl.xsd
+                                            http://standards.iso.org/iso/19157/-2/mdq/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19157/-2/mdq/1.0/mdq.xsd
+                                            http://standards.iso.org/iso/19110/gfc/1.1 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19110/gfc/1.1/gfc.xsd
+                                            http://standards.iso.org/iso/19110/fcc/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19110/fcc/1.0/fcc.xsd">
 
         <!-- ================================================================
              1. metadataIdentifier
@@ -808,6 +816,18 @@
             <mrc:MD_FeatureCatalogue>
               <mrc:featureCatalogue>
                 <gfc:FC_FeatureCatalogue>
+                  <cat:name>
+                    <gco:CharacterString><xsl:value-of select="schema_name"/></gco:CharacterString>
+                  </cat:name>
+                  <cat:scope>
+                    <gco:CharacterString>dataset</gco:CharacterString>
+                  </cat:scope>
+                  <cat:versionNumber>
+                    <gco:CharacterString><xsl:value-of select="if (schema_version != '') then schema_version else '1.0'"/></gco:CharacterString>
+                  </cat:versionNumber>
+                  <cat:versionDate>
+                    <gco:Date><xsl:value-of select="if (schema_datePublished != '') then schema_datePublished else format-date(current-date(), '[Y0001]-[M01]-[D01]')"/></gco:Date>
+                  </cat:versionDate>
                   <gfc:producer/>
                   <gfc:featureType>
                     <gfc:FC_FeatureType>
@@ -831,6 +851,9 @@
                                 <gco:CharacterString><xsl:value-of select="schema_description"/></gco:CharacterString>
                               </gfc:definition>
                             </xsl:if>
+                            <gfc:cardinality>
+                              <gco:CharacterString>0..*</gco:CharacterString>
+                            </gfc:cardinality>
                             <xsl:if test="schema_propertyID">
                               <gfc:code>
                                 <gco:CharacterString>
@@ -853,21 +876,12 @@
                             </xsl:if>
                             <xsl:if test="schema_unitText != '' or schema_unitCode != ''">
                               <gfc:valueMeasurementUnit>
-                                <gml:BaseUnit gml:id="unit-{position()}">
-                                  <gml:identifier codeSpace="http://www.bipm.org/en/measurement-units/">
-                                    <xsl:choose>
-                                      <xsl:when test="schema_unitCode != ''"><xsl:value-of select="schema_unitCode"/></xsl:when>
-                                      <xsl:otherwise><xsl:value-of select="schema_unitText"/></xsl:otherwise>
-                                    </xsl:choose>
-                                  </gml:identifier>
-                                  <gml:name>
-                                    <xsl:choose>
-                                      <xsl:when test="schema_unitText != ''"><xsl:value-of select="schema_unitText"/></xsl:when>
-                                      <xsl:otherwise><xsl:value-of select="schema_unitCode"/></xsl:otherwise>
-                                    </xsl:choose>
-                                  </gml:name>
-                                  <gml:unitsSystem xlink:href="http://www.bipm.org/en/measurement-units/"/>
-                                </gml:BaseUnit>
+                                <gco:UomIdentifier>
+                                  <xsl:choose>
+                                    <xsl:when test="schema_unitCode != ''"><xsl:value-of select="schema_unitCode"/></xsl:when>
+                                    <xsl:otherwise><xsl:value-of select="schema_unitText"/></xsl:otherwise>
+                                  </xsl:choose>
+                                </gco:UomIdentifier>
                               </gfc:valueMeasurementUnit>
                             </xsl:if>
                           </gfc:FC_FeatureAttribute>
@@ -1131,48 +1145,16 @@
                   </gco:CharacterString>
                 </mrl:statement>
 
-                <!-- Process steps from prov_wasGeneratedBy -->
-                <xsl:for-each select="prov_wasGeneratedBy">
-                  <mrl:processStep>
-                    <mrl:LI_ProcessStep>
-                      <mrl:description>
-                        <gco:CharacterString>
-                          <xsl:choose>
-                            <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
-                            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
-                            <xsl:otherwise>Processing activity</xsl:otherwise>
-                          </xsl:choose>
-                        </gco:CharacterString>
-                      </mrl:description>
-                      <xsl:if test="schema_endTime != ''">
-                        <mrl:stepDateTime>
-                          <gml:TimeInstant gml:id="step-time-{position()}">
-                            <gml:timePosition><xsl:value-of select="schema_endTime"/></gml:timePosition>
-                          </gml:TimeInstant>
-                        </mrl:stepDateTime>
-                      </xsl:if>
-                      <!-- Sources from prov:used -->
-                      <xsl:for-each select="prov_used">
-                        <mrl:source>
-                          <mrl:LI_Source>
-                            <mrl:description>
-                              <gco:CharacterString>
-                                <xsl:choose>
-                                  <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
-                                  <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
-                                  <xsl:when test="id != ''"><xsl:value-of select="id"/></xsl:when>
-                                  <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
-                                </xsl:choose>
-                              </gco:CharacterString>
-                            </mrl:description>
-                          </mrl:LI_Source>
-                        </mrl:source>
-                      </xsl:for-each>
-                    </mrl:LI_ProcessStep>
-                  </mrl:processStep>
-                </xsl:for-each>
+                <!-- scope (required position per XSD: after statement, before source) -->
+                <mrl:scope>
+                  <mcc:MD_Scope>
+                    <mcc:level>
+                      <mcc:MD_ScopeCode codeList="codeListLocation#MD_ScopeCode" codeListValue="dataset"/>
+                    </mcc:level>
+                  </mcc:MD_Scope>
+                </mrl:scope>
 
-                <!-- Sources from prov_wasDerivedFrom -->
+                <!-- Sources from prov_wasDerivedFrom (XSD order: source before processStep) -->
                 <xsl:for-each select="prov_wasDerivedFrom">
                   <mrl:source>
                     <mrl:LI_Source>
@@ -1218,6 +1200,47 @@
                     </mrl:LI_Source>
                   </mrl:source>
                 </xsl:for-each>
+
+                <!-- Process steps from prov_wasGeneratedBy -->
+                <xsl:for-each select="prov_wasGeneratedBy">
+                  <mrl:processStep>
+                    <mrl:LI_ProcessStep>
+                      <mrl:description>
+                        <gco:CharacterString>
+                          <xsl:choose>
+                            <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+                            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                            <xsl:otherwise>Processing activity</xsl:otherwise>
+                          </xsl:choose>
+                        </gco:CharacterString>
+                      </mrl:description>
+                      <xsl:if test="schema_endTime != ''">
+                        <mrl:stepDateTime>
+                          <gml:TimeInstant gml:id="step-time-{position()}">
+                            <gml:timePosition><xsl:value-of select="schema_endTime"/></gml:timePosition>
+                          </gml:TimeInstant>
+                        </mrl:stepDateTime>
+                      </xsl:if>
+                      <!-- Sources from prov:used -->
+                      <xsl:for-each select="prov_used">
+                        <mrl:source>
+                          <mrl:LI_Source>
+                            <mrl:description>
+                              <gco:CharacterString>
+                                <xsl:choose>
+                                  <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
+                                  <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                                  <xsl:when test="id != ''"><xsl:value-of select="id"/></xsl:when>
+                                  <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+                                </xsl:choose>
+                              </gco:CharacterString>
+                            </mrl:description>
+                          </mrl:LI_Source>
+                        </mrl:source>
+                      </xsl:for-each>
+                    </mrl:LI_ProcessStep>
+                  </mrl:processStep>
+                </xsl:for-each>
               </xsl:when>
               <xsl:otherwise>
                 <!-- Empty fallback when no provenance properties exist -->
@@ -1226,13 +1249,6 @@
                 </mrl:statement>
               </xsl:otherwise>
             </xsl:choose>
-            <mrl:scope>
-              <mcc:MD_Scope>
-                <mcc:level>
-                  <mcc:MD_ScopeCode codeList="codeListLocation#MD_ScopeCode" codeListValue="dataset"/>
-                </mcc:level>
-              </mcc:MD_Scope>
-            </mrl:scope>
           </mrl:LI_Lineage>
         </mdb:resourceLineage>
       </mdb:MD_Metadata>
