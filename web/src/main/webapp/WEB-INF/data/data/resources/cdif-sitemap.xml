@@ -79,4 +79,66 @@
   <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/validation/main/testJSONMetadata/metadata_10.60707-y3a1-7706.json</loc></url>
   <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/validation/main/testJSONMetadata/metadata_10.60707-yv1f-jb20.json</loc></url>
   <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/validation/main/testJSONMetadata/metadata_10.60707-zh1b-jk54.json</loc></url>
+
+  <!-- cdifbook examples: 10 files validated against CDIFDiscoverySchema.json -->
+  <!-- Source: Cross-Domain-Interoperability-Framework/cdifbook repo, main branch -->
+  <!-- NOTE: These files have local fixes that must be pushed to GitHub before harvesting -->
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-BasicDataset.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-BasicDatasetTemporalExtent.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-BasicDatasetWVariables.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-CreatorContributorExample.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-IndOBIS28001-30000.jsonld</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-MinimalDigitalObject.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-OIH-BuoySeaSurfaceTemp.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-QueryableDistribution.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-SwedishDataServiceWind.jsonld</loc></url>
+  <url><loc>https://raw.githubusercontent.com/Cross-Domain-Interoperability-Framework/cdifbook/main/examples/SDO-CDIF-datasetMultipleDistributions.json</loc></url>
+
+  <!-- metadataBuildingBlocks CDIF profile examples: validated against own profile resolvedSchema.json -->
+  <!-- Source: usgin/metadataBuildingBlocks repo, main branch -->
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/cdifProfiles/CDIFDiscovery/CDIF-XAS-Full.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/cdifProfiles/CDIFDiscovery/exampleCDIFDiscovery.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/cdifProfiles/CDIFDataDescription/exampleCDIFDataDescription.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/cdifProfiles/CDIFcomplete/exampleCDIFcomplete.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/cdifProfiles/CDIFxas/exampleCDIFxas.json</loc></url>
+
+  <!-- metadataBuildingBlocks ADA profile examples: 36 files validated against CDIFCompleteSchema.json -->
+  <!-- Source: usgin/metadataBuildingBlocks repo, main branch -->
+  <!-- NOTE: These files have local fixes that must be pushed to GitHub before harvesting -->
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaAIVA/exampleadaAIVA.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaAMS/exampleadaAMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaARGT/exampleadaARGT.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaDSC/exampleadaDSC.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaEAIRMS/exampleadaEAIRMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaEMPA/exampleadaEMPA.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaFTICRMS/exampleadaFTICRMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaGCMS/exampleadaGCMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaGPYC/exampleadaGPYC.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaIC/exampleadaIC.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaICPMS/exampleadaICPMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaICPOES/exampleadaICPOES.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaL2MS/exampleadaL2MS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaLAF/exampleadaLAF.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaLCMS/exampleadaLCMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaLIT/exampleadaLIT.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaNGNSMS/exampleadaNGNSMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaNanoIR/exampleadaNanoIR.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaNanoSIMS/exampleadaNanoSIMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaPSFD/exampleadaPSFD.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaProduct/exampleadaProduct.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaQRIS/exampleadaQRIS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaRAMAN/exampleadaRAMAN.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaRITOFNGMS/exampleadaRITOFNGMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaSEM/exampleadaSEM.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaSIMS/exampleadaSIMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaSLS/exampleadaSLS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaSVRUEC/exampleadaSVRUEC.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaTEM/exampleadaTEM.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaToFSIMS/exampleadaToFSIMS.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaUVFM/exampleadaUVFM.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaVLM/exampleadaVLM.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaVNMIR/exampleadaVNMIR.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaXANES/exampleadaXANES.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaXCT/exampleadaXCT.json</loc></url>
+  <url><loc>https://raw.githubusercontent.com/usgin/metadataBuildingBlocks/main/_sources/profiles/adaProfiles/adaXRD/exampleadaXRD.json</loc></url>
 </urlset>
