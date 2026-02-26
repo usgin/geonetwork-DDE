@@ -777,6 +777,11 @@
                 // 'url' : '/formatters/xml?attachment=false',
                 url: "/formatters/xml",
                 class: "fa-file-code-o"
+              },
+              {
+                label: "exportDDE",
+                url: "/formatters/dde",
+                class: "fa-file-code-o"
               } /*,
               {
                 label: "exportDCAT",

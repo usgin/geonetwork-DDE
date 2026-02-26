@@ -1527,10 +1527,17 @@
           <xsl:choose>
             <!-- Person with @type containing Person -->
             <xsl:when test="type[contains(., 'Person')]">
-              <cit:CI_Individual>
+              <cit:CI_Organisation>
                 <cit:name>
                   <gco:CharacterString>
-                    <xsl:value-of select="schema_name"/>
+                    <xsl:choose>
+                      <xsl:when test="schema_affiliation/schema_name != ''">
+                        <xsl:value-of select="schema_affiliation/schema_name"/>
+                      </xsl:when>
+                      <xsl:otherwise>
+                        <xsl:value-of select="schema_name"/>
+                      </xsl:otherwise>
+                    </xsl:choose>
                   </gco:CharacterString>
                 </cit:name>
                 <xsl:if test="schema_email != '' or schema_contactPoint/schema_email != ''">
@@ -1551,33 +1558,42 @@
                     </cit:CI_Contact>
                   </cit:contactInfo>
                 </xsl:if>
-                <!-- ORCID or other identifier -->
-                <xsl:if test="schema_identifier">
-                  <cit:partyIdentifier>
-                    <mcc:MD_Identifier>
-                      <mcc:code>
-                        <gco:CharacterString>
-                          <xsl:choose>
-                            <xsl:when test="schema_identifier/schema_value">
-                              <xsl:value-of select="schema_identifier/schema_value"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                              <xsl:value-of select="schema_identifier"/>
-                            </xsl:otherwise>
-                          </xsl:choose>
-                        </gco:CharacterString>
-                      </mcc:code>
-                      <xsl:if test="schema_identifier/schema_propertyID">
-                        <mcc:codeSpace>
-                          <gco:CharacterString>
-                            <xsl:value-of select="schema_identifier/schema_propertyID"/>
-                          </gco:CharacterString>
-                        </mcc:codeSpace>
-                      </xsl:if>
-                    </mcc:MD_Identifier>
-                  </cit:partyIdentifier>
-                </xsl:if>
-              </cit:CI_Individual>
+                <cit:individual>
+                  <cit:CI_Individual>
+                    <cit:name>
+                      <gco:CharacterString>
+                        <xsl:value-of select="schema_name"/>
+                      </gco:CharacterString>
+                    </cit:name>
+                    <!-- ORCID or other identifier -->
+                    <xsl:if test="schema_identifier">
+                      <cit:partyIdentifier>
+                        <mcc:MD_Identifier>
+                          <mcc:code>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="schema_identifier/schema_value">
+                                  <xsl:value-of select="schema_identifier/schema_value"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                  <xsl:value-of select="schema_identifier"/>
+                                </xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </mcc:code>
+                          <xsl:if test="schema_identifier/schema_propertyID">
+                            <mcc:codeSpace>
+                              <gco:CharacterString>
+                                <xsl:value-of select="schema_identifier/schema_propertyID"/>
+                              </gco:CharacterString>
+                            </mcc:codeSpace>
+                          </xsl:if>
+                        </mcc:MD_Identifier>
+                      </cit:partyIdentifier>
+                    </xsl:if>
+                  </cit:CI_Individual>
+                </cit:individual>
+              </cit:CI_Organisation>
             </xsl:when>
             <!-- Organization -->
             <xsl:when test="type[contains(., 'Organization')]">
@@ -1625,9 +1641,9 @@
                 </xsl:if>
               </cit:CI_Organisation>
             </xsl:when>
-            <!-- Default: treat as Individual -->
+            <!-- Default: wrap as Organisation with nested Individual -->
             <xsl:otherwise>
-              <cit:CI_Individual>
+              <cit:CI_Organisation>
                 <cit:name>
                   <gco:CharacterString>
                     <xsl:value-of select="schema_name"/>
@@ -1651,25 +1667,34 @@
                     </cit:CI_Contact>
                   </cit:contactInfo>
                 </xsl:if>
-                <xsl:if test="schema_identifier">
-                  <cit:partyIdentifier>
-                    <mcc:MD_Identifier>
-                      <mcc:code>
-                        <gco:CharacterString>
-                          <xsl:choose>
-                            <xsl:when test="schema_identifier/schema_value">
-                              <xsl:value-of select="schema_identifier/schema_value"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                              <xsl:value-of select="schema_identifier"/>
-                            </xsl:otherwise>
-                          </xsl:choose>
-                        </gco:CharacterString>
-                      </mcc:code>
-                    </mcc:MD_Identifier>
-                  </cit:partyIdentifier>
-                </xsl:if>
-              </cit:CI_Individual>
+                <cit:individual>
+                  <cit:CI_Individual>
+                    <cit:name>
+                      <gco:CharacterString>
+                        <xsl:value-of select="schema_name"/>
+                      </gco:CharacterString>
+                    </cit:name>
+                    <xsl:if test="schema_identifier">
+                      <cit:partyIdentifier>
+                        <mcc:MD_Identifier>
+                          <mcc:code>
+                            <gco:CharacterString>
+                              <xsl:choose>
+                                <xsl:when test="schema_identifier/schema_value">
+                                  <xsl:value-of select="schema_identifier/schema_value"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                  <xsl:value-of select="schema_identifier"/>
+                                </xsl:otherwise>
+                              </xsl:choose>
+                            </gco:CharacterString>
+                          </mcc:code>
+                        </mcc:MD_Identifier>
+                      </cit:partyIdentifier>
+                    </xsl:if>
+                  </cit:CI_Individual>
+                </cit:individual>
+              </cit:CI_Organisation>
             </xsl:otherwise>
           </xsl:choose>
         </cit:party>

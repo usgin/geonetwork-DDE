@@ -847,11 +847,15 @@
   <xsl:template mode="render-field"
                 match="*[cit:CI_OnlineResource]"
                 priority="100">
-    <dl class="gn-link">
+    <xsl:variable name="isNilUrl"
+                  select="contains(*/cit:linkage/*, 'opengis.net/def/nil')"/>
+    <dl class="gn-link" style="{if ($isNilUrl) then 'margin-left: 40px; border-left: 3px solid #ddd; padding-left: 12px;' else ''}">
       <dt>
-        <xsl:call-template name="render-field-label">
-          <xsl:with-param name="languages" select="$allLanguages"/>
-        </xsl:call-template>
+        <xsl:if test="not($isNilUrl)">
+          <xsl:call-template name="render-field-label">
+            <xsl:with-param name="languages" select="$allLanguages"/>
+          </xsl:call-template>
+        </xsl:if>
       </dt>
       <dd>
         <xsl:variable name="linkDescription">
@@ -860,6 +864,18 @@
         </xsl:variable>
 
         <xsl:choose>
+          <!-- Archive member: nil URL, display as plain text -->
+          <xsl:when test="$isNilUrl">
+            <span>
+              <i class="fa fa-file-o fa-fw" style="color: #999;"></i>
+              <xsl:value-of select="*/cit:name"/>
+              <xsl:if test="*/cit:protocol[normalize-space(.) != '']">
+                <span style="color: #999; font-size: 0.9em;">
+                  (<xsl:value-of select="*/cit:protocol"/>)
+                </span>
+              </xsl:if>
+            </span>
+          </xsl:when>
           <xsl:when test="string(*/cit:linkage/*)">
             <a href="{*/cit:linkage/*}" target="_blank">
               <xsl:apply-templates mode="render-value"

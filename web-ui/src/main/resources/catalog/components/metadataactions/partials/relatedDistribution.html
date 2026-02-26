@@ -10,18 +10,22 @@
   <div
     data-ng-init="mainType = config.getType(r, 'onlines');
                      badge = config.getBadgeLabel(mainType, r);
-                     icon = config.getClassIcon(mainType);"
+                     icon = config.getClassIcon(mainType);
+                     isNilUrl = r.locUrl.indexOf('opengis.net/def/nil') !== -1;"
     class="row list-group-item gn-related-item gn-related-onlines gn-relation-type-{{mainType}}"
+    data-ng-class="{'gn-archive-member': isNilUrl}"
+    data-ng-style="isNilUrl ? {'margin-left': '40px', 'border-left': '3px solid #ddd', 'padding-left': '12px'} : {}"
     data-ng-repeat="r in distributions | orderBy:getOrderBy"
     data-ng-if="!editable"
     gn-popover=""
   >
     <div
+      data-ng-if="!isNilUrl"
       class="gn-related-icon-col col-xs-2 col-sm-2 text-center"
       data-gn-link-icon="r"
     ></div>
-    <div class="col-xs-10 col-sm-7" gn-popover-anchor="">
-      <div gn-popover-content="" data-ng-if="!editable">
+    <div data-ng-class="isNilUrl ? 'col-xs-12' : 'col-xs-10 col-sm-7'" gn-popover-anchor="">
+      <div gn-popover-content="" data-ng-if="!editable && !isNilUrl">
         <p class="text-muted">
           <span
             data-translate="{{(mainType | lowercase) + 'LinkDetails'}}"
@@ -51,10 +55,16 @@
         </div>
       </div>
 
-      <!-- Always display title if available -->
-      <h3>
+      <!-- Regular link: display as clickable -->
+      <h3 data-ng-if="!isNilUrl">
         <a data-ng-href="{{::r.locUrl}}"> {{::r.locTitle || r.locUrl}} </a>
       </h3>
+      <!-- Archive member: display as plain text -->
+      <div data-ng-if="isNilUrl" class="gn-archive-member-item">
+        <i class="fa fa-file-o fa-fw text-muted"></i>
+        <span>{{::r.locTitle}}</span>
+        <span data-ng-if="::r.protocol" class="text-muted small"> ({{::r.protocol}})</span>
+      </div>
       <!-- Display description if available -->
       <p
         data-ng-if="::r.locDescription.length > 0
@@ -114,7 +124,7 @@
       </div>
     </div>
 
-    <div class="col-xs-12 col-sm-3">
+    <div class="col-xs-12 col-sm-3" data-ng-if="!isNilUrl">
       <div class="row">
         <div class="col-md-8 gn-nopadding-left gn-nopadding-right">
           <div
