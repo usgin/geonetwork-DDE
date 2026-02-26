@@ -36,6 +36,22 @@ Four SKOS thesauri in `web/.../codelist/local/thesauri/theme/`:
 - `resourcetypeskos.rdf` — Resource types
 - `servicetypeskos.rdf` — Service types
 
+### CDIF-to-ISO 19115-3 Converter
+
+The `fromJsonCdif.xsl` stylesheet converts CDIF JSON-LD (via intermediate XML) to XSD-valid ISO 19115-3. It maps all CDIF discovery properties including:
+
+- Title, abstract, identifiers (DOI, sameAs), version, language
+- Creators, contributors (with role mapping), publisher, provider, maintainer
+- Keywords, license constraints, spatial and temporal coverage
+- Distributions with transfer size and character set
+- Variables measured → ISO Feature Catalogue (`gfc:FC_FeatureCatalogue`)
+- Provenance (wasGeneratedBy, wasDerivedFrom) → lineage process steps and sources
+- Data quality measurements → `mdq:DQ_DataQuality`
+- Funding, measurement technique, publishing principles → supplemental information
+- Metadata-about-metadata: profile, linkage, contacts, dates
+
+The output includes `xsi:schemaLocation` entries for all concrete schemas. GeoNetwork resolves these via `oasis-catalog.xml`; for Oxygen XML Editor validation, use `oxygen-catalog.xml` (repo root) which has absolute local paths.
+
 ### DDE Format Converters
 
 XSLT pipelines in `schemas/iso19115-3.2018/.../convert/`:
@@ -69,10 +85,13 @@ schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/
 │   ├── layout.xsl                     # + gts:* geologic time support
 │   └── layout-custom-fields-date.xsl  # + overrideLabel, hideTimeInCalendar
 ├── convert/
+│   ├── fromJsonCdif.xsl               # CDIF JSON-LD → ISO 19115-3
+│   ├── cdif-frame.jsonld              # JSON-LD frame for CDIF harvesting
 │   ├── toDDE_20240204.xsl
 │   ├── fromDDE-20240405.xsl
 │   ├── utilityDDE/                    # 12 shared XSLT utilities
 │   └── ...
+├── oasis-catalog.xml                  # Schema catalog (GeoNetwork runtime)
 ├── formatter/dde/view.xsl            # DDE output format
 ├── index-fields/link-utility.xsl     # + nilReason indexing
 └── loc/eng/strings.xml               # DDE help text and labels

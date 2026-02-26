@@ -273,7 +273,10 @@ Dublin Core and ISO 19110 schema plugins are disabled in the build (`schemas/pom
 
 | File | Purpose |
 |------|---------|
-| `schemas/iso19115-3.2018/.../convert/fromJsonCdif.xsl` | XSLT converting CDIF JSON-LD intermediate XML to ISO 19115-3 `mdb:MD_Metadata` |
+| `schemas/iso19115-3.2018/.../convert/fromJsonCdif.xsl` | XSLT converting CDIF JSON-LD intermediate XML to XSD-valid ISO 19115-3 `mdb:MD_Metadata` |
+| `schemas/iso19115-3.2018/.../convert/cdif-frame.jsonld` | JSON-LD frame document for CDIF harvesting pre-processing |
+| `oxygen-catalog.xml` | Oxygen XML Editor catalog with absolute `file:///` paths for local XSD validation |
+| `test_cdif_xslt.py` | Test pipeline: JSON-LD framing → XML conversion → XSLT → structural validation |
 | `agents.md` | This documentation file |
 
 ### Modified Files
@@ -288,29 +291,154 @@ Dublin Core and ISO 19110 schema plugins are disabled in the build (`schemas/pom
 | `web-ui/.../harvest/type/simpleurl.js` | Added `isSitemap` to harvester data model and XML serialization |
 | `web-ui/.../admin/HarvestSettingsController.js` | Added "CDIF Sitemap" preset to harvester helper configuration |
 | `web-ui/.../locales/en-admin.json` | Added `simpleurl-isSitemap` and `simpleurl-isSitemapHelp` locale strings |
+| `schemas/iso19115-3.2018/.../oasis-catalog.xml` | Added `<system>` entries for concrete ISO schemas (mco, mrc, mrd, mrl, mdq, gfc, fcc) needed for XSD substitution group resolution |
 | `web/.../data/config/index/records.json` | Fixed Elasticsearch 8.x mapping incompatibilities (fielddata on keyword, doc_values on text, copy_to on object) |
 | `web/.../data/config/index/features.json` | Fixed Elasticsearch 8.x mapping incompatibilities (format on double, fielddata on keyword) |
 
 ## CDIF to ISO 19115-3 Field Mapping
 
-The `fromJsonCdif.xsl` stylesheet maps CDIF schema.org fields to ISO 19115-3 elements:
+The `fromJsonCdif.xsl` stylesheet maps CDIF schema.org/PROV/DCAT fields to ISO 19115-3 elements. The output is XSD-valid against the ISO 19115-3:2018 schemas bundled with GeoNetwork.
 
-| CDIF Field (schema.org) | ISO 19115-3 Target |
-|-------------------------|---------------------|
+### Metadata-level properties
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
 | `@id` | `mdb:metadataIdentifier` |
 | `@type` | `mdb:metadataScope` (mapped to ISO scope code) |
-| `schema:name` | `mri:citation/cit:title` |
-| `schema:description` | `mri:abstract` |
+| `schema:inLanguage` | `mdb:defaultLocale` (2-letter → 3-letter language code) |
+| `schema:creator` | `mdb:contact` role=author |
+| `schema:provider` | `mdb:contact` role=distributor |
+| `schema:subjectOf/schema:maintainer` | `mdb:contact` role=pointOfContact |
+| `schema:dateModified` | `mdb:dateInfo` dateType=revision |
+| `schema:subjectOf/schema:sdDatePublished` | `mdb:dateInfo` dateType=creation |
+| `schema:datePublished` | `mdb:dateInfo` dateType=publication |
+| — | `mdb:metadataStandard` (hardcoded ISO 19115-3) |
+| `dcterms:conformsTo` (from subjectOf) | `mdb:metadataProfile` |
+| `schema:includedInDataCatalog` (from subjectOf) | `mdb:metadataLinkage` |
+
+### Identification info (citation)
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
+| `schema:name` | `cit:title` |
 | `schema:identifier` | `cit:identifier` (DOI with codeSpace) |
-| `schema:datePublished` | `cit:CI_Date` dateType=publication |
-| `schema:dateModified` | `cit:CI_Date` dateType=revision |
-| `schema:creator` | `cit:citedResponsibleParty` and `mri:pointOfContact` (role=author) |
-| `schema:creator/identifier` | `cit:partyIdentifier` (ORCID) |
-| `schema:license` | `mri:resourceConstraints/mco:MD_LegalConstraints` |
-| `schema:distribution` | `mrd:transferOptions` (contentUrl, encodingFormat) |
-| `schema:spatialCoverage` | `gex:geographicElement/gex:EX_GeographicBoundingBox` |
+| `schema:sameAs` | `cit:identifier` codeSpace=sameAs |
+| `schema:version` | `cit:edition` |
+| `schema:datePublished` | `cit:date` dateType=publication |
+| `schema:dateModified` | `cit:date` dateType=revision |
+| `schema:creator` | `cit:citedResponsibleParty` role=author |
+| `schema:publisher` | `cit:citedResponsibleParty` role=publisher |
+| `schema:contributor` (via Role wrapper) | `cit:citedResponsibleParty` with mapped role |
+
+### Identification info (other)
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
+| `schema:description` | `mri:abstract` |
+| `schema:creator` | `mri:pointOfContact` role=author |
+| `schema:spatialCoverage` | `gex:EX_GeographicBoundingBox` |
+| `schema:temporalCoverage` | `gex:EX_TemporalExtent/gml:TimePeriod` |
 | `schema:keywords` | `mri:descriptiveKeywords/mri:MD_Keywords` |
 | `schema:additionalType` | `mri:descriptiveKeywords` (with thesaurus if URI) |
+| `schema:license` | `mri:resourceConstraints/mco:MD_LegalConstraints` |
+| `schema:relatedLink` | `mri:associatedResource/mri:MD_AssociatedResource` |
+| `schema:inLanguage` | `mri:defaultLocale` (inside identificationInfo) |
+| funding, measurementTechnique, publishingPrinciples, variable summaries | `mri:supplementalInformation` (structured text block) |
+
+### Content info (Feature Catalogue)
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
+| `schema:variableMeasured` | `mrc:MD_FeatureCatalogue/gfc:FC_FeatureCatalogue` |
+| `variableMeasured/schema:name` | `gfc:memberName` |
+| `variableMeasured/schema:description` | `gfc:definition` |
+| `variableMeasured/schema:propertyID` | `gfc:code` |
+| `variableMeasured/cdi:intendedDataType` | `gfc:valueType/gco:TypeName/gco:aName` |
+| `variableMeasured/schema:unitText` or `unitCode` | `gfc:valueMeasurementUnit/gco:UomIdentifier` |
+
+### Distribution
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
+| `schema:distribution` | `mrd:MD_DigitalTransferOptions/mrd:onLine` |
+| `distribution/schema:contentUrl` | `cit:linkage` |
+| `distribution/schema:encodingFormat` | `cit:applicationProfile` |
+| `distribution/schema:name` | `cit:name` |
+| `distribution/schema:description` | `cit:description` |
+| `distribution/cdi:fileSize` + `cdi:fileSizeUofM` | `mrd:transferSize` (converted to MB) |
+
+### Data quality
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
+| `dqv:hasQualityMeasurement` | `mdq:DQ_DataQuality/mdq:report/mdq:DQ_UsabilityElement` |
+| `dqv:isMeasurementOf` | `mdq:nameOfMeasure` |
+| `dqv:value` | `mdq:DQ_DescriptiveResult/mdq:statement` |
+
+### Lineage (provenance)
+
+| CDIF Field | ISO 19115-3 Target |
+|------------|---------------------|
+| `prov:wasGeneratedBy` | `mrl:processStep/mrl:LI_ProcessStep` |
+| `prov:wasGeneratedBy/schema:description` | `mrl:description` |
+| `prov:wasGeneratedBy/schema:endTime` | `mrl:stepDateTime` |
+| `prov:wasGeneratedBy/prov:used` | `mrl:source/mrl:LI_Source` (nested in processStep) |
+| `prov:wasDerivedFrom` | `mrl:source/mrl:LI_Source` (top-level) |
+| Combined activity descriptions | `mrl:statement` (auto-generated) |
+
+### Contributor role mapping
+
+| CDIF `schema:roleName` | ISO `CI_RoleCode` |
+|-------------------------|-------------------|
+| contributor | contributor |
+| editor | editor |
+| funder | funder |
+| principalInvestigator | principalInvestigator |
+| sponsor | sponsor |
+| collaborator | collaborator |
+| (other values) | contributor (default) |
+
+## XSD Schema Validation
+
+The `fromJsonCdif.xsl` output is validated against the ISO 19115-3:2018 XSD schemas bundled with GeoNetwork at `schemas/iso19115-3.2018/.../schema/standards.iso.org/`.
+
+### Schema locations
+
+The output `xsi:schemaLocation` lists all concrete schemas needed for substitution group resolution:
+
+- `mdb/2.0` — MD_Metadata (entry point)
+- `mco/1.0` — MD_LegalConstraints (substitutes Abstract_Constraints)
+- `mrc/2.0` — MD_FeatureCatalogue (substitutes Abstract_ContentInformation)
+- `mrd/1.0` — MD_Distribution (substitutes Abstract_Distribution)
+- `mrl/2.0` — LI_Lineage (substitutes Abstract_LineageInformation)
+- `mdq/1.0` — DQ_DataQuality (substitutes Abstract_DataQuality)
+- `gfc/1.1` — FC_FeatureCatalogue
+- `fcc/1.0` — Abstract_FeatureCatalogue
+
+Note: there is no bundled `mds/2.0` aggregator schema, so all concrete schemas must be listed individually.
+
+### GeoNetwork runtime validation
+
+GeoNetwork uses `oasis-catalog.xml` (in the schema plugin directory) to resolve HTTP schema URLs to local files. The catalog uses relative paths that work in the Java runtime.
+
+### Oxygen XML Editor validation
+
+Oxygen does not correctly resolve relative URIs in OASIS catalogs on Windows. Use `oxygen-catalog.xml` (repo root) instead — it contains `rewriteSystem` entries with absolute `file:///` paths pointing to the bundled schemas.
+
+Setup: `Options → Preferences → XML → XML Catalog → Add` → point to `oxygen-catalog.xml`. Make sure "Resolve schema locations also through system mappings" is checked.
+
+### Test pipeline
+
+`test_cdif_xslt.py` replicates the harvester pipeline outside GeoNetwork:
+
+1. Loads CDIF JSON-LD input and `cdif-frame.jsonld`
+2. Applies JSON-LD framing (pyld library)
+3. Converts framed JSON to XML (replicating `org.json.XML.toString()`)
+4. Applies `fromJsonCdif.xsl` via Saxon C/HE (XSLT 2.0)
+5. Runs structural validation checks against the output
+6. Saves intermediate and output XML for inspection
+
+Requirements: `pip install pyld saxonche lxml`
 
 ## JSON-to-XML Conversion Notes
 

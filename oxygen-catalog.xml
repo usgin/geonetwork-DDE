@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Oxygen-specific XML catalog for local schema validation.
+  Point Oxygen (Options > Preferences > XML > XML Catalog) to this file
+  instead of oasis-catalog.xml.
+
+  This file uses absolute rewriteSystem entries because Oxygen does not
+  always resolve relative URIs in catalogs correctly on Windows.
+-->
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog" prefer="public">
+
+  <!-- Rewrite all ISO schema HTTP URLs to local bundled copies -->
+  <rewriteSystem systemIdStartString="http://standards.iso.org/iso/19115/"
+                 rewritePrefix="file:///C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/"/>
+
+  <rewriteSystem systemIdStartString="http://standards.iso.org/iso/19157/"
+                 rewritePrefix="file:///C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19157/"/>
+
+  <rewriteSystem systemIdStartString="http://standards.iso.org/iso/19110/"
+                 rewritePrefix="file:///C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19110/"/>
+
+  <!-- Legacy ISO URLs -->
+  <rewriteSystem systemIdStartString="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19136_Schemas/"
+                 rewritePrefix="file:///C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/others/ISO19136/"/>
+
+  <!-- xlink -->
+  <system systemId="http://www.w3.org/1999/xlink.xsd"
+          uri="file:///C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/others/xlink/xlink.xsd"/>
+
+  <system systemId="http://www.w3.org/2001/xml.xsd"
+          uri="file:///C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/others/xlink/xml.xsd"/>
+
+</catalog>

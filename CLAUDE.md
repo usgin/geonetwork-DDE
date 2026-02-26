@@ -29,7 +29,10 @@ Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
   - `index-fields/link-utility.xsl` — Indexing with nilReason support
   - `loc/eng/strings.xml` — Help text and labels
 - **CDIF harvester** is in `harvesters/src/main/java/.../simpleurl/Harvester.java`
+  - JSON-LD framing: `schemas/iso19115-3.2018/.../convert/cdif-frame.jsonld`
   - Conversion XSLT: `schemas/iso19115-3.2018/.../convert/fromJsonCdif.xsl`
+  - Schema catalog (GeoNetwork): `schemas/iso19115-3.2018/.../oasis-catalog.xml`
+  - Schema catalog (Oxygen validation): `oxygen-catalog.xml` (repo root, machine-specific absolute paths)
 - **DDE SKOS vocabularies**: `web/src/main/webapp/WEB-INF/data/config/codelist/local/thesauri/theme/`
 - **Elasticsearch mappings**: `web/src/main/webapp/WEB-INF/data/config/index/records.json` and `features.json`
 
@@ -37,6 +40,8 @@ Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
 - **Metadata schema**: ISO 19115-3:2018 is the primary schema. Dublin Core and ISO 19110 are disabled in the build.
 - **XSLT version**: All stylesheets use XSLT 2.0 (Saxon processor).
+- **CDIF conversion**: `fromJsonCdif.xsl` produces XSD-valid ISO 19115-3 output. The XSLT output includes `xsi:schemaLocation` with HTTP URLs for all concrete schemas (mdb, mco, mrc, mrd, mrl, mdq, gfc, fcc). GeoNetwork's `oasis-catalog.xml` resolves these to bundled local schemas at runtime.
+- **Schema validation**: For local validation in Oxygen XML Editor, use `oxygen-catalog.xml` (repo root) which has absolute `file:///` paths. The GeoNetwork `oasis-catalog.xml` uses relative paths that work in Java but not in standalone Oxygen on Windows.
 - **Editor views**: The `ddeview` in config-editor.xml uses GeoNetwork's XML-based view definition system with tabs, sections, fields, actions, and thesaurus pickers.
 - **Geologic time**: The extent tab supports geologic age via `gml:TimeInstant` with `gml:timePosition frame="Ma before present"`.
 - **DDE codelists**: DDE-specific codelist URLs use `https://www.ddeworld.org/resource/codelist/...`.
