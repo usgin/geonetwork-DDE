@@ -724,6 +724,18 @@
             <xsl:for-each select="schema_relatedLink">
               <xsl:variable name="assocType">
                 <xsl:choose>
+                  <!-- DefinedTerm: use schema_name or schema_termCode -->
+                  <xsl:when test="schema_linkRelationship/schema_name != ''">
+                    <xsl:call-template name="mapAssociationType">
+                      <xsl:with-param name="relType" select="schema_linkRelationship/schema_name"/>
+                    </xsl:call-template>
+                  </xsl:when>
+                  <xsl:when test="schema_linkRelationship/schema_termCode != ''">
+                    <xsl:call-template name="mapAssociationType">
+                      <xsl:with-param name="relType" select="schema_linkRelationship/schema_termCode"/>
+                    </xsl:call-template>
+                  </xsl:when>
+                  <!-- Plain string -->
                   <xsl:when test="schema_linkRelationship != ''">
                     <xsl:call-template name="mapAssociationType">
                       <xsl:with-param name="relType" select="schema_linkRelationship"/>
@@ -745,6 +757,7 @@
                           <xsl:choose>
                             <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
                             <xsl:when test="schema_target/schema_name != ''"><xsl:value-of select="schema_target/schema_name"/></xsl:when>
+                            <xsl:when test="schema_linkRelationship/schema_name != ''"><xsl:value-of select="schema_linkRelationship/schema_name"/></xsl:when>
                             <xsl:otherwise><xsl:value-of select="schema_linkRelationship"/></xsl:otherwise>
                           </xsl:choose>
                         </gco:CharacterString>
@@ -1104,9 +1117,15 @@
                           <mdq:statement>
                             <gco:CharacterString>
                               <xsl:choose>
+                                <!-- PropertyValue with schema_value -->
                                 <xsl:when test="dqv_value/schema_value != ''">
                                   <xsl:value-of select="dqv_value/schema_value"/>
                                 </xsl:when>
+                                <!-- DefinedTerm with schema_name -->
+                                <xsl:when test="dqv_value/schema_name != ''">
+                                  <xsl:value-of select="dqv_value/schema_name"/>
+                                </xsl:when>
+                                <!-- Plain string -->
                                 <xsl:otherwise>
                                   <xsl:value-of select="dqv_value"/>
                                 </xsl:otherwise>
@@ -1408,7 +1427,15 @@
         <xsl:for-each select="schema_measurementTechnique[normalize-space(.) != '']">
           <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
           <xsl:choose>
-            <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+            <xsl:when test="schema_name != ''">
+              <xsl:value-of select="schema_name"/>
+              <xsl:if test="schema_identifier/schema_value != ''">
+                <xsl:text> [</xsl:text><xsl:value-of select="schema_identifier/schema_value"/><xsl:text>]</xsl:text>
+              </xsl:if>
+              <xsl:if test="schema_identifier[not(schema_value)] != '' and not(schema_identifier/*)">
+                <xsl:text> [</xsl:text><xsl:value-of select="schema_identifier"/><xsl:text>]</xsl:text>
+              </xsl:if>
+            </xsl:when>
             <xsl:when test="schema_description != ''"><xsl:value-of select="schema_description"/></xsl:when>
             <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
           </xsl:choose>
