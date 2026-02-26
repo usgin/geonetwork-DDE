@@ -69,4 +69,26 @@
 
   <system systemId="http://www.w3.org/2001/xml.xsd"
             uri="schema/others/xlink/xml.xsd"/>
+
+  <!-- Concrete class schemas needed for substitution group resolution (CDIF output) -->
+  <system systemId="http://standards.iso.org/iso/19115/-3/mco/1.0/mco.xsd"
+          uri="schema/standards.iso.org/19115/-3/mco/1.0/mco.xsd"/>
+
+  <system systemId="http://standards.iso.org/iso/19115/-3/mrc/2.0/mrc.xsd"
+          uri="schema/standards.iso.org/19115/-3/mrc/2.0/mrc.xsd"/>
+
+  <system systemId="http://standards.iso.org/iso/19115/-3/mrd/1.0/mrd.xsd"
+          uri="schema/standards.iso.org/19115/-3/mrd/1.0/mrd.xsd"/>
+
+  <system systemId="http://standards.iso.org/iso/19115/-3/mrl/2.0/mrl.xsd"
+          uri="schema/standards.iso.org/19115/-3/mrl/2.0/mrl.xsd"/>
+
+  <system systemId="http://standards.iso.org/iso/19157/-2/mdq/1.0/mdq.xsd"
+          uri="schema/standards.iso.org/19157/-2/mdq/1.0/mdq.xsd"/>
+
+  <system systemId="http://standards.iso.org/iso/19110/gfc/1.1/gfc.xsd"
+          uri="schema/standards.iso.org/19110/gfc/1.1/gfc.xsd"/>
+
+  <system systemId="http://standards.iso.org/iso/19110/fcc/1.0/fcc.xsd"
+          uri="schema/standards.iso.org/19110/fcc/1.0/fcc.xsd"/>
 </catalog>

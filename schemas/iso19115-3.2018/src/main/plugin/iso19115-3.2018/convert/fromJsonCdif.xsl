@@ -73,14 +73,14 @@
                        xmlns:cat="http://standards.iso.org/iso/19115/-3/cat/1.0"
                        xmlns:fcc="http://standards.iso.org/iso/19110/fcc/1.0"
                        xmlns:gml="http://www.opengis.net/gml/3.2"
-                       xsi:schemaLocation="http://standards.iso.org/iso/19115/-3/mdb/2.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mdb/2.0/mdb.xsd
-                                            http://standards.iso.org/iso/19115/-3/mco/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mco/1.0/mco.xsd
-                                            http://standards.iso.org/iso/19115/-3/mrc/2.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mrc/2.0/mrc.xsd
-                                            http://standards.iso.org/iso/19115/-3/mrd/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mrd/1.0/mrd.xsd
-                                            http://standards.iso.org/iso/19115/-3/mrl/2.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19115/-3/mrl/2.0/mrl.xsd
-                                            http://standards.iso.org/iso/19157/-2/mdq/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19157/-2/mdq/1.0/mdq.xsd
-                                            http://standards.iso.org/iso/19110/gfc/1.1 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19110/gfc/1.1/gfc.xsd
-                                            http://standards.iso.org/iso/19110/fcc/1.0 file:/C:/Users/smrTu/OneDrive/Documents/GithubC/geonetwork/core-geonetwork/schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/schema/standards.iso.org/19110/fcc/1.0/fcc.xsd">
+                       xsi:schemaLocation="http://standards.iso.org/iso/19115/-3/mdb/2.0 http://standards.iso.org/iso/19115/-3/mdb/2.0/mdb.xsd
+                                            http://standards.iso.org/iso/19115/-3/mco/1.0 http://standards.iso.org/iso/19115/-3/mco/1.0/mco.xsd
+                                            http://standards.iso.org/iso/19115/-3/mrc/2.0 http://standards.iso.org/iso/19115/-3/mrc/2.0/mrc.xsd
+                                            http://standards.iso.org/iso/19115/-3/mrd/1.0 http://standards.iso.org/iso/19115/-3/mrd/1.0/mrd.xsd
+                                            http://standards.iso.org/iso/19115/-3/mrl/2.0 http://standards.iso.org/iso/19115/-3/mrl/2.0/mrl.xsd
+                                            http://standards.iso.org/iso/19157/-2/mdq/1.0 http://standards.iso.org/iso/19157/-2/mdq/1.0/mdq.xsd
+                                            http://standards.iso.org/iso/19110/gfc/1.1 http://standards.iso.org/iso/19110/gfc/1.1/gfc.xsd
+                                            http://standards.iso.org/iso/19110/fcc/1.0 http://standards.iso.org/iso/19110/fcc/1.0/fcc.xsd">
 
         <!-- ================================================================
              1. metadataIdentifier
