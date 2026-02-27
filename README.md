@@ -2,7 +2,7 @@
 
 This is a fork of [GeoNetwork opensource](https://github.com/geonetwork/core-geonetwork) (based on release 4.4.9) originally developed to harvest and edit [Deep-time Digital Earth (DDE)](https://www.ddeworld.org/) ISO 19115-3 metadata. It has since been extended with support for harvesting [CDIF (Cross-Domain Interoperability Framework)](https://cross-domain-interoperability-framework.github.io/cdifbook/preamble/) metadata records.
 
-CDIF metadata records are encoded as JSON-LD using the schema.org vocabulary. This fork extends GeoNetwork's Simple URL Harvester with sitemap support and includes an XSLT stylesheet that converts CDIF JSON-LD to ISO 19115-3 XML for standard cataloguing and discovery.
+CDIF metadata records are encoded as JSON-LD using the schema.org vocabulary. This fork extends GeoNetwork's Simple URL Harvester with sitemap support and includes XSLT stylesheets for bidirectional conversion between CDIF JSON-LD and ISO 19115-3 XML. Records can be harvested (CDIF → ISO 19115-3) and exported back (ISO 19115-3 → CDIF) via a built-in formatter, enabling roundtrip interoperability.
 
 See [agents.md](agents.md) for full technical documentation of the CDIF harvester implementation, field mappings, and configuration instructions.
 
@@ -36,9 +36,9 @@ Four SKOS thesauri in `web/.../codelist/local/thesauri/theme/`:
 - `resourcetypeskos.rdf` — Resource types
 - `servicetypeskos.rdf` — Service types
 
-### CDIF-to-ISO 19115-3 Converter
+### CDIF ↔ ISO 19115-3 Conversion (Roundtrip)
 
-The `fromJsonCdif.xsl` stylesheet converts CDIF JSON-LD (via intermediate XML) to XSD-valid ISO 19115-3. It maps all CDIF discovery properties including:
+**Inbound** (`fromJsonCdif.xsl`): Converts CDIF JSON-LD (via intermediate XML) to XSD-valid ISO 19115-3. Maps all CDIF discovery properties including:
 
 - Title, abstract, identifiers (DOI, sameAs), version, language
 - Creators, contributors (with role mapping), publisher, provider, maintainer
@@ -49,6 +49,13 @@ The `fromJsonCdif.xsl` stylesheet converts CDIF JSON-LD (via intermediate XML) t
 - Data quality measurements → `mdq:DQ_DataQuality`
 - Funding, measurement technique, publishing principles → supplemental information
 - Metadata-about-metadata: profile, linkage, contacts, dates
+
+**Outbound** (`iso19115-3-to-cdif.xsl`): Converts ISO 19115-3 back to CDIF JSON-LD. Accessible via:
+```
+GET /geonetwork/srv/api/records/{uuid}/formatters/cdif
+```
+
+Handles complex distributions (primary + archive members with `schema:hasPart`), funding, provenance, data quality, and all agent roles. Roundtrip validated against 121 ADA records (120/121 PASS).
 
 The output includes `xsi:schemaLocation` entries for all concrete schemas. GeoNetwork resolves these via `oasis-catalog.xml`; for Oxygen XML Editor validation, use `oxygen-catalog.xml` (repo root) which has absolute local paths.
 
@@ -85,14 +92,16 @@ schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/
 │   ├── layout.xsl                     # + gts:* geologic time support
 │   └── layout-custom-fields-date.xsl  # + overrideLabel, hideTimeInCalendar
 ├── convert/
-│   ├── fromJsonCdif.xsl               # CDIF JSON-LD → ISO 19115-3
+│   ├── fromJsonCdif.xsl               # CDIF JSON-LD → ISO 19115-3 (inbound)
 │   ├── cdif-frame.jsonld              # JSON-LD frame for CDIF harvesting
 │   ├── toDDE_20240204.xsl
 │   ├── fromDDE-20240405.xsl
 │   ├── utilityDDE/                    # 12 shared XSLT utilities
 │   └── ...
 ├── oasis-catalog.xml                  # Schema catalog (GeoNetwork runtime)
-├── formatter/dde/view.xsl            # DDE output format
+├── formatter/
+│   ├── cdif/iso19115-3-to-cdif.xsl   # ISO 19115-3 → CDIF JSON-LD (outbound)
+│   └── dde/view.xsl                  # DDE output format
 ├── index-fields/link-utility.xsl     # + nilReason indexing
 └── loc/eng/strings.xml               # DDE help text and labels
 ```
@@ -212,6 +221,7 @@ Then create a sitemap XML listing URLs like `http://localhost:9999/record-1.json
 * Fine-grained access control with group and user management
 * Multi-lingual user interface
 * **CDIF JSON-LD harvesting via sitemap** (this fork)
+* **CDIF JSON-LD export via formatter** — roundtrip CDIF → ISO 19115-3 → CDIF (this fork)
 
 ## Documentation
 

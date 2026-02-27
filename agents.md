@@ -13,19 +13,35 @@ CDIF defines a discovery metadata profile that uses schema.org vocabulary to des
 The harvester extends GeoNetwork's existing **Simple URL Harvester** with sitemap support. The processing pipeline is:
 
 ```
+                         INBOUND (harvesting)
 Sitemap XML          JSON-LD files         Intermediate XML       ISO 19115-3 XML
 (list of URLs)  -->  (fetched per-URL) --> (org.json.XML)     --> (fromJsonCdif.xsl)
                                                                        |
                                                                   GeoNetwork DB +
                                                                   Elasticsearch index +
                                                                   search UI
+                                                                       |
+                         OUTBOUND (export)                             v
+                     CDIF JSON-LD       <---  (iso19115-3-to-cdif.xsl)
+                     (/formatters/cdif)
 ```
 
-1. The harvester fetches a sitemap XML file listing CDIF record URLs
+### Inbound (harvesting)
+
+1. The harvester fetches a sitemap XML file listing CDIF record URLs (or individual JSON-LD files)
 2. Each URL is fetched individually, returning a single JSON-LD document
-3. GeoNetwork's built-in `org.json.XML.toString()` converts JSON to intermediate XML
-4. A custom XSLT (`fromJsonCdif.xsl`) transforms the intermediate XML to valid ISO 19115-3
-5. GeoNetwork indexes and stores the record using its standard iso19115-3.2018 schema support
+3. JSON-LD framing is applied using `cdif-frame.jsonld` to normalize structure
+4. `recoverDroppedFields()` merges back fields dropped by the Java JSON-LD framing library
+5. `removeNulls()` strips null values introduced by framing for absent optional properties
+6. GeoNetwork's built-in `org.json.XML.toString()` converts JSON to intermediate XML
+7. A custom XSLT (`fromJsonCdif.xsl`) transforms the intermediate XML to valid ISO 19115-3
+8. GeoNetwork indexes and stores the record using its standard iso19115-3.2018 schema support
+
+### Outbound (export)
+
+1. A CDIF formatter (`iso19115-3-to-cdif.xsl`) converts ISO 19115-3 back to CDIF JSON-LD
+2. Accessible via the GeoNetwork API: `/srv/api/records/{uuid}/formatters/cdif`
+3. Supports roundtrip: CDIF JSON-LD → ISO 19115-3 → CDIF JSON-LD with high fidelity
 
 ## Building and Running
 
@@ -275,15 +291,17 @@ Dublin Core and ISO 19110 schema plugins are disabled in the build (`schemas/pom
 |------|---------|
 | `schemas/iso19115-3.2018/.../convert/fromJsonCdif.xsl` | XSLT converting CDIF JSON-LD intermediate XML to XSD-valid ISO 19115-3 `mdb:MD_Metadata` |
 | `schemas/iso19115-3.2018/.../convert/cdif-frame.jsonld` | JSON-LD frame document for CDIF harvesting pre-processing |
+| `schemas/iso19115-3.2018/.../formatter/cdif/iso19115-3-to-cdif.xsl` | XSLT converting ISO 19115-3 back to CDIF JSON-LD (outbound formatter) |
 | `oxygen-catalog.xml` | Oxygen XML Editor catalog with absolute `file:///` paths for local XSD validation |
 | `test_cdif_xslt.py` | Test pipeline: JSON-LD framing → XML conversion → XSLT → structural validation |
+| `validate_cdif_examples.py` | Roundtrip validation: compares original CDIF JSON-LD with GeoNetwork formatter output |
 | `agents.md` | This documentation file |
 
 ### Modified Files
 
 | File | Change |
 |------|--------|
-| `harvesters/.../simpleurl/Harvester.java` | Added sitemap processing: `extractUrlsFromSitemap()`, `collectSingleJsonRecord()`, `isSitemapContent()`. Fixed sitemap parsing to use direct JDOM traversal instead of XPath (works around `Xml.loadString()` detaching root from Document). |
+| `harvesters/.../simpleurl/Harvester.java` | Added sitemap processing: `extractUrlsFromSitemap()`, `collectSingleJsonRecord()`, `isSitemapContent()`. JSON-LD framing with `removeNulls()` and `recoverDroppedFields()`. Fixed sitemap parsing to use direct JDOM traversal instead of XPath (works around `Xml.loadString()` detaching root from Document). |
 | `harvesters/.../simpleurl/SimpleUrlParams.java` | Added `isSitemap` parameter |
 | `harvesters/.../simpleurl/SimpleUrlHarvester.java` | Persists `isSitemap` in harvester settings DB |
 | `web/src/main/webapp/xsl/xml/harvesting/simpleurl.xsl` | Added `<isSitemap>` to the settings-to-XML transform (required for `isSitemap` to load from the DB) |
@@ -294,6 +312,7 @@ Dublin Core and ISO 19110 schema plugins are disabled in the build (`schemas/pom
 | `schemas/iso19115-3.2018/.../oasis-catalog.xml` | Added `<system>` entries for concrete ISO schemas (mco, mrc, mrd, mrl, mdq, gfc, fcc) needed for XSD substitution group resolution |
 | `web/.../data/config/index/records.json` | Fixed Elasticsearch 8.x mapping incompatibilities (fielddata on keyword, doc_values on text, copy_to on object) |
 | `web/.../data/config/index/features.json` | Fixed Elasticsearch 8.x mapping incompatibilities (format on double, fielddata on keyword) |
+| `web/.../config/config-service-monitoring.xml` | Disabled `DashboardAppHealthCheck` (Kibana) for dev environments without Kibana running |
 
 ## CDIF to ISO 19115-3 Field Mapping
 
@@ -475,9 +494,93 @@ GeoNetwork uses `org.json.XML.toString()` to convert JSON to intermediate XML be
 
 **Fix**: Changed affected field types from `keyword` to `text` where `fielddata` was needed, removed invalid `doc_values` and `format` properties, and removed `copy_to` from object-level dynamic template mappings.
 
+### JSON-LD framing — Java jsonld-java drops complex fields
+
+**Problem**: The Java `jsonld-java` library (used by GeoNetwork) produces fundamentally different framing results from the Python `pyld` library. Fields using `@list` containers (`schema:creator`), nested distributions (`schema:distribution` with `schema:hasPart`), funding (`schema:funding`), and contributors (`schema:contributor`) are silently dropped during framing.
+
+**Fix**: `recoverDroppedFields()` in `Harvester.java` merges back fields from the original unframed JSON-LD input when the framing library drops them. The method checks these fields: `schema:creator`, `schema:contributor`, `schema:publisher`, `schema:provider`, `schema:funding`, `schema:distribution`, `schema:variableMeasured`, `schema:dateModified`.
+
+### JSON-LD framing — null values from frame properties
+
+**Problem**: JSON-LD framing introduces `null` values for every property defined in the frame document (`cdif-frame.jsonld`) that is absent in the source record. When `org.json.XML.toString()` serializes these, it writes the literal string `"null"` which causes downstream XSLT issues.
+
+**Fix**: `removeNulls()` and `removeNullsFromList()` in `Harvester.java` recursively strip null-valued entries from the framed JSON before XML conversion. Maps and Lists that become empty after null removal are also removed.
+
+### DashboardAppHealthCheck blocks admin UI
+
+**Problem**: When Kibana is not running (common in dev environments), `DashboardAppHealthCheck` fails and the GeoNetwork admin UI becomes entirely grayed out / non-functional. The browser console shows `warninghealthcheck` returning HTTP 500.
+
+**Fix**: Disabled `DashboardAppHealthCheck` in `web/.../config/config-service-monitoring.xml` by commenting it out. Other healthchecks (catalog, ES, indexing, CSW) continue to run normally.
+
+## CDIF JSON-LD Formatter (Outbound)
+
+The outbound formatter at `schemas/iso19115-3.2018/.../formatter/cdif/iso19115-3-to-cdif.xsl` converts ISO 19115-3 XML back to CDIF JSON-LD. It is accessible via:
+
+```
+GET /geonetwork/srv/api/records/{uuid}/formatters/cdif
+```
+
+### Formatter sections
+
+The XSLT generates these CDIF JSON-LD properties:
+
+| JSON-LD Property | Source in ISO 19115-3 |
+|------------------|----------------------|
+| `@context`, `@type`, `@id` | Hardcoded context; `mdb:metadataScope`; record URL |
+| `schema:name` | `cit:title` |
+| `schema:description` | `mri:abstract` |
+| `schema:identifier` | `cit:identifier` (DOI detection via propertyID) |
+| `schema:datePublished` | `cit:date` with `dateType=publication` |
+| `schema:dateModified` | `cit:date` with `dateType=revision`, fallback to creation then publication |
+| `schema:inLanguage` | `mri:defaultLocale` (3-letter → 2-letter code) |
+| `schema:creator` | `cit:citedResponsibleParty` with `role=author` |
+| `schema:contributor` | `cit:citedResponsibleParty` with role other than author/publisher |
+| `schema:publisher` | `cit:citedResponsibleParty` with `role=publisher` |
+| `schema:keywords` | `mri:descriptiveKeywords` |
+| `schema:license` | `mco:MD_LegalConstraints` |
+| `schema:distribution` | `mrd:MD_DigitalTransferOptions/mrd:onLine` |
+| `schema:variableMeasured` | `gfc:FC_FeatureCatalogue` members |
+| `schema:spatialCoverage` | `gex:EX_GeographicBoundingBox` |
+| `schema:temporalCoverage` | `gex:EX_TemporalExtent` |
+| `prov:wasGeneratedBy` | `mrl:processStep/mrl:LI_ProcessStep` |
+| `prov:wasDerivedFrom` | `mrl:source/mrl:LI_Source` (top-level) |
+| `dqv:hasQualityMeasurement` | `mdq:DQ_DataQuality` reports |
+| `schema:funding` | Parsed from `mri:supplementalInformation` |
+| `schema:measurementTechnique` | Parsed from `mri:supplementalInformation` |
+| `schema:subjectOf` | Metadata-about-metadata (catalog record, profiles) |
+
+### Distribution handling
+
+The formatter distinguishes between primary distributions and archive members:
+- **Primary distribution**: `cit:function` = `download` (even if URL is `nil/OGC/0/withheld`)
+- **Archive members**: `cit:function` = `information` with URL = `nil/OGC/0/inapplicable`
+
+Archive members are nested inside the primary distribution as `schema:hasPart`.
+
+Encoding format prefers `mrd:distributionFormat/mrd:MD_Format` over `cit:protocol`. Bare protocol values (`http`, `https`, `ftp`) are excluded.
+
+### Funding output
+
+When funding data has structured markers (funder name, grant ID), it outputs `schema:name` and `schema:funder`. When it contains only free text (no structured markers), it outputs `schema:description` instead.
+
+## Roundtrip Validation
+
+The CDIF roundtrip (JSON-LD → ISO 19115-3 → JSON-LD) has been validated against 121 ADA (Astromaterials Data Archive) records:
+
+- **120 PASS** — all expected fields preserved through the roundtrip
+- **1 FAIL** — source data issue (`sameAs` value mismatch in source record)
+- **0 ERROR** — no conversion failures
+
+Expected structural differences in the roundtrip output (not considered failures):
+- `@id` uses GeoNetwork API URL instead of original
+- `@context` includes all CDIF prefixes (original may have fewer)
+- Agent `@id` values are blank nodes instead of original URIs
+- `schema:additionalType` stored as keywords (preserved but in different location)
+
 ## Test Data
 
-The [CDIF validation repository](https://github.com/Cross-Domain-Interoperability-Framework/validation/tree/main/testJSONMetadata) contains 77 CDIF JSON-LD test files validated against the [CDIF Complete Schema](https://github.com/Cross-Domain-Interoperability-Framework/validation/blob/main/CDIFCompleteSchema.json) (JSON Schema Draft 2020-12). All 77 records have been successfully harvested and indexed in testing.
+- **CDIF validation repository**: The [CDIF validation repo](https://github.com/Cross-Domain-Interoperability-Framework/validation/tree/main/testJSONMetadata) contains 77 CDIF JSON-LD test files validated against the [CDIF Complete Schema](https://github.com/Cross-Domain-Interoperability-Framework/validation/blob/main/CDIFCompleteSchema.json) (JSON Schema Draft 2020-12). All 77 records have been successfully harvested and indexed.
+- **ADA (Astromaterials Data Archive)**: 121 records harvested from the ADA sitemap at `https://ada.astromat.org/metadata/sitemap.xml`. These records include complex distributions (zip archives with `hasPart` members), funding, provenance, and measurement techniques. Roundtrip validation: 120/121 PASS.
 
 ## Related Repositories
 
