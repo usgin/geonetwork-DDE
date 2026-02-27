@@ -54,7 +54,7 @@
 {
   <xsl:call-template name="cdif-context"/>
 
-  "@type": "schema:Dataset",
+  "@type": ["schema:Dataset"],
   "@id": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>",
 
   <xsl:call-template name="cdif-basic-properties">
@@ -172,12 +172,20 @@
   "schema:datePublished": "<xsl:value-of select="$pubDate"/>",
     </xsl:if>
 
-    <!-- dateModified (metadata revision date) -->
+    <!-- dateModified (required by CDIF schema; use revision date, fallback to creation or publication) -->
     <xsl:variable name="revDate"
                   select="mdb:dateInfo[*/cit:dateType/*/@codeListValue='revision'][1]/*/cit:date/(gco:Date|gco:DateTime)"/>
-    <xsl:if test="$revDate[normalize-space() != '']">
-  "schema:dateModified": "<xsl:value-of select="$revDate"/>",
-    </xsl:if>
+    <xsl:variable name="createDate"
+                  select="mdb:dateInfo[*/cit:dateType/*/@codeListValue='creation'][1]/*/cit:date/(gco:Date|gco:DateTime)"/>
+    <xsl:variable name="dateModified">
+      <xsl:choose>
+        <xsl:when test="$revDate[normalize-space() != '']"><xsl:value-of select="$revDate"/></xsl:when>
+        <xsl:when test="$pubDate[normalize-space() != '']"><xsl:value-of select="$pubDate"/></xsl:when>
+        <xsl:when test="$createDate[normalize-space() != '']"><xsl:value-of select="$createDate"/></xsl:when>
+        <xsl:otherwise>unknown</xsl:otherwise>
+      </xsl:choose>
+    </xsl:variable>
+  "schema:dateModified": "<xsl:value-of select="$dateModified"/>",
 
     <!-- version -->
     <xsl:if test="$citation/cit:edition/gco:CharacterString[normalize-space() != '']">
@@ -254,10 +262,10 @@
     <xsl:variable name="providers"
                   select="mdb:contact[*/cit:role/*/@codeListValue='distributor']"/>
     <xsl:if test="$providers">
-  "schema:provider": <xsl:call-template name="buildAgentJsonLd">
+  "schema:provider": [<xsl:call-template name="buildAgentJsonLd">
       <xsl:with-param name="resp" select="$providers[1]/*"/>
       <xsl:with-param name="agentIndex" select="'provider'"/>
-    </xsl:call-template>,
+    </xsl:call-template>],
     </xsl:if>
 
   </xsl:template>
@@ -291,24 +299,24 @@
       <xsl:variable name="licUrl" select="$licRef[1]/cit:onlineResource/*/cit:linkage/gco:CharacterString"/>
       <xsl:choose>
         <xsl:when test="$licUrl[normalize-space() != ''] and $licName[normalize-space() != '']">
-  "schema:license": {
+  "schema:license": [{
     "@type": "schema:CreativeWork",
     "schema:name": "<xsl:value-of select="util:escapeForJson($licName)"/>",
     "schema:url": "<xsl:value-of select="util:escapeForJson($licUrl)"/>"
-  },
+  }],
         </xsl:when>
         <xsl:when test="$licUrl[normalize-space() != '']">
-  "schema:license": "<xsl:value-of select="util:escapeForJson($licUrl)"/>",
+  "schema:license": ["<xsl:value-of select="util:escapeForJson($licUrl)"/>"],
         </xsl:when>
         <xsl:when test="$licName[normalize-space() != '']">
-  "schema:license": "<xsl:value-of select="util:escapeForJson($licName)"/>",
+  "schema:license": ["<xsl:value-of select="util:escapeForJson($licName)"/>"],
         </xsl:when>
       </xsl:choose>
     </xsl:if>
 
     <!-- conditionsOfAccess from otherConstraints (when no reference) -->
     <xsl:if test="not($licRef) and $legalConstraints/mco:otherConstraints/gco:CharacterString[normalize-space() != '']">
-  "schema:conditionsOfAccess": "<xsl:value-of select="util:escapeForJson($legalConstraints[1]/mco:otherConstraints/gco:CharacterString)"/>",
+  "schema:conditionsOfAccess": ["<xsl:value-of select="util:escapeForJson($legalConstraints[1]/mco:otherConstraints/gco:CharacterString)"/>"],
     </xsl:if>
   </xsl:template>
 
@@ -406,7 +414,7 @@
                       contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil')]"/>
       <xsl:for-each select="$primary">
     {
-      "@type": "schema:DataDownload",
+      "@type": ["schema:DataDownload"],
       "schema:contentUrl": "<xsl:value-of select="util:escapeForJson(cit:linkage/gco:CharacterString)"/>"
         <xsl:if test="cit:name/gco:CharacterString[normalize-space() != '']">
       ,"schema:name": "<xsl:value-of select="util:escapeForJson(cit:name/gco:CharacterString)"/>"
@@ -415,7 +423,7 @@
       ,"schema:description": "<xsl:value-of select="util:escapeForJson(cit:description/gco:CharacterString)"/>"
         </xsl:if>
         <xsl:if test="cit:protocol/gco:CharacterString[normalize-space() != '']">
-      ,"schema:encodingFormat": "<xsl:value-of select="util:escapeForJson(cit:protocol/gco:CharacterString)"/>"
+      ,"schema:encodingFormat": ["<xsl:value-of select="util:escapeForJson(cit:protocol/gco:CharacterString)"/>"]
         </xsl:if>
         <xsl:if test="../../mrd:transferSize/gco:Real[normalize-space() != '']">
       ,"schema:contentSize": "<xsl:value-of select="../../mrd:transferSize/gco:Real"/> MB"
@@ -424,7 +432,7 @@
         <xsl:if test="$archiveMembers">
       ,"schema:hasPart": [<xsl:for-each select="$archiveMembers">
         {
-          "@type": "schema:DataDownload"
+          "@type": ["schema:DataDownload"]
           <xsl:if test="cit:name/gco:CharacterString[normalize-space() != '']">
           ,"schema:name": "<xsl:value-of select="util:escapeForJson(cit:name/gco:CharacterString)"/>"
           </xsl:if>
@@ -432,12 +440,12 @@
           ,"schema:description": "<xsl:value-of select="util:escapeForJson(cit:description/gco:CharacterString)"/>"
           </xsl:if>
           <xsl:if test="cit:protocol/gco:CharacterString[normalize-space() != '']">
-          ,"schema:encodingFormat": "<xsl:value-of select="util:escapeForJson(cit:protocol/gco:CharacterString)"/>"
+          ,"schema:encodingFormat": ["<xsl:value-of select="util:escapeForJson(cit:protocol/gco:CharacterString)"/>"]
           </xsl:if>
         }<xsl:if test="position() != last()">,</xsl:if>
       </xsl:for-each>]
         </xsl:if>
-    }<xsl:if test="position() != last() or ($archiveMembers and not(following-sibling::*))">,</xsl:if>
+    }<xsl:if test="position() != last()">,</xsl:if>
       </xsl:for-each>
       <xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>],
@@ -456,13 +464,13 @@
     <xsl:if test="$attrs">
   "schema:variableMeasured": [<xsl:for-each select="$attrs">
     {
-      "@type": "schema:PropertyValue",
+      "@type": ["schema:PropertyValue"],
       "schema:name": "<xsl:value-of select="util:escapeForJson(gfc:memberName)"/>"
       <xsl:if test="gfc:definition/gco:CharacterString[normalize-space() != '']">
       ,"schema:description": "<xsl:value-of select="util:escapeForJson(gfc:definition/gco:CharacterString)"/>"
       </xsl:if>
       <xsl:if test="gfc:code/gco:CharacterString[normalize-space() != '']">
-      ,"schema:propertyID": "<xsl:value-of select="util:escapeForJson(gfc:code/gco:CharacterString)"/>"
+      ,"schema:propertyID": ["<xsl:value-of select="util:escapeForJson(gfc:code/gco:CharacterString)"/>"]
       </xsl:if>
       <xsl:if test="gfc:valueType/gco:TypeName/gco:aName/gco:CharacterString[normalize-space() != '']">
       ,"cdi:intendedDataType": "<xsl:value-of select="util:escapeForJson(gfc:valueType/gco:TypeName/gco:aName/gco:CharacterString)"/>"
@@ -486,7 +494,7 @@
     <xsl:if test="$processSteps">
   "prov:wasGeneratedBy": [<xsl:for-each select="$processSteps">
     {
-      "@type": "prov:Activity"
+      "@type": ["prov:Activity", "schema:Action"]
       <xsl:if test="mrl:description/gco:CharacterString[normalize-space() != '']">
       ,"schema:description": "<xsl:value-of select="util:escapeForJson(mrl:description/gco:CharacterString)"/>"
       </xsl:if>
@@ -596,7 +604,7 @@
                               then substring-before($afterPPTrimmed, '&#10;')
                               else $afterPPTrimmed"/>
         <xsl:if test="normalize-space($ppText) != ''">
-  "schema:publishingPrinciples": "<xsl:value-of select="util:escapeForJson(normalize-space($ppText))"/>",
+  "schema:publishingPrinciples": ["<xsl:value-of select="util:escapeForJson(normalize-space($ppText))"/>"],
         </xsl:if>
       </xsl:if>
 
@@ -658,7 +666,9 @@
     <xsl:variable name="catalogs" select="mdb:metadataLinkage/cit:CI_OnlineResource"/>
 
   "schema:subjectOf": {
-    "@type": "schema:Dataset",
+    "@type": ["schema:Dataset"],
+    "@id": "<xsl:value-of select="util:escapeForJson(concat($recordUrl, '/metadata'))"/>",
+    "schema:additionalType": ["dcat:CatalogRecord"],
     "schema:about": {"@id": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>"}
     <xsl:if test="$creationDate[normalize-space() != '']">
     ,"schema:sdDatePublished": "<xsl:value-of select="$creationDate"/>"
@@ -688,17 +698,16 @@
       </xsl:call-template>
     </xsl:if>
     <xsl:if test="$catalogs">
-    ,"schema:includedInDataCatalog": [<xsl:for-each select="$catalogs">
-      {
+    <xsl:variable name="firstCatalog" select="$catalogs[1]"/>
+    ,"schema:includedInDataCatalog": {
         "@type": "schema:DataCatalog"
-        <xsl:if test="cit:linkage/gco:CharacterString[normalize-space() != '']">
-        ,"schema:url": "<xsl:value-of select="util:escapeForJson(cit:linkage/gco:CharacterString)"/>"
+        <xsl:if test="$firstCatalog/cit:linkage/gco:CharacterString[normalize-space() != '']">
+        ,"schema:url": "<xsl:value-of select="util:escapeForJson($firstCatalog/cit:linkage/gco:CharacterString)"/>"
         </xsl:if>
-        <xsl:if test="cit:name/gco:CharacterString[normalize-space() != '']">
-        ,"schema:name": "<xsl:value-of select="util:escapeForJson(cit:name/gco:CharacterString)"/>"
+        <xsl:if test="$firstCatalog/cit:name/gco:CharacterString[normalize-space() != '']">
+        ,"schema:name": "<xsl:value-of select="util:escapeForJson($firstCatalog/cit:name/gco:CharacterString)"/>"
         </xsl:if>
-      }<xsl:if test="position() != last()">,</xsl:if>
-    </xsl:for-each>]
+      }
     </xsl:if>
   },
   </xsl:template>
@@ -892,7 +901,7 @@
         </xsl:if>
       </xsl:variable>
     {
-      "@type": "schema:Grant"
+      "@type": "schema:MonetaryGrant"
       <xsl:if test="$grantName != ''">
       ,"schema:name": "<xsl:value-of select="util:escapeForJson($grantName)"/>"
       </xsl:if>
@@ -903,7 +912,10 @@
       }
       </xsl:if>
       <xsl:if test="$grantId != ''">
-      ,"schema:identifier": "<xsl:value-of select="util:escapeForJson($grantId)"/>"
+      ,"schema:identifier": {
+        "@type": "schema:PropertyValue",
+        "schema:value": "<xsl:value-of select="util:escapeForJson($grantId)"/>"
+      }
       </xsl:if>
     }<xsl:if test="position() != last()">,</xsl:if>
     </xsl:for-each>
