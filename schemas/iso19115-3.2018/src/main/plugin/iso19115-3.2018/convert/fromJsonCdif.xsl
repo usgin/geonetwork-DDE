@@ -1396,9 +1396,14 @@
         <xsl:text>FUNDING: </xsl:text>
         <xsl:for-each select="schema_funding">
           <xsl:if test="position() > 1"><xsl:text>; </xsl:text></xsl:if>
-          <xsl:if test="schema_name != ''">
-            <xsl:value-of select="schema_name"/>
-          </xsl:if>
+          <xsl:choose>
+            <xsl:when test="schema_name != ''">
+              <xsl:value-of select="schema_name"/>
+            </xsl:when>
+            <xsl:when test="schema_description != ''">
+              <xsl:value-of select="schema_description"/>
+            </xsl:when>
+          </xsl:choose>
           <xsl:if test="schema_funder/schema_name != ''">
             <xsl:text> (funder: </xsl:text>
             <xsl:value-of select="schema_funder/schema_name"/>

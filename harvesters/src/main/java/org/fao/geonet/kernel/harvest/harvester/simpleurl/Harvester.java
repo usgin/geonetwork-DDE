@@ -481,7 +481,9 @@ class Harvester implements IHarvester<HarvestResult> {
             JsonLdOptions options = new JsonLdOptions();
             Map<String, Object> framed = JsonLdProcessor.frame(input, frame, options);
 
-            // The framing API wraps results in @graph. Extract the main object.
+            // The framing API wraps results in @graph. Extract the main dataset
+            // object — not the schema:subjectOf catalog record, which also has
+            // @type schema:Dataset and may appear first in the @graph array.
             Object graph = framed.get("@graph");
             if (graph instanceof List) {
                 List<?> graphList = (List<?>) graph;
@@ -491,13 +493,45 @@ class Harvester implements IHarvester<HarvestResult> {
                         + "document may not match frame @type. Using unframed document.", uuid));
                     return jsonRecord;
                 }
-                Object mainObj = graphList.get(0);
-                if (mainObj instanceof Map) {
-                    Map<String, Object> mainMap = (Map<String, Object>) mainObj;
+
+                // Pick the object that has schema:name (the real dataset),
+                // not the subjectOf metadata record which lacks it.
+                Map<String, Object> mainMap = null;
+                for (Object item : graphList) {
+                    if (item instanceof Map) {
+                        Map<String, Object> candidate = (Map<String, Object>) item;
+                        Object name = candidate.get("schema:name");
+                        if (name != null && !"".equals(name)) {
+                            mainMap = candidate;
+                            break;
+                        }
+                    }
+                }
+                // Fallback: take the last entry (dataset is typically after subjectOf)
+                if (mainMap == null) {
+                    Object last = graphList.get(graphList.size() - 1);
+                    if (last instanceof Map) {
+                        mainMap = (Map<String, Object>) last;
+                    }
+                }
+
+                if (mainMap != null) {
                     // Preserve @context from the framed output for downstream processing
                     if (framed.containsKey("@context")) {
                         mainMap.put("@context", framed.get("@context"));
                     }
+                    // Remove null-valued properties that framing introduces for
+                    // properties in the frame but absent in the source data.
+                    // org.json.XML serializes null as the string "null", which
+                    // causes downstream failures (e.g. ISODate parsing).
+                    removeNulls(mainMap);
+
+                    // The jsonld-java framing library drops some complex fields
+                    // (creator with @list, distribution, funding, contributor)
+                    // that the source document contains. Recover them from the
+                    // original unframed input.
+                    recoverDroppedFields(mainMap, input, uuid);
+
                     String result = JsonUtils.toString(mainMap);
                     log.debug("JSON-LD framing applied for CDIF record: " + uuid);
                     return objectMapper.readTree(result);
@@ -513,6 +547,94 @@ class Harvester implements IHarvester<HarvestResult> {
                 "JSON-LD framing failed for record %s, proceeding with unframed document: %s",
                 uuid, e.getMessage()));
             return jsonRecord;
+        }
+    }
+
+    /**
+     * Recursively remove null-valued entries from a Map (and nested Maps/Lists).
+     * JSON-LD framing introduces null values for properties declared in the frame
+     * but absent in the source data.  org.json.XML.toString() serializes these as
+     * the literal string "null", which causes downstream failures such as ISODate
+     * parsing errors.
+     */
+    @SuppressWarnings("unchecked")
+    private void removeNulls(Map<String, Object> map) {
+        Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            Object value = entry.getValue();
+            if (value == null) {
+                it.remove();
+            } else if (value instanceof Map) {
+                removeNulls((Map<String, Object>) value);
+                if (((Map<String, Object>) value).isEmpty()) {
+                    it.remove();
+                }
+            } else if (value instanceof List) {
+                removeNullsFromList((List<Object>) value);
+                if (((List<Object>) value).isEmpty()) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void removeNullsFromList(List<Object> list) {
+        Iterator<Object> it = list.iterator();
+        while (it.hasNext()) {
+            Object item = it.next();
+            if (item == null) {
+                it.remove();
+            } else if (item instanceof Map) {
+                removeNulls((Map<String, Object>) item);
+                if (((Map<String, Object>) item).isEmpty()) {
+                    it.remove();
+                }
+            } else if (item instanceof List) {
+                removeNullsFromList((List<Object>) item);
+                if (((List<Object>) item).isEmpty()) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    /**
+     * Recover fields that jsonld-java framing drops from the source document.
+     * The jsonld-java library sometimes fails to preserve complex properties
+     * like schema:creator (which uses @list), schema:distribution, schema:funding,
+     * and schema:contributor, even though the frame defines them.
+     * This method copies those fields from the original unframed input when
+     * they are missing from the framed result.
+     */
+    @SuppressWarnings("unchecked")
+    private void recoverDroppedFields(Map<String, Object> framed, Object originalInput, String uuid) {
+        // The originalInput is the parsed JSON-LD — it may be a Map (single object)
+        // or a Map with nested structure. Extract the source properties.
+        Map<String, Object> source = null;
+        if (originalInput instanceof Map) {
+            source = (Map<String, Object>) originalInput;
+        } else {
+            return;
+        }
+
+        // Fields that framing commonly drops due to @list, type mismatches, etc.
+        String[] fieldsToRecover = {
+            "schema:creator", "schema:contributor", "schema:publisher",
+            "schema:provider", "schema:funding", "schema:distribution",
+            "schema:variableMeasured", "schema:dateModified"
+        };
+
+        for (String field : fieldsToRecover) {
+            if (!framed.containsKey(field) || framed.get(field) == null) {
+                Object sourceValue = source.get(field);
+                if (sourceValue != null) {
+                    framed.put(field, sourceValue);
+                    log.debug(String.format(
+                        "Recovered field '%s' from unframed source for record %s", field, uuid));
+                }
+            }
         }
     }
 

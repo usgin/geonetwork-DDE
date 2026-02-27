@@ -182,8 +182,8 @@
     <xsl:variable name="dateModified">
       <xsl:choose>
         <xsl:when test="$revDate[normalize-space() != '']"><xsl:value-of select="$revDate"/></xsl:when>
-        <xsl:when test="$pubDate[normalize-space() != '']"><xsl:value-of select="$pubDate"/></xsl:when>
         <xsl:when test="$createDate[normalize-space() != '']"><xsl:value-of select="$createDate"/></xsl:when>
+        <xsl:when test="$pubDate[normalize-space() != '']"><xsl:value-of select="$pubDate"/></xsl:when>
         <xsl:otherwise>unknown</xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
@@ -407,13 +407,18 @@
                   select="mdb:distributionInfo/*/mrd:transferOptions/mrd:MD_DigitalTransferOptions"/>
     <xsl:if test="$transferOpts/mrd:onLine/cit:CI_OnlineResource[cit:linkage/gco:CharacterString[normalize-space() != '']]">
   "schema:distribution": [<xsl:for-each select="$transferOpts">
-      <!-- Primary resource (first onLine that is NOT an archive member) -->
+      <!-- Primary resource: NOT an archive member (inapplicable nil URL with function=information) -->
       <xsl:variable name="primary"
                     select="mrd:onLine/cit:CI_OnlineResource[
-                      not(contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil'))]"/>
+                      not(contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil/OGC/0/inapplicable')
+                          and cit:function/*/@codeListValue = 'information')]"/>
       <xsl:variable name="archiveMembers"
                     select="mrd:onLine/cit:CI_OnlineResource[
-                      contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil')]"/>
+                      contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil/OGC/0/inapplicable')
+                      and cit:function/*/@codeListValue = 'information']"/>
+      <!-- Collect encoding formats from distributionFormat (the canonical source) -->
+      <xsl:variable name="distFormats"
+                    select="../../mrd:distributionFormat/mrd:MD_Format/mrd:formatSpecificationCitation/cit:CI_Citation/cit:title/gco:CharacterString[normalize-space() != '']"/>
       <xsl:for-each select="$primary">
     {
       "@type": ["schema:DataDownload"],
@@ -424,9 +429,17 @@
         <xsl:if test="cit:description/gco:CharacterString[normalize-space() != '']">
       ,"schema:description": "<xsl:value-of select="util:escapeForJson(cit:description/gco:CharacterString)"/>"
         </xsl:if>
-        <xsl:if test="cit:protocol/gco:CharacterString[normalize-space() != '']">
+        <xsl:choose>
+          <!-- Prefer distributionFormat over protocol (protocol is just http/https/ftp) -->
+          <xsl:when test="$distFormats">
+      ,"schema:encodingFormat": [<xsl:for-each select="$distFormats">
+        "<xsl:value-of select="util:escapeForJson(.)"/>"<xsl:if test="position() != last()">,</xsl:if>
+      </xsl:for-each>]
+          </xsl:when>
+          <xsl:when test="cit:protocol/gco:CharacterString[normalize-space() != '' and not(. = 'http' or . = 'https' or . = 'ftp')]">
       ,"schema:encodingFormat": ["<xsl:value-of select="util:escapeForJson(cit:protocol/gco:CharacterString)"/>"]
-        </xsl:if>
+          </xsl:when>
+        </xsl:choose>
         <xsl:if test="../../mrd:transferSize/gco:Real[normalize-space() != '']">
       ,"schema:contentSize": "<xsl:value-of select="../../mrd:transferSize/gco:Real"/> MB"
         </xsl:if>
@@ -912,9 +925,16 @@
       </xsl:variable>
     {
       "@type": "schema:MonetaryGrant"
-      <xsl:if test="$grantName != ''">
+      <xsl:choose>
+        <!-- Structured funding with funder or identifier: use schema:name -->
+        <xsl:when test="$funderName != '' or $grantId != ''">
       ,"schema:name": "<xsl:value-of select="util:escapeForJson($grantName)"/>"
-      </xsl:if>
+        </xsl:when>
+        <!-- Unstructured text (e.g. roundtripped description): use schema:description -->
+        <xsl:when test="$grantName != ''">
+      ,"schema:description": "<xsl:value-of select="util:escapeForJson($grantName)"/>"
+        </xsl:when>
+      </xsl:choose>
       <xsl:if test="$funderName != ''">
       ,"schema:funder": {
         "@type": "schema:Organization",
