@@ -365,6 +365,9 @@ class Harvester implements IHarvester<HarvestResult> {
         if (Lib.net.isUrlValid(uuid)) {
             uuid = uuid.replaceFirst(".*/([^/?]+).*", "$1");
         }
+        // Replace forward slashes — they break Spring Security's StrictHttpFirewall
+        // when the UUID appears in REST API URL paths (e.g. /api/records/{uuid}/...).
+        uuid = uuid.replace("/", "_");
         return uuid;
     }
 

@@ -156,9 +156,11 @@
       </xsl:choose>
     </xsl:if>
 
-    <!-- sameAs -->
+    <!-- sameAs (skip entries with empty or "null" code values) -->
     <xsl:variable name="sameAsIds"
-                  select="$citation/cit:identifier/mcc:MD_Identifier[mcc:codeSpace/gco:CharacterString = 'sameAs']"/>
+                  select="$citation/cit:identifier/mcc:MD_Identifier[
+                    mcc:codeSpace/gco:CharacterString = 'sameAs'
+                    and mcc:code/gco:CharacterString[normalize-space() != '' and normalize-space() != 'null']]"/>
     <xsl:if test="$sameAsIds">
   "schema:sameAs": [<xsl:for-each select="$sameAsIds">
     {"@id": "<xsl:value-of select="util:escapeForJson(mcc:code/gco:CharacterString)"/>"}<xsl:if test="position() != last()">,</xsl:if>
@@ -457,10 +459,12 @@
        Variables measured (Feature Catalogue)
        ================================================================ -->
   <xsl:template name="cdif-variables">
+    <!-- Only include attributes that have a description (required by CDIF schema) -->
     <xsl:variable name="attrs"
                   select="mdb:contentInfo/mrc:MD_FeatureCatalogue/mrc:featureCatalogue/
                           gfc:FC_FeatureCatalogue/gfc:featureType/gfc:FC_FeatureType/
-                          gfc:carrierOfCharacteristics/gfc:FC_FeatureAttribute"/>
+                          gfc:carrierOfCharacteristics/gfc:FC_FeatureAttribute[
+                            gfc:definition/gco:CharacterString[normalize-space() != '']]"/>
     <xsl:if test="$attrs">
   "schema:variableMeasured": [<xsl:for-each select="$attrs">
     {
@@ -538,18 +542,17 @@
        Data Quality
        ================================================================ -->
   <xsl:template name="cdif-quality">
+    <!-- Only include measurements that have both required fields: isMeasurementOf and value -->
     <xsl:variable name="measurements"
-                  select="mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:report/mdq:DQ_UsabilityElement"/>
+                  select="mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:report/mdq:DQ_UsabilityElement[
+                    mdq:measure/mdq:DQ_MeasureReference/mdq:nameOfMeasure/gco:CharacterString[normalize-space() != '']
+                    and mdq:result/mdq:DQ_DescriptiveResult/mdq:statement/gco:CharacterString[normalize-space() != '']]"/>
     <xsl:if test="$measurements">
   "dqv:hasQualityMeasurement": [<xsl:for-each select="$measurements">
     {
       "@type": "dqv:QualityMeasurement"
-      <xsl:if test="mdq:measure/mdq:DQ_MeasureReference/mdq:nameOfMeasure/gco:CharacterString[normalize-space() != '']">
       ,"dqv:isMeasurementOf": "<xsl:value-of select="util:escapeForJson(mdq:measure/mdq:DQ_MeasureReference/mdq:nameOfMeasure/gco:CharacterString)"/>"
-      </xsl:if>
-      <xsl:if test="mdq:result/mdq:DQ_DescriptiveResult/mdq:statement/gco:CharacterString[normalize-space() != '']">
       ,"dqv:value": "<xsl:value-of select="util:escapeForJson(mdq:result/mdq:DQ_DescriptiveResult/mdq:statement/gco:CharacterString)"/>"
-      </xsl:if>
     }<xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>],
     </xsl:if>
@@ -676,8 +679,9 @@
     <xsl:if test="$revisionDate[normalize-space() != '']">
     ,"schema:dateModified": "<xsl:value-of select="$revisionDate"/>"
     </xsl:if>
-    <xsl:if test="$profiles">
-    ,"dcterms:conformsTo": [<xsl:for-each select="$profiles">
+    <!-- dcterms:conformsTo is required by CDIF schema; default to CDIF discovery profile -->
+    ,"dcterms:conformsTo": [<xsl:choose>
+      <xsl:when test="$profiles"><xsl:for-each select="$profiles">
       <xsl:variable name="profName" select="cit:title/gco:CharacterString"/>
       <xsl:variable name="profUrl" select="cit:onlineResource/*/cit:linkage/gco:CharacterString"/>
       {
@@ -689,8 +693,14 @@
         ,"schema:url": "<xsl:value-of select="util:escapeForJson($profUrl)"/>"
         </xsl:if>
       }<xsl:if test="position() != last()">,</xsl:if>
-    </xsl:for-each>]
-    </xsl:if>
+    </xsl:for-each></xsl:when>
+      <xsl:otherwise>
+      {
+        "@type": "schema:CreativeWork",
+        "schema:name": "CDIF Discovery Profile",
+        "schema:url": "https://w3id.org/cdif/profiles/discovery"
+      }</xsl:otherwise>
+    </xsl:choose>]
     <xsl:if test="$maintainer">
     ,"schema:maintainer": <xsl:call-template name="buildAgentJsonLd">
         <xsl:with-param name="resp" select="$maintainer"/>
