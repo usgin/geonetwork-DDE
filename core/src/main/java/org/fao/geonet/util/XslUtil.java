@@ -1601,6 +1601,73 @@ public final class XslUtil {
         return listOfLinks;
     }
 
+    /**
+     * Frame a CDIF JSON-LD string using the cdif-frame.jsonld frame document.
+     * Callable from XSLT as util:frameCdifJsonLd($jsonString).
+     *
+     * @param jsonLdString the expanded/flat JSON-LD string produced by the XSLT
+     * @return framed and pretty-printed JSON-LD string, or unframed input on error
+     */
+    @SuppressWarnings("unchecked")
+    public static String frameCdifJsonLd(String jsonLdString) {
+        if (StringUtils.isBlank(jsonLdString)) {
+            return jsonLdString;
+        }
+        try {
+            Object input = com.github.jsonldjava.utils.JsonUtils.fromString(jsonLdString);
+
+            // Load frame from schema plugin directory
+            Path schemaPluginsDir = ApplicationContextHolder.get()
+                .getBean(GeonetworkDataDirectory.class)
+                .getSchemaPluginsDir();
+            Path framePath = schemaPluginsDir
+                .resolve("iso19115-3.2018")
+                .resolve("convert")
+                .resolve("cdif-frame.jsonld");
+
+            if (!java.nio.file.Files.exists(framePath)) {
+                Log.warning(Geonet.GEONETWORK, "CDIF frame file not found at " + framePath
+                    + " — returning unframed JSON-LD.");
+                return com.github.jsonldjava.utils.JsonUtils.toPrettyString(input);
+            }
+
+            Object frame;
+            try (InputStream is = java.nio.file.Files.newInputStream(framePath)) {
+                frame = com.github.jsonldjava.utils.JsonUtils.fromInputStream(is);
+            }
+
+            com.github.jsonldjava.core.JsonLdOptions options = new com.github.jsonldjava.core.JsonLdOptions();
+            Map<String, Object> framed = com.github.jsonldjava.core.JsonLdProcessor.frame(input, frame, options);
+
+            // Extract main object from @graph array if present
+            Object graph = framed.get("@graph");
+            if (graph instanceof List) {
+                List<?> graphList = (List<?>) graph;
+                if (!graphList.isEmpty()) {
+                    Object mainObj = graphList.get(0);
+                    if (mainObj instanceof Map) {
+                        Map<String, Object> mainMap = (Map<String, Object>) mainObj;
+                        if (framed.containsKey("@context")) {
+                            mainMap.put("@context", framed.get("@context"));
+                        }
+                        return com.github.jsonldjava.utils.JsonUtils.toPrettyString(mainMap);
+                    }
+                }
+            }
+
+            return com.github.jsonldjava.utils.JsonUtils.toPrettyString(framed);
+        } catch (Exception e) {
+            Log.warning(Geonet.GEONETWORK, "JSON-LD framing failed, returning unframed output: " + e.getMessage());
+            try {
+                // Try to return pretty-printed unframed JSON
+                Object parsed = com.github.jsonldjava.utils.JsonUtils.fromString(jsonLdString);
+                return com.github.jsonldjava.utils.JsonUtils.toPrettyString(parsed);
+            } catch (Exception e2) {
+                return jsonLdString;
+            }
+        }
+    }
+
     public static String escapeForJson(String value) {
         return StringEscapeUtils.escapeJson(value);
     }

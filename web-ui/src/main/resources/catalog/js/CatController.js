@@ -782,6 +782,11 @@
                 label: "exportDDE",
                 url: "/formatters/dde",
                 class: "fa-file-code-o"
+              },
+              {
+                label: "exportCDIF",
+                url: "/formatters/cdif",
+                class: "fa-file-code-o"
               } /*,
               {
                 label: "exportDCAT",
