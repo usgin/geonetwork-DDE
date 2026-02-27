@@ -143,6 +143,18 @@ class Harvester implements IHarvester<HarvestResult> {
             if ("true".equals(params.isSitemap)) {
                 log.info("Processing URL as sitemap: " + url);
                 try {
+                    // Auto-detect: if content is JSON (not XML), treat as single record
+                    if (!isXMLLike(content)) {
+                        log.info("URL returned JSON content — processing as single CDIF record: " + url);
+                        Map<String, Element> singleRecord = new HashMap<>();
+                        JsonNode recordJson = objectMapper.readTree(content);
+                        collectSingleJsonRecord(recordJson, singleRecord, url);
+                        aligner.align(singleRecord, errors);
+                        listOfUuids.addAll(singleRecord.keySet());
+                        log.info("Processed single JSON-LD record from: " + url);
+                        continue;
+                    }
+                    // Otherwise process as sitemap XML
                     List<String> sitemapUrls = extractUrlsFromSitemap(content);
                     log.info("Found " + sitemapUrls.size() + " URLs in sitemap.");
                     Map<String, Element> allSitemapUuids = new HashMap<>();

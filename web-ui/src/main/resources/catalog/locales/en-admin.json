@@ -304,7 +304,7 @@
     "geonetwork-xslfilterHelp": "The XSL filter is applied to each metadata record. The filter is a process which depends on the metadata schema (see the <strong>process</strong> folder of the metadata schemas)",
     "simpleurl-urlHelp": "URL pointing to JSON or XML documents. If harvesting more than one URL, add one line for each.",
     "simpleurl-isSitemap": "URL is a sitemap",
-    "simpleurl-isSitemapHelp": "If checked, the URL is treated as a sitemap (sitemaps.org protocol). Each URL in the sitemap will be fetched and processed as an individual record.",
+    "simpleurl-isSitemapHelp": "If checked, the URL is treated as a sitemap (sitemaps.org protocol) or a single JSON-LD record. Each URL in a sitemap will be fetched and processed as an individual record. URLs that return JSON instead of XML are processed directly as single records.",
     "loopElement": "Element to loop on",
     "simpleurl-configHelper": "Sample configurations which can help setting up the harvester:",
     "simpleurl-configHelper-help": "Depending on the target URL and the type of documents to harvest each configuration illustrate of to configure the harvester to extract the metadata records from the remote document.",
