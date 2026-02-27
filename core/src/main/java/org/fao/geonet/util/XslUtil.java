@@ -1636,26 +1636,21 @@ public final class XslUtil {
                 frame = com.github.jsonldjava.utils.JsonUtils.fromInputStream(is);
             }
 
+            // Use compact() instead of frame() to preserve embedded nodes
+            // (frame() drops blank nodes inside @list containers in jsonld-java).
+            // The XSLT already produces the correct nested structure, so we
+            // only need context compaction and null-removal.
+            @SuppressWarnings("unchecked")
+            Map<String, Object> frameMap = (Map<String, Object>) frame;
+            Object context = frameMap.get("@context");
+
             com.github.jsonldjava.core.JsonLdOptions options = new com.github.jsonldjava.core.JsonLdOptions();
-            Map<String, Object> framed = com.github.jsonldjava.core.JsonLdProcessor.frame(input, frame, options);
+            Map<String, Object> compacted = com.github.jsonldjava.core.JsonLdProcessor.compact(input, context, options);
 
-            // Extract main object from @graph array if present
-            Object graph = framed.get("@graph");
-            if (graph instanceof List) {
-                List<?> graphList = (List<?>) graph;
-                if (!graphList.isEmpty()) {
-                    Object mainObj = graphList.get(0);
-                    if (mainObj instanceof Map) {
-                        Map<String, Object> mainMap = (Map<String, Object>) mainObj;
-                        if (framed.containsKey("@context")) {
-                            mainMap.put("@context", framed.get("@context"));
-                        }
-                        return com.github.jsonldjava.utils.JsonUtils.toPrettyString(mainMap);
-                    }
-                }
-            }
+            // Remove null-valued properties that compact() may leave behind
+            compacted.values().removeIf(v -> v == null);
 
-            return com.github.jsonldjava.utils.JsonUtils.toPrettyString(framed);
+            return com.github.jsonldjava.utils.JsonUtils.toPrettyString(compacted);
         } catch (Exception e) {
             Log.warning(Geonet.GEONETWORK, "JSON-LD framing failed, returning unframed output: " + e.getMessage());
             try {

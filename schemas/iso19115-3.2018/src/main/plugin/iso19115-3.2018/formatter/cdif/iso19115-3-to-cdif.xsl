@@ -212,6 +212,7 @@
   "schema:creator": {"@list": [<xsl:for-each select="$authors">
     <xsl:call-template name="buildAgentJsonLd">
       <xsl:with-param name="resp" select="*"/>
+      <xsl:with-param name="agentIndex" select="concat('creator-', position())"/>
     </xsl:call-template><xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>]},
     </xsl:if>
@@ -222,6 +223,7 @@
     <xsl:if test="$publishers">
   "schema:publisher": <xsl:call-template name="buildAgentJsonLd">
       <xsl:with-param name="resp" select="$publishers[1]/*"/>
+      <xsl:with-param name="agentIndex" select="'publisher'"/>
     </xsl:call-template>,
     </xsl:if>
 
@@ -242,6 +244,7 @@
       "schema:roleName": "<xsl:value-of select="$roleName"/>",
       "schema:contributor": <xsl:call-template name="buildAgentJsonLd">
         <xsl:with-param name="resp" select="*"/>
+        <xsl:with-param name="agentIndex" select="concat('contributor-', position())"/>
       </xsl:call-template>
     }<xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>],
@@ -253,6 +256,7 @@
     <xsl:if test="$providers">
   "schema:provider": <xsl:call-template name="buildAgentJsonLd">
       <xsl:with-param name="resp" select="$providers[1]/*"/>
+      <xsl:with-param name="agentIndex" select="'provider'"/>
     </xsl:call-template>,
     </xsl:if>
 
@@ -553,15 +557,16 @@
                   select="mdb:identificationInfo/*/mri:supplementalInformation/gco:CharacterString"/>
     <xsl:if test="normalize-space($suppText) != ''">
 
-      <!-- FUNDING parsing -->
+      <!-- FUNDING parsing: extract text after "FUNDING: " up to next newline.
+           Only use fallback (everything after label) if there is no newline,
+           meaning FUNDING is the last section in the string. -->
       <xsl:if test="contains($suppText, 'FUNDING:')">
-        <xsl:variable name="fundingLine"
-                      select="substring-before(
-                                substring-after($suppText, 'FUNDING: '),
-                                '&#10;')"/>
+        <xsl:variable name="afterFunding" select="substring-after($suppText, 'FUNDING:')"/>
+        <xsl:variable name="afterFundingTrimmed" select="if (starts-with($afterFunding, ' ')) then substring($afterFunding, 2) else $afterFunding"/>
         <xsl:variable name="fundingText"
-                      select="if (normalize-space($fundingLine) != '') then $fundingLine
-                              else substring-after($suppText, 'FUNDING: ')"/>
+                      select="if (contains($afterFundingTrimmed, '&#10;'))
+                              then substring-before($afterFundingTrimmed, '&#10;')
+                              else $afterFundingTrimmed"/>
         <xsl:if test="normalize-space($fundingText) != ''">
   "schema:funding": [<xsl:call-template name="parseFundingEntries">
             <xsl:with-param name="text" select="$fundingText"/>
@@ -571,13 +576,12 @@
 
       <!-- MEASUREMENT TECHNIQUE parsing -->
       <xsl:if test="contains($suppText, 'MEASUREMENT TECHNIQUE:')">
-        <xsl:variable name="mtLine"
-                      select="substring-before(
-                                substring-after($suppText, 'MEASUREMENT TECHNIQUE: '),
-                                '&#10;')"/>
+        <xsl:variable name="afterMT" select="substring-after($suppText, 'MEASUREMENT TECHNIQUE:')"/>
+        <xsl:variable name="afterMTTrimmed" select="if (starts-with($afterMT, ' ')) then substring($afterMT, 2) else $afterMT"/>
         <xsl:variable name="mtText"
-                      select="if (normalize-space($mtLine) != '') then $mtLine
-                              else substring-after($suppText, 'MEASUREMENT TECHNIQUE: ')"/>
+                      select="if (contains($afterMTTrimmed, '&#10;'))
+                              then substring-before($afterMTTrimmed, '&#10;')
+                              else $afterMTTrimmed"/>
         <xsl:if test="normalize-space($mtText) != ''">
   "schema:measurementTechnique": "<xsl:value-of select="util:escapeForJson(normalize-space($mtText))"/>",
         </xsl:if>
@@ -585,13 +589,12 @@
 
       <!-- PUBLISHING PRINCIPLES parsing -->
       <xsl:if test="contains($suppText, 'PUBLISHING PRINCIPLES:')">
-        <xsl:variable name="ppLine"
-                      select="substring-before(
-                                substring-after($suppText, 'PUBLISHING PRINCIPLES: '),
-                                '&#10;')"/>
+        <xsl:variable name="afterPP" select="substring-after($suppText, 'PUBLISHING PRINCIPLES:')"/>
+        <xsl:variable name="afterPPTrimmed" select="if (starts-with($afterPP, ' ')) then substring($afterPP, 2) else $afterPP"/>
         <xsl:variable name="ppText"
-                      select="if (normalize-space($ppLine) != '') then $ppLine
-                              else substring-after($suppText, 'PUBLISHING PRINCIPLES: ')"/>
+                      select="if (contains($afterPPTrimmed, '&#10;'))
+                              then substring-before($afterPPTrimmed, '&#10;')
+                              else $afterPPTrimmed"/>
         <xsl:if test="normalize-space($ppText) != ''">
   "schema:publishingPrinciples": "<xsl:value-of select="util:escapeForJson(normalize-space($ppText))"/>",
         </xsl:if>
@@ -655,7 +658,7 @@
     <xsl:variable name="catalogs" select="mdb:metadataLinkage/cit:CI_OnlineResource"/>
 
   "schema:subjectOf": {
-    "@type": "schema:DigitalDocument",
+    "@type": "schema:Dataset",
     "schema:about": {"@id": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>"}
     <xsl:if test="$creationDate[normalize-space() != '']">
     ,"schema:sdDatePublished": "<xsl:value-of select="$creationDate"/>"
@@ -681,6 +684,7 @@
     <xsl:if test="$maintainer">
     ,"schema:maintainer": <xsl:call-template name="buildAgentJsonLd">
         <xsl:with-param name="resp" select="$maintainer"/>
+        <xsl:with-param name="agentIndex" select="'maintainer'"/>
       </xsl:call-template>
     </xsl:if>
     <xsl:if test="$catalogs">
@@ -705,6 +709,7 @@
        ================================================================ -->
   <xsl:template name="buildAgentJsonLd">
     <xsl:param name="resp"/>
+    <xsl:param name="agentIndex" select="'0'"/>
 
     <xsl:variable name="party" select="$resp/cit:party"/>
     <xsl:variable name="org" select="$party/cit:CI_Organisation"/>
@@ -715,11 +720,22 @@
     <xsl:variable name="indivId" select="$individual/cit:partyIdentifier/mcc:MD_Identifier/mcc:code/gco:CharacterString"/>
     <xsl:variable name="orgId" select="$org/cit:partyIdentifier/mcc:MD_Identifier/mcc:code/gco:CharacterString"/>
 
+    <!-- Use identifier as @id if available, otherwise generate a blank node ID.
+         Explicit @id helps JSON-LD framing preserve nodes inside @list. -->
+    <xsl:variable name="agentId">
+      <xsl:choose>
+        <xsl:when test="$indivId[normalize-space() != '']"><xsl:value-of select="$indivId"/></xsl:when>
+        <xsl:when test="$orgId[normalize-space() != '']"><xsl:value-of select="$orgId"/></xsl:when>
+        <xsl:otherwise>_:agent-<xsl:value-of select="$agentIndex"/></xsl:otherwise>
+      </xsl:choose>
+    </xsl:variable>
+
     <xsl:choose>
-      <!-- Person: has CI_Individual and org name differs from individual name -->
-      <xsl:when test="$individual and $indivName[normalize-space() != '']
-                      and ($orgName != $indivName or not($orgName[normalize-space() != '']))">
+      <!-- Person: has CI_Individual with a name (fromJsonCdif.xsl sets org name =
+           individual name for persons without a separate affiliation) -->
+      <xsl:when test="$individual and $indivName[normalize-space() != '']">
     {
+      "@id": "<xsl:value-of select="util:escapeForJson($agentId)"/>",
       "@type": "schema:Person",
       "schema:name": "<xsl:value-of select="util:escapeForJson($indivName)"/>"
         <xsl:if test="$email[normalize-space() != '']">
@@ -738,9 +754,10 @@
       }
         </xsl:if>
     }</xsl:when>
-      <!-- Organization (no individual, or org name == individual name) -->
+      <!-- Organization (no individual) -->
       <xsl:otherwise>
     {
+      "@id": "<xsl:value-of select="util:escapeForJson($agentId)"/>",
       "@type": "schema:Organization",
       "schema:name": "<xsl:value-of select="util:escapeForJson(if ($orgName[normalize-space() != '']) then $orgName else $indivName)"/>"
         <xsl:if test="$email[normalize-space() != '']">
