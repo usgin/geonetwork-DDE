@@ -1,5 +1,5 @@
 # Format Capability Audit — GeoNetwork-DDE
-**Date:** 2026-02-25
+**Date:** 2026-02-25 (updated 2026-03-09)
 **Branch:** DDEconfig
 **Base:** GeoNetwork 4.4.9
 
@@ -8,9 +8,9 @@
 | Capability | ISO 19139 | ISO 19115-3 | DDE Profile | CDIF JSON-LD |
 |---|---|---|---|---|
 | **Harvest** | Full | Full | Full (via converters) | Full (sitemap) |
-| **Display** | Full (11 formatters) | Full (14+ formatters) | Full (dde/view.xsl) | None (displays as ISO 19115-3) |
-| **Edit** | Full (4 views) | Full (4 views, ddeview default) | Full (ddeview, 8 tabs) | None (edits as ISO 19115-3) |
-| **Export/Search Results** | Full (native + CSW) | Full (native + API) | Partial (formatter only) | Missing |
+| **Display** | Full (11 formatters) | Full (14+ formatters) | Full (dde/view.xsl) | Full (displays as ISO 19115-3) |
+| **Edit** | Full (4 views) | Full (4 views, ddeview default) | Full (ddeview, 8 tabs) | Via ISO 19115-3 (no native editor) |
+| **Export/Search Results** | Full (native + CSW) | Full (native + API) | Partial (formatter only) | Full (formatter: `/formatters/cdif`) |
 
 ---
 
@@ -42,7 +42,8 @@
 - **Converter:** `fromJsonCdif.xsl` — CDIF JSON-LD → ISO 19115-3
 - **Preset:** "CDIF Sitemap" configured in HarvestSettingsController.js
   - `isSitemap=true`, `recordIdPath=/@id`, `toISOConversion=schema:iso19115-3.2018:convert/fromJsonCdif`
-- **Pipeline:** Sitemap XML → fetch each URL → org.json.XML.toString() → XSLT → ISO 19115-3
+- **Pipeline:** Sitemap XML → fetch each URL → JSON-LD framing (`cdif-frame.jsonld`) → `recoverDroppedFields()` → `removeNulls()` → `org.json.XML.toString()` → XSLT → ISO 19115-3
+- **Tested:** 77 CDIF validation records + 121 ADA records harvested successfully
 
 ---
 
@@ -55,7 +56,7 @@
 
 ### ISO 19115-3
 - **Status:** Full — 14+ output formatters
-- **Available:** All ISO 19139 formatters plus: eu-dcat-ap-mobility, dde, iso19139 (cross-conversion)
+- **Available:** All ISO 19139 formatters plus: eu-dcat-ap-mobility, dde, cdif, iso19139 (cross-conversion)
 - Extensive modular DCAT support with specialized sub-stylesheets
 
 ### DDE Profile
@@ -64,9 +65,11 @@
 - Outputs valid DDE XML (dde:MD_Metadata root element, XSD ref: DDEMetadataXSD_20240103.xsd)
 
 ### CDIF JSON-LD
-- **Status:** No formatter
-- CDIF records are converted to ISO 19115-3 on ingest and display as ISO 19115-3
-- **Gap:** No ISO 19115-3 → CDIF JSON-LD export formatter exists
+- **Status:** Full
+- **Formatter:** `formatter/cdif/iso19115-3-to-cdif.xsl` — ISO 19115-3 → CDIF JSON-LD
+- **Endpoint:** `GET /geonetwork/srv/api/records/{uuid}/formatters/cdif`
+- Roundtrip validated: 120/121 ADA records pass (1 fail due to source data issue)
+- Handles complex distributions (primary + archive `hasPart` members), funding, provenance, data quality, all agent roles
 
 ---
 
@@ -95,7 +98,7 @@
 ### CDIF JSON-LD
 - **Status:** No native editor
 - CDIF records are converted to ISO 19115-3 on harvest and edited as ISO 19115-3
-- **Gap:** No round-trip back to CDIF JSON-LD after editing
+- Roundtrip back to CDIF JSON-LD is available via the formatter endpoint after editing
 
 ---
 
@@ -118,19 +121,19 @@
 - **Gap:** DDE not registered as CSW outputSchema value; cannot request DDE format via CSW GetRecords
 
 ### CDIF JSON-LD
-- **Status:** Missing
-- **Gap:** No ISO 19115-3 → CDIF JSON-LD converter exists
-- Cannot export search results in CDIF format
-- No round-trip capability
+- **Status:** Full — formatter available
+- **Endpoint:** `GET /geonetwork/srv/api/records/{uuid}/formatters/cdif`
+- Converts ISO 19115-3 back to CDIF JSON-LD with high fidelity
+- **Gap:** Not integrated with CSW GetRecords or bulk search result export; individual record export only
 
 ---
 
 ## 5. CDIF Conversion Coverage Analysis
 
-### fromJsonCdif.xsl — Schema Coverage
+### fromJsonCdif.xsl — Schema Coverage (Inbound)
 
 **Total CDIF properties (CDIFCompleteSchema.json):** 34 root properties
-**Handled by XSLT:** 16 (47%)
+**Handled by XSLT:** 28 (82%)
 **Required properties covered:** 100%
 
 #### Fully Handled Properties
@@ -141,117 +144,119 @@
 | `@type` | mdb:metadataScope/resourceScope |
 | `schema:name` | mri:citation/cit:title |
 | `schema:description` | mri:abstract |
-| `schema:identifier` | cit:identifier/MD_Identifier |
+| `schema:identifier` | cit:identifier/MD_Identifier (DOI detection) |
+| `schema:sameAs` | cit:identifier (codeSpace='sameAs') |
+| `schema:version` | cit:edition |
 | `schema:datePublished` | cit:date (publication) |
-| `schema:dateModified` | mdb:dateInfo (revision) |
-| `schema:creator` | cit:citedResponsibleParty + mri:pointOfContact |
+| `schema:dateModified` | mdb:dateInfo (revision), cascade: revision → creation → pubDate |
+| `schema:inLanguage` | mdb:defaultLocale (2-letter → 3-letter code) |
+| `schema:creator` | cit:citedResponsibleParty (role=author) + mri:pointOfContact |
+| `schema:contributor` | cit:citedResponsibleParty (with mapped roleName) |
+| `schema:publisher` | cit:citedResponsibleParty (role=publisher) |
+| `schema:provider` | mdb:contact (role=distributor) |
 | `schema:license` | mri:resourceConstraints/MD_LegalConstraints |
 | `schema:conditionsOfAccess` | mri:resourceConstraints/MD_LegalConstraints |
 | `schema:keywords` | mri:descriptiveKeywords/MD_Keywords |
-| `schema:additionalType` | mri:descriptiveKeywords (as keywords) |
+| `schema:additionalType` | mri:descriptiveKeywords (as keywords with thesaurus if URI) |
 | `schema:spatialCoverage` | mri:extent/EX_GeographicBoundingBox |
-| `schema:distribution` | mdb:distributionInfo/MD_Distribution |
-| `schema:url` | mrd:transferOptions (fallback) |
-| `schema:subjectOf` | mdb:dateInfo (partial — dateModified only) |
+| `schema:temporalCoverage` | gex:EX_TemporalExtent/gml:TimePeriod (ISO dates) or gml:TimeInstant (geologic Ma) |
+| `schema:distribution` | mdb:distributionInfo/MD_Distribution (contentUrl, encodingFormat, name, description, fileSize, characterSet, hasPart) |
+| `schema:url` | mrd:transferOptions (fallback when no distribution) |
+| `schema:variableMeasured` | mrc:MD_FeatureCatalogue/gfc:FC_FeatureCatalogue (name, description, propertyID, intendedDataType, unitText/unitCode) |
+| `schema:funding` | mri:supplementalInformation (structured text) |
+| `schema:measurementTechnique` | mri:supplementalInformation (structured text) |
+| `schema:publishingPrinciples` | mri:supplementalInformation (structured text) |
+| `schema:relatedLink` | mri:associatedResource/mri:MD_AssociatedResource |
+| `schema:subjectOf` | mdb:dateInfo, mdb:metadataProfile, mdb:metadataLinkage |
 
-#### Unmapped Properties (12 gaps)
+#### Handled Nested Properties
 
-| CDIF Property | Purpose | Priority |
-|---|---|---|
-| `schema:temporalCoverage` | Time interval of data coverage | **Critical** (especially for DDE geoscience) |
-| `schema:variableMeasured` | What the dataset measures | **Critical** (data understanding) |
-| `schema:funding` | Grant/funding information | High (research provenance) |
-| `schema:contributor` | Other parties involved | High (attribution) |
-| `schema:publisher` | Party who made data available | High (attribution) |
-| `schema:provider` | Party maintaining distribution | Medium |
-| `schema:version` | Dataset version | Low (easy fix, ~5 lines XSLT) |
-| `schema:inLanguage` | Content language | Low (easy fix, ~10 lines) |
-| `schema:sameAs` | Alternate identifiers | Low (easy fix, ~15 lines) |
-| `schema:measurementTechnique` | Method used to determine values | Medium |
-| `schema:relatedLink` | Links to related resources | Medium |
-| `schema:publishingPrinciples` | Maintenance/persistence policies | Medium |
+**Creator/Contributor:**
+- name, identifier, propertyID, @type detection
+- affiliation → nested organization name
+- contactPoint → email extraction
+- email → direct mapping
+- partyIdentifier → person/org ID
 
-#### Nested Property Gaps
-
-**Creator/Contributor details:**
-- Handled: name, identifier, propertyID, @type detection
-- Not handled: affiliation, alternateName, contactPoint, sameAs
-
-**Distribution items:**
-- Handled: contentUrl, encodingFormat, name, description
-- Not handled: provider, spdx:checksum, cdi:fileSize, cdi:characterSet
+**Distribution:**
+- contentUrl, encodingFormat, name, description
+- `cdi:fileSize` + `cdi:fileSizeUofM` → transferSize (converted to MB)
+- `cdi:characterSet` → embedded in description
+- `schema:hasPart` → archive members (function=information, nil URL)
 
 **Spatial coverage:**
-- Handled: geo/box parsing, latitude/longitude pairs
-- Not handled: linestring, geosparql:hasGeometry (WKT/GeoJSON), multiple areas
+- `schema:geo/schema:box` → 4-value bounding box
+- `schema:geo/schema:latitude` + `schema:longitude` → point as bbox
+
+#### Remaining Unmapped Properties (6 gaps)
+
+| Property | Scope | Priority | Notes |
+|---|---|---|---|
+| `schema:alternateName` | Creator/contributor agents | Low | No natural ISO 19115-3 target |
+| `schema:sameAs` | Creator/contributor agents | Low | Agent-level sameAs (not resource-level) |
+| `schema:contactPoint` (full) | Creator/contributor agents | Low | Only email extracted; full nested ContactPoint not handled |
+| `schema:provider` | Per-distribution | Low | Only top-level provider mapped; distribution-level provider not extracted |
+| `spdx:checksum` | Distribution | Low | No standard ISO 19115-3 target |
+| `geosparql:hasGeometry` | Spatial coverage | Medium | WKT/GeoJSON geometries not parsed; only bbox supported |
+
+### iso19115-3-to-cdif.xsl — Coverage (Outbound)
+
+The outbound formatter mirrors the inbound coverage. All 28 inbound-mapped properties are reconstructed in the CDIF JSON-LD output, with the same nested property support.
+
+**Additional outbound features:**
+- Distribution type detection: primary (function=download) vs archive members (function=information, nil URL) → `schema:hasPart`
+- Encoding format prefers `mrd:distributionFormat` over `cit:protocol`; bare protocols (`http`, `https`, `ftp`) excluded
+- Funding output: structured (name + funder) when markers present, `schema:description` for free text
+- dateModified cascade: revision → creation → pubDate
+- Provenance: `prov:wasGeneratedBy` and `prov:wasDerivedFrom` from lineage
+- Data quality: `dqv:hasQualityMeasurement` from DQ_DataQuality reports
+- Contributor role mapping (6 named roles + default)
+- Language code conversion (3-letter → 2-letter)
+
+**Roundtrip-known structural differences (not failures):**
+- `@id` uses GeoNetwork API URL instead of original
+- `@context` includes all CDIF prefixes (original may have fewer)
+- Agent `@id` values are blank nodes instead of original URIs
+- `schema:additionalType` stored as keywords (preserved but in different location)
 
 ---
 
-## 6. JSON-LD Framing Problem
+## 6. JSON-LD Framing — Implemented
 
-### Current Pipeline
+### Pipeline (current)
 
 ```
-CDIF JSON-LD → org.json.XML.toString() → Intermediate XML → fromJsonCdif.xsl → ISO 19115-3
+CDIF JSON-LD → JSON-LD framing (cdif-frame.jsonld)
+             → recoverDroppedFields()
+             → removeNulls()
+             → org.json.XML.toString()
+             → fromJsonCdif.xsl
+             → ISO 19115-3
 ```
 
-### The Problem
+### Implementation
 
-`org.json.XML.toString()` is **not JSON-LD aware**. It performs mechanical JSON-to-XML conversion without understanding:
-- `@context` (prefix mappings are lost)
-- `@list` (creates extra nesting levels)
-- `@id` references (treated as plain strings)
-- `@value` / `@language` constructs
-- Compact vs expanded vs flattened vs framed forms
+**Option A (JSON-LD Framing Pre-processor) was implemented** in `Harvester.java`:
 
-### Key Conversion Rules
-- `schema:name` → `<schema_name>` (colon → underscore)
-- `@id` → `<id>` (@ prefix stripped by regex in Harvester.java)
-- `@type` → `<type>` (@ prefix stripped)
-- Nested objects → nested XML elements
-- Arrays → repeated XML elements
+1. **`cdif-frame.jsonld`** — JSON-LD frame document that normalizes all incoming CDIF records to a canonical structure, regardless of whether they arrive in compact, expanded, or flattened form.
 
-### Structural Assumptions in fromJsonCdif.xsl
+2. **`recoverDroppedFields()`** — Merges back fields that the Java `jsonld-java` library silently drops during framing:
+   - `schema:creator` (uses `@list` container)
+   - `schema:contributor`
+   - `schema:publisher`
+   - `schema:provider`
+   - `schema:funding`
+   - `schema:distribution` (nested `hasPart`)
+   - `schema:variableMeasured`
+   - `schema:dateModified`
 
-The XSLT assumes a specific JSON-LD form (compact, with embedded objects):
-- `schema_creator` as direct child elements (breaks if wrapped in `@list`)
-- `type` element containing type string (breaks if `@type` is an array)
-- Objects embedded inline (breaks if referenced by `@id`)
+3. **`removeNulls()` / `removeNullsFromList()`** — Recursively strips null values introduced by framing for properties defined in the frame but absent in the source record. Prevents `org.json.XML.toString()` from serializing the literal string `"null"`.
 
-### What Breaks
+### Remaining Fragility
 
-| JSON-LD Variant | Impact |
-|---|---|
-| `@list` wrapper on creator | Creator elements nested under extra level — XSLT misses them |
-| `@type` as array | Multiple `<type>` elements — XSLT may match wrong one |
-| `@graph` wrapper | All data one level deeper — all XSLT paths fail |
-| Expanded form (full URIs) | `http_schema_org_name` instead of `schema_name` — no matches |
-| Flattened form (@id references) | Objects not embedded — XSLT can't traverse |
+The `jsonld-java` library (v0.13.6 bundled with GeoNetwork) has known differences from the W3C JSON-LD 1.1 spec and the Python `pyld` reference implementation. The `recoverDroppedFields()` workaround handles the known dropped fields, but new CDIF properties added to the frame may need to be added to the recovery list if `jsonld-java` drops them.
 
-### Current Test File Status
-
-The 77 CDIF test files are all in **compact form** with consistent `@context`. They do use `@list` for `schema:creator`, which is a known fragility point. The test files are carefully curated to (mostly) work with the current converter.
-
-### Recommended Solutions
-
-**Option A: JSON-LD Framing Pre-processor (Recommended)**
-- Add a JSON-LD processing step (using jsonld-java library) before XML conversion
-- Frame all incoming documents to a canonical form
-- Guarantees consistent structure regardless of input form
-- Effort: Medium (Java code in Harvester.java + jsonld-java dependency)
-
-**Option B: Direct JSON-LD to Elasticsearch Mapping**
-- Skip the XML conversion entirely
-- Map JSON-LD properties directly to the ES index schema
-- Use JSON-LD processor to expand/normalize, then map to ES fields
-- Pros: Eliminates XML round-trip, better performance, native JSON handling
-- Cons: Bypasses GeoNetwork's schema plugin system, records not editable in standard editor
-- Effort: High (new harvester pathway, custom indexing)
-
-**Option C: Defensive XSLT with Multiple Fallback Patterns**
-- Add XPath fallbacks for @list, @graph, array @type, etc.
-- Most fragile long-term but lowest effort
-- Doesn't solve the fundamental problem
+Upgrading `jsonld-java` or switching to `titanium-json-ld` (JSON-LD 1.1 compliant) would be a more robust long-term fix but requires dependency analysis across GeoNetwork's codebase.
 
 ---
 
@@ -277,23 +282,44 @@ GeoNetwork's Elasticsearch index (`records.json`) already defines a flat-ish doc
 
 **Hybrid approach:** Use JSON-LD processor to normalize the JSON, convert to ISO 19115-3 XML for storage/editing, but also directly populate ES fields from the JSON for richer indexing (e.g., variables, funding) that don't map cleanly to ISO.
 
+**Current status:** Not implemented. The current ISO 19115-3 indexing path works well — all CDIF properties that map to ISO are indexed via the standard schema plugin indexer. Properties stored in `supplementalInformation` (funding, measurement technique, publishing principles) are indexed as free text but not as structured ES fields.
+
 ---
 
 ## 8. Summary of Gaps and Priorities
 
-### Critical Gaps (blocking full workflow)
+### Resolved Since Initial Audit (2026-02-25)
 
-1. **No CDIF JSON-LD export** — Cannot round-trip CDIF records or serve search results in CDIF format
-2. **JSON-LD framing fragility** — `@list`, `@graph`, expanded forms break the conversion
-3. **12 unmapped CDIF properties** — temporalCoverage and variableMeasured most critical
+| Gap | Resolution |
+|---|---|
+| No CDIF JSON-LD export | **Resolved** — `iso19115-3-to-cdif.xsl` formatter at `/formatters/cdif` |
+| JSON-LD framing fragility | **Resolved** — `cdif-frame.jsonld` + `recoverDroppedFields()` + `removeNulls()` |
+| 12 unmapped CDIF properties | **Resolved** — all 12 now mapped (temporalCoverage, variableMeasured, funding, contributor, publisher, provider, version, inLanguage, sameAs, measurementTechnique, relatedLink, publishingPrinciples) |
+| No round-trip capability | **Resolved** — 120/121 ADA records pass roundtrip validation |
+| Creator/contributor details | **Mostly resolved** — affiliation, email, contactPoint (email), identifier now handled |
+| Distribution details | **Mostly resolved** — fileSize, characterSet, hasPart archive members now handled |
 
-### Important Gaps (functional but incomplete)
+### Remaining Gaps
 
-4. **No DDE harvester preset** — Manual configuration required
-5. **DDE not in CSW outputSchema** — Can't serve DDE via CSW GetRecords
-6. **No CDIF-specific display** — Shows as ISO 19115-3
+#### Functional Gaps (Medium Priority)
 
-### Nice to Have
+1. **No DDE harvester preset** — Manual configuration required for DDE sources
+2. **DDE not in CSW outputSchema** — Can't serve DDE format via CSW GetRecords
+3. **CDIF not in bulk export** — Formatter works per-record; no batch/search-result CDIF export
+4. **`geosparql:hasGeometry`** — WKT/GeoJSON spatial geometries not supported; only bounding box
+5. **Supplemental info indexing** — Funding, measurement technique, publishing principles are stored as free text in `supplementalInformation`; not indexed as structured ES fields
 
-7. **CDIF-native editor** — Currently edits as ISO 19115-3
-8. **Direct JSON→ES mapping** — Would enable richer indexing of CDIF-specific fields
+#### Minor Gaps (Low Priority)
+
+6. **Agent `alternateName`** — Not extracted from creator/contributor (no natural ISO target)
+7. **Agent `sameAs`** — Agent-level sameAs URIs not extracted (resource-level sameAs is handled)
+8. **Full `contactPoint` object** — Only email extracted from nested ContactPoint
+9. **Distribution-level `provider`** — Only top-level provider mapped
+10. **`spdx:checksum`** — No standard ISO 19115-3 target for checksums
+11. **Multiple spatial areas** — Only single bounding box supported per extent
+
+#### Architectural Considerations (Future)
+
+12. **`jsonld-java` limitations** — Bundled library drops fields; workaround in place but fragile for new properties
+13. **CDIF-native editor** — Currently edits as ISO 19115-3; a CDIF-aware editor view is not planned
+14. **Direct JSON→ES mapping** — Would enable richer structured indexing but requires significant architecture changes
