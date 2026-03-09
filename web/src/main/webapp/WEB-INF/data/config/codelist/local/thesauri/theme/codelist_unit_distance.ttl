@@ -1,0 +1,38 @@
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+<https://en.wikipedia.org/wiki/Centimetre> a skos:Concept ;
+    skos:inScheme <https://vocab.ifremer.fr/scheme/SXT/codelist_unit_vertical> ;
+    skos:prefLabel "cm"@en,
+        "cm"@fr ;
+    skos:scopeNote "Centimeter"@en,
+        "Centimètre"@fr .
+
+<https://en.wikipedia.org/wiki/Degree_(angle)> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Length> ;
+    skos:prefLabel "°"@en,
+        "°"@fr ;
+    skos:scopeNote "Degree"@en,
+        "Degré"@fr .
+
+<https://en.wikipedia.org/wiki/Kilometre> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Length> ;
+    skos:prefLabel "km"@en,
+        "km"@fr ;
+    skos:scopeNote "Kilometer"@en,
+        "Kilomètre"@fr .
+
+<https://en.wikipedia.org/wiki/Metre> a skos:Concept ;
+    skos:inScheme <https://vocab.ifremer.fr/scheme/SXT/codelist_unit_vertical> ;
+    skos:prefLabel "m"@en,
+        "m"@fr ;
+    skos:scopeNote "Meter"@en,
+        "Mètre"@fr .
+
+<https://en.wikipedia.org/wiki/Length> a skos:ConceptScheme ;
+    dc:title "Units of measurements / Distance"@en,
+        "Unités de mesure / Distance"@fr ;
+    dcterms:identifier "codelist_unit_distance" ;
+    dcterms:type "theme" .
+

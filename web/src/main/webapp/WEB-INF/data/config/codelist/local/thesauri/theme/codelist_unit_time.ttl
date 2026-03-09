@@ -1,0 +1,52 @@
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+<https://en.wikipedia.org/wiki/Day> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Time> ;
+    skos:prefLabel "d"@en,
+        "d"@fr ;
+    skos:scopeNote "Day"@en,
+        "Jour"@fr .
+
+<https://en.wikipedia.org/wiki/Hour> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Time> ;
+    skos:prefLabel "h"@en,
+        "h"@fr ;
+    skos:scopeNote "Hour"@en,
+        "Heure"@fr .
+
+<https://en.wikipedia.org/wiki/Minute> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Time> ;
+    skos:prefLabel "min"@en,
+        "min"@fr ;
+    skos:scopeNote "Minute"@en,
+        "Minute"@fr .
+
+<https://en.wikipedia.org/wiki/Month> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Time> ;
+    skos:prefLabel "M"@en,
+        "M"@fr ;
+    skos:scopeNote "Month"@en,
+        "Mois"@fr .
+
+<https://en.wikipedia.org/wiki/Second> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Time> ;
+    skos:prefLabel "s"@en,
+        "s"@fr ;
+    skos:scopeNote "Second"@en,
+        "Seconde"@fr .
+
+<https://en.wikipedia.org/wiki/Year> a skos:Concept ;
+    skos:inScheme <https://en.wikipedia.org/wiki/Time> ;
+    skos:prefLabel "y"@en,
+        "y"@fr ;
+    skos:scopeNote "Year"@en,
+        "Année"@fr .
+
+<https://en.wikipedia.org/wiki/Time> a skos:ConceptScheme ;
+    dc:title "Units of measurements / Time"@en,
+        "Unités de mesure / Temps"@fr ;
+    dcterms:identifier "codelist_unit_time" ;
+    dcterms:type "theme" .
+
