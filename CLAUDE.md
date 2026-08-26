@@ -19,6 +19,8 @@ cd web && mvn jetty:run -Penv-dev
 
 Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
+**JDK:** the build targets Java 11, but the JDK on `PATH` on this machine is Temurin 21. Point `JAVA_HOME` at a JDK 11 install before running Maven — the ambient default is wrong and the failure surfaces as unrelated compile errors.
+
 ## Repository Structure
 
 - **DDE customizations** are concentrated in `schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/`
@@ -54,10 +56,35 @@ Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
 ## Conventions
 
-- Branch `DDEconfig` tracks DDE customizations on top of GeoNetwork 4.4.9.
+- Branch `DDEconfig` tracks DDE customizations on top of GeoNetwork 4.4.9 (`pom.xml` version `4.4.9-0`).
 - Branch `main` tracks upstream releases for merging.
+- **Upstream drift:** GeoNetwork opensource is at **4.4.12** (released 2026-07-08); this fork is three patch releases behind on the same 4.4 line. The local `upstream/main` ref is stale — its tip predates 4.4.10 and no 4.4.10+ tags are fetched — so start any rebase with `git fetch upstream --tags`.
 - DDE additions are **additive** — upstream functionality is preserved alongside DDE views/converters.
 - Schema plugin files follow GeoNetwork's standard plugin directory layout.
+
+## Related repositories (DDE source material)
+
+The DDE half of this fork originated in two GitLab repos at `C:\GithubC\DDE`
+(`opencode.deep-time.org`), which are archival but remain **authoritative for the DDE standard
+itself**. Nothing below is duplicated in this repo — go there for it:
+
+- **DDE XML Schema** — `dde-metadata/DDEMetadataXSD_20240103.xsd` (namespace
+  `https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0`, root `metadata:MD_Metadata`),
+  plus the two earlier revisions for reading older instances.
+- **Normative spec** — `DDE_Metadata_standard_editversion2.docx`; the frozen 2023-11-07 release is in
+  `release20231107/`.
+- **Round-trip fixtures** — `dde-metadata/ExampleXML/`, the same records in matched DDE / ISO 19139 /
+  ISO 19115-3 form. These are the only regression corpus for the DDE crosswalks; use them when
+  changing anything in `convert/utilityDDE/`.
+- **Ancestors of the DDE converters** — the original `ddeTo*` / `*ToDDE` stylesheets and an earlier
+  copy of this schema plugin. Useful as history when a mapping decision looks arbitrary.
+- **SKOS vocabulary sources** — the `.rdf` / `.ttl` / `.xml` originals behind
+  `web/.../thesauri/theme/` (`TopicCategorySKOS`, `resourceTypeSKOS`, `serviceTypeSKOS`,
+  `acquisitionCodeSKOS`) live on the `main` and `geonetwork` branches of `dde-metadata` — **not** on
+  its checked-out `GeoNetworkConfiguration` branch. `git ls-tree --name-only main` there before
+  concluding a file is missing.
+
+Each of those directories has its own `CLAUDE.md` with the details.
 
 ## Documentation
 
