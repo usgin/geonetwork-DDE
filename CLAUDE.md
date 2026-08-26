@@ -64,9 +64,11 @@ Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
 ## Related repositories (DDE source material)
 
-The DDE half of this fork originated in two GitLab repos at `C:\GithubC\DDE`
-(`opencode.deep-time.org`), which are archival but remain **authoritative for the DDE standard
-itself**. Nothing below is duplicated in this repo — go there for it:
+The DDE half of this fork originated in two repos at `C:\GithubC\DDE`, which are archival but remain
+**authoritative for the DDE standard itself**. They were hosted on `opencode.deep-time.org`; that
+GitLab is now offline (connections refused, while `deep-time.org` and `ddeworld.org` are up), so both
+were mirrored to `usgin/dde-metadata` and `usgin/dde-medata` on 2026-08-26, along with the 2024 fork
+`usgin/DDEcore-geonetwork`. Nothing below is duplicated in this repo — go there for it:
 
 - **DDE XML Schema** — `dde-metadata/DDEMetadataXSD_20240103.xsd` (namespace
   `https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0`, root `metadata:MD_Metadata`),
