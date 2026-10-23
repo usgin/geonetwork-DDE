@@ -21,11 +21,11 @@ The 2024-era fork is frozen on a 4.4.4 *snapshot* from April 2024, roughly two a
 | GeoNetwork fork, current | [usgin/geonetwork-DDE](https://github.com/usgin/geonetwork-DDE), branch `DDEconfig` | RECOMMENDED. GeoNetwork 4.4.9-0 plus a CDIF sitemap harvester. Carries every DDE customization the 2024 fork has, and more recent DDE vocabularies. Build the war from it (see [README.md](README.md)). |
 | GeoNetwork fork, as deployed 2024 | [usgin/DDEcore-geonetwork](https://github.com/usgin/DDEcore-geonetwork), branch `DDEconfig` | Reference only. 4.4.4-SNAPSHOT, frozen April 2024, matching the deployed build. History was rewritten to strip a 273 MB war that exceeds GitHub's file limit, so commit hashes differ from the original GitLab. |
 | The deployed war file | Not published | The April 2024 binary (286 MB) exceeds GitHub's 100 MB file limit and is not needed: build the war from `DDEconfig` instead. Its `WEB-INF/config.properties` carries the 2024 Elasticsearch host and credentials; anyone who does obtain it must set a new password there at deploy. |
-| Record files from the 2024 data directory | [data-2024/](data-2024/) | `metadata_data/` (record attachments) and `resources/` (logos and images), scrubbed of `encryptor.properties` and cache databases. Copy these into the new data directory; nothing else from the old data directory is needed. |
+| Record files from the 2024 data directory | [data-2024/](data-2024/) | `metadata_data/` (record attachments) and `resources/` (logos, images and map config; the regenerated `schemapublication/` cache is left out), scrubbed of `encryptor.properties` and cache databases. Copy these into the new data directory; nothing else from the old data directory is needed. |
 | DDE metadata standard | [usgin/dde-metadata](https://github.com/usgin/dde-metadata) | XSD, specification document, worked examples, ISO 19115-3 crosswalks, and the two July 2024 deployment PDFs. |
 | DDE vocabularies | In the fork: `web/src/main/webapp/WEB-INF/data/config/codelist/local/thesauri/theme/` | SKOS thesauri as RDF and Turtle: resource type, topic category, acquisition code, unit codelists. |
 | Elasticsearch index mappings | In the fork: `web/.../WEB-INF/data/config/index/` | `records.json`, `features.json`, `searchlogs.json`. |
-| Harvest configuration and seed records | [harvest-records-2024/](harvest-records-2024/) | Twelve DDE-schema XML files (nine harvested records, three editor templates) plus a sample harvester log. Recovered from the 2024 deployment; see the harvest section below. |
+| Harvest configuration and seed records | [harvest-records-2024/](harvest-records-2024/) | Twelve DDE-schema XML files (nine harvested records, three editor templates). Recovered from the 2024 deployment; see the harvest section below. |
 
 The DDE customizations are concentrated in the ISO 19115-3:2018 schema plugin at `schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/` — the editor view, converters, formatter, indexing and labels. Cloning the fork brings all of it.
 
@@ -73,7 +73,7 @@ Both the configuration and the source records were nevertheless recovered from t
 
 ### The seed records
 
-Nine records were harvested. All twelve files below are in [harvest-records-2024/](harvest-records-2024/), together with one sample harvester log.
+Nine records were harvested. All twelve files below are in [harvest-records-2024/](harvest-records-2024/). The 2024 harvester log is not included.
 
 | File | Harvested |
 | --- | --- |
