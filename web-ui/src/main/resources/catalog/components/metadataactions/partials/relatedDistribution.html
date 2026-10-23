@@ -24,7 +24,10 @@
       class="gn-related-icon-col col-xs-2 col-sm-2 text-center"
       data-gn-link-icon="r"
     ></div>
-    <div data-ng-class="isNilUrl ? 'col-xs-12' : 'col-xs-10 col-sm-7'" gn-popover-anchor="">
+    <div
+      data-ng-class="isNilUrl ? 'col-xs-12' : 'col-xs-10 col-sm-7'"
+      gn-popover-anchor=""
+    >
       <div gn-popover-content="" data-ng-if="!editable && !isNilUrl">
         <p class="text-muted">
           <span
@@ -63,7 +66,9 @@
       <div data-ng-if="isNilUrl" class="gn-archive-member-item">
         <i class="fa fa-file-o fa-fw text-muted"></i>
         <span>{{::r.locTitle}}</span>
-        <span data-ng-if="::r.protocol" class="text-muted small"> ({{::r.protocol}})</span>
+        <span data-ng-if="::r.protocol" class="text-muted small">
+          ({{::r.protocol}})</span
+        >
       </div>
       <!-- Display description if available -->
       <p
