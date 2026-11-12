@@ -16,6 +16,7 @@
 
 ## 1. Harvesting
 
+Harvest	Full	Full	Full (via converters)	Full (sitemap)
 ### ISO 19139
 - **Status:** Full support
 - **Harvesters:** CSW, OAI-PMH, Simple URL, GeoNetwork, WebDAV, SFTP

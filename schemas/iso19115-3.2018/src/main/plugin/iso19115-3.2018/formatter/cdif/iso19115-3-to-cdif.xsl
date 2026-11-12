@@ -329,7 +329,10 @@
   <xsl:template name="cdif-spatial">
     <xsl:variable name="bboxes"
                   select="mdb:identificationInfo/*/mri:extent/*/gex:geographicElement/gex:EX_GeographicBoundingBox"/>
-    <xsl:if test="$bboxes">
+    <xsl:variable name="geoDescs"
+                  select="mdb:identificationInfo/*/mri:extent/*/gex:geographicElement/gex:EX_GeographicDescription/
+                          gex:geographicIdentifier/mcc:MD_Identifier/mcc:code/gco:CharacterString[normalize-space() != '']"/>
+    <xsl:if test="$bboxes or $geoDescs">
   "schema:spatialCoverage": [<xsl:for-each select="$bboxes">
     {
       "@type": "schema:Place",
@@ -341,8 +344,21 @@
           gex:northBoundLatitude/gco:Decimal,
           gex:eastBoundLongitude/gco:Decimal), ' ')"/>"
       }
+      <xsl:if test="$geoDescs">
+      ,"schema:name": [<xsl:for-each select="$geoDescs">
+        "<xsl:value-of select="util:escapeForJson(.)"/>"<xsl:if test="position() != last()">,</xsl:if>
+      </xsl:for-each>]
+      </xsl:if>
     }<xsl:if test="position() != last()">,</xsl:if>
-  </xsl:for-each>],
+  </xsl:for-each>
+    <xsl:if test="not($bboxes) and $geoDescs">
+    {
+      "@type": "schema:Place",
+      "schema:name": [<xsl:for-each select="$geoDescs">
+        "<xsl:value-of select="util:escapeForJson(.)"/>"<xsl:if test="position() != last()">,</xsl:if>
+      </xsl:for-each>]
+    }
+    </xsl:if>],
     </xsl:if>
   </xsl:template>
 
@@ -405,6 +421,10 @@
   <xsl:template name="cdif-distribution">
     <xsl:variable name="transferOpts"
                   select="mdb:distributionInfo/*/mrd:transferOptions/mrd:MD_DigitalTransferOptions"/>
+    <xsl:variable name="distributors"
+                  select="mdb:distributionInfo/*/mrd:distributor/mrd:MD_Distributor/
+                          mrd:distributorContact/cit:CI_Responsibility/cit:party/
+                          (cit:CI_Organisation|cit:CI_Individual)/cit:name/gco:CharacterString[normalize-space() != '']"/>
     <xsl:if test="$transferOpts/mrd:onLine/cit:CI_OnlineResource[cit:linkage/gco:CharacterString[normalize-space() != '']]">
   "schema:distribution": [<xsl:for-each select="$transferOpts">
       <!-- Primary resource: NOT an archive member (inapplicable nil URL with function=information) -->
@@ -457,6 +477,15 @@
           <xsl:if test="cit:protocol/gco:CharacterString[normalize-space() != '']">
           ,"schema:encodingFormat": ["<xsl:value-of select="util:escapeForJson(cit:protocol/gco:CharacterString)"/>"]
           </xsl:if>
+        }<xsl:if test="position() != last()">,</xsl:if>
+      </xsl:for-each>]
+        </xsl:if>
+        <!-- Per-distribution provider from mrd:distributor -->
+        <xsl:if test="$distributors">
+      ,"schema:provider": [<xsl:for-each select="$distributors">
+        {
+          "@type": "schema:Organization",
+          "schema:name": "<xsl:value-of select="util:escapeForJson(.)"/>"
         }<xsl:if test="position() != last()">,</xsl:if>
       </xsl:for-each>]
         </xsl:if>

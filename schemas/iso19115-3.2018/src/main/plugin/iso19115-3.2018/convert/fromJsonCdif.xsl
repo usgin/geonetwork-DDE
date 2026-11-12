@@ -494,10 +494,36 @@
             </xsl:for-each>
 
             <!-- Extent: spatial + temporal combined -->
-            <xsl:if test="schema_spatialCoverage/schema_geo or schema_temporalCoverage[normalize-space(.) != '']">
+            <xsl:if test="schema_spatialCoverage/schema_geo or schema_spatialCoverage/schema_name or schema_temporalCoverage[normalize-space(.) != '']">
               <mri:extent>
                 <gex:EX_Extent>
-                  <!-- Geographic element -->
+                  <!-- Geographic description from place names -->
+                  <xsl:for-each select="schema_spatialCoverage/schema_name[normalize-space(.) != '']">
+                    <gex:geographicElement>
+                      <gex:EX_GeographicDescription>
+                        <gex:geographicIdentifier>
+                          <mcc:MD_Identifier>
+                            <mcc:code>
+                              <gco:CharacterString>
+                                <xsl:choose>
+                                  <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
+                                  <xsl:otherwise><xsl:value-of select="."/></xsl:otherwise>
+                                </xsl:choose>
+                              </gco:CharacterString>
+                            </mcc:code>
+                            <xsl:if test="schema_termCode != '' or id != ''">
+                              <mcc:codeSpace>
+                                <gco:CharacterString>
+                                  <xsl:value-of select="(schema_termCode, id)[normalize-space(.) != ''][1]"/>
+                                </gco:CharacterString>
+                              </mcc:codeSpace>
+                            </xsl:if>
+                          </mcc:MD_Identifier>
+                        </gex:geographicIdentifier>
+                      </gex:EX_GeographicDescription>
+                    </gex:geographicElement>
+                  </xsl:for-each>
+                  <!-- Geographic bounding box -->
                   <xsl:if test="schema_spatialCoverage/schema_geo">
                     <gex:geographicElement>
                       <gex:EX_GeographicBoundingBox>
@@ -1070,6 +1096,44 @@
                   </mrd:MD_DigitalTransferOptions>
                 </mrd:transferOptions>
               </xsl:if>
+
+              <!-- Per-distribution providers -->
+              <xsl:for-each select="schema_distribution/schema_provider[normalize-space(.) != '']">
+                <mrd:distributor>
+                  <mrd:MD_Distributor>
+                    <mrd:distributorContact>
+                      <cit:CI_Responsibility>
+                        <cit:role>
+                          <cit:CI_RoleCode codeList="codeListLocation#CI_RoleCode"
+                                           codeListValue="distributor"/>
+                        </cit:role>
+                        <cit:party>
+                          <xsl:choose>
+                            <xsl:when test="type = 'schema_Person' or type = 'schema:Person'">
+                              <cit:CI_Individual>
+                                <cit:name>
+                                  <gco:CharacterString>
+                                    <xsl:value-of select="(schema_name, .)[normalize-space(.) != ''][1]"/>
+                                  </gco:CharacterString>
+                                </cit:name>
+                              </cit:CI_Individual>
+                            </xsl:when>
+                            <xsl:otherwise>
+                              <cit:CI_Organisation>
+                                <cit:name>
+                                  <gco:CharacterString>
+                                    <xsl:value-of select="(schema_name, .)[normalize-space(.) != ''][1]"/>
+                                  </gco:CharacterString>
+                                </cit:name>
+                              </cit:CI_Organisation>
+                            </xsl:otherwise>
+                          </xsl:choose>
+                        </cit:party>
+                      </cit:CI_Responsibility>
+                    </mrd:distributorContact>
+                  </mrd:MD_Distributor>
+                </mrd:distributor>
+              </xsl:for-each>
             </mrd:MD_Distribution>
           </mdb:distributionInfo>
         </xsl:if>
