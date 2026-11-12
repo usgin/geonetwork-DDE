@@ -13,7 +13,7 @@ This folder holds everything needed to deploy the DDE catalogue:
 
 ## Overview
 
-Build GeoNetwork 4.4.9-0 from [usgin/geonetwork-DDE](https://github.com/usgin/geonetwork-DDE/tree/DDEconfig), branch `DDEconfig`, and run it in Tomcat 9 against PostgreSQL and Elasticsearch 8.14.3. That build already contains everything DDE-specific: the `ddeview` editor, the DDE converters and formatter, the DDE SKOS thesauri and the Elasticsearch mappings. Nothing has to be installed separately.
+Build GeoNetwork 4.4.9-0 from [dde-geonetwork2026](https://code.axiomearth.ai/Steve_Geonetwork/dde-geonetwork2026/-/tree/DDEconfig) on the DDE GitLab, branch `DDEconfig`, and run it in Tomcat 9 against PostgreSQL and Elasticsearch 8.14.3. That build already contains everything DDE-specific: the `ddeview` editor, the DDE converters and formatter, the DDE SKOS thesauri and the Elasticsearch mappings. Nothing has to be installed separately.
 
 This guide is the how. [HANDOVER.md](HANDOVER.md) is the what: which artifacts exist, what is missing, and why `DDEconfig` is the recommended starting point. Read its credentials note before you begin.
 
@@ -47,7 +47,7 @@ Give Tomcat at least 2 GB of heap (`-Xmx2g`) and Elasticsearch at least 1 GB. Al
 1. Clone the fork with its submodules (the web UI pulls Bootstrap, Font Awesome and other libraries as submodules, so a plain clone will not build):
 
 ```bash
-git clone -b DDEconfig --recurse-submodules https://github.com/usgin/geonetwork-DDE.git
+git clone -b DDEconfig --recurse-submodules https://code.axiomearth.ai/Steve_Geonetwork/dde-geonetwork2026.git
 cd geonetwork-DDE
 ```
 

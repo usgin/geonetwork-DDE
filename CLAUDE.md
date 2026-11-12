@@ -4,6 +4,16 @@
 
 This is **GeoNetwork-DDE**, a fork of GeoNetwork opensource (v4.4.9) customized for the Deep-time Digital Earth (DDE) programme and extended with a CDIF sitemap harvester. The active development branch is `DDEconfig`.
 
+**The normative repository is the DDE GitLab**, decided 2026-11-12:
+
+| Remote | URL | Role |
+|---|---|---|
+| `origin` | `code.axiomearth.ai/Steve_Geonetwork/dde-geonetwork2026` | **Normative.** `DDEconfig` tracks it. Push here. |
+| `github` | `github.com/usgin/geonetwork-DDE` | Mirror. Push deliberately to keep it current; it is not the source of truth. |
+| `upstream` | `github.com/geonetwork/core-geonetwork` | GeoNetwork opensource, for merging releases. |
+
+One repository is normative on purpose. The previous arrangement — a GitLab that went offline, a GitHub mirror, and an archived fork nobody could push to — cost real work to untangle, so do not let the two drift into parallel primaries. Two consequences to keep in mind: the GitHub Actions workflows do not run from GitLab, so CI there is manual or needs a `.gitlab-ci.yml`; and anything that still says "clone from GitHub" is now stale.
+
 ## Build & Run
 
 ```bash
