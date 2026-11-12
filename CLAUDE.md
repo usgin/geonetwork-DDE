@@ -88,6 +88,102 @@ were mirrored to `usgin/dde-metadata` and `usgin/dde-medata` on 2026-08-26, alon
 
 Each of those directories has its own `CLAUDE.md` with the details.
 
+## The 2024 deployment, and what survives of it
+
+The pre-CDIF DDE catalogue ran on Alibaba Cloud against **external** PostgreSQL and Elasticsearch
+instances provisioned on the DDE side. USGIN has never had access to those, so the catalogue's
+records, users, permissions and settings are not held here and cannot be exported from here. In
+2026-10 the DDE programme asked for backups to migrate to another cloud server.
+
+**The handover package is in `deploy/`** (PR #2, merged 2026-11) — read it before anything here:
+
+- `deploy/HANDOVER.md` — what can and cannot be handed over, what the migration team must export
+  from the running server, versions, and the restore sequence
+- `deploy/README.md` — step-by-step redeployment: build the war, Elasticsearch and PostgreSQL,
+  Tomcat, then the DDE features
+- `deploy/harvest-records-2024/` — the 12 seed records
+- `deploy/data-2024/` — the scrubbed slice of the deployed data directory: record attachments,
+  harvester and node logos, map viewer config
+
+This section carries only what those files do not: where the originals still live, and the facts
+that are easy to get wrong.
+
+**Use this fork, not `usgin/DDEcore-geonetwork`.** The 2024-era fork is frozen on a 4.4.4 *snapshot*
+from April 2024 and gets no backports. This fork is a strict superset of its DDE work — same 21
+DDE-named plugin files, same `ddeview`, same `fromDDE` converters, and 12 thesaurus files against its
+4. The CDIF harvester this fork adds is a harvester *type* nobody has to configure, so it cannot
+affect a catalogue that does not use it. Treat the 2024 fork as archaeology: reproducing the exact
+deployed build, or checking what the old code did.
+
+### What is NOT in the repo, and where it is
+
+| Item | Where | Why not committed |
+|---|---|---|
+| The deployed war | `C:\apache-tomcat-9.0.85\webapps\geonetwork.war` | 285,820,217 bytes, 2024-04-10 — the binary that actually ran, and **the only copy**: its git-LFS original died with the `opencode.deep-time.org` GitLab. Over GitHub's 100 MB file limit, so it needs LFS or a release asset. Rebuild from source instead where possible. |
+| Full deployed data directory | `…\webapps\geonetwork\WEB-INF\data` | Holds `config.properties` with database and Elasticsearch credentials, and user records with emails and password hashes. **Never commit it.** `deploy/data-2024/` is the scrubbed subset. |
+| Harvester run logs | `C:\apache-tomcat-9.0.85\bin\harvester_*.log` | 30 files, 2024-02-09 → 2024-04-02; the source of the configuration below. |
+| Harvest source directory | `C:\tmp\forHarvest` | The originals; `deploy/harvest-records-2024/` is the committed copy. |
+| The catalogue database | Alibaba Cloud PostgreSQL | No USGIN access. Records, users, permissions, settings and **harvester definitions** are all in it. |
+
+That deployment had **no embedded catalogue database** — the only `.mv.db` under it is a wro4j
+web-resource cache — which is the on-disk confirmation that the catalogue DB was the external
+PostgreSQL. Note `C:\Users\smrTu\gn.mv.db` (modified 2026-02-28) is a *different* instance, almost
+certainly this fork's own dev run; it is not the 2024 deployment and holds none of its data.
+
+### Harvest configuration, recovered from the logs
+
+Harvester definitions are **database rows**, not files: GeoNetwork moved them into the settings tree
+at 2.11 (`WEB-INF/classes/setup/sql/migrate/v2110/MoveHarvesterSettings.java` is in the war), and the
+logs show paths like `harvesting/id:277/info/lastRun`. The war carries only harvester *machinery* —
+78 entries of admin UI templates and XSLTs, one file per harvester type — so the configuration is
+never in it. The logs preserved it anyway:
+
+| Setting | Value |
+|---|---|
+| Harvesters | Two, both `LocalFilesystemHarvester`: `local DDE` and `clone: local DDE` |
+| Source directory | `C:\tmp\forHarvest`, `recurse = true` |
+| Owner | `ownerId = 1` |
+| Runs | 29 logged, 2024-02-09 → 2024-04-02 |
+
+**There is no remote harvest endpoint to recover** — no CSW, OAI-PMH or sitemap, and no credentials.
+The catalogue was loaded from a folder of files on a workstation, so recreating the harvester is a
+few fields in the admin console.
+
+### The seed records
+
+Nine records were harvested. Eight source files survive in `C:\tmp\forHarvest`;
+`ddeTransformTest-DDE.xml` does not, but it is in `usgin/dde-metadata` under `ExampleXML/`. Three
+further files there (`DDEDatasetTemplate.xml`, `DDEImageTemplate.xml`, `DDEServiceTemplate.xml`) were
+never harvested — they are editor templates, and GeoNetwork loads templates as *template* records, so
+importing them needs that flag set afterwards.
+
+**These files are DDE-schema, not ISO 19115-3.** Root element `MD_Metadata` in namespace
+`https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0`, converted on import by the
+`fromDDE` XSLTs in this plugin. A stock GeoNetwork rejects them — re-harvesting requires this fork.
+The records are as of early 2024; anything created or edited in the catalogue UI afterwards exists
+only in that PostgreSQL, and identifiers assigned on a fresh import will differ from the originals.
+
+### Not recoverable, and what to do instead
+
+- **PostgreSQL dump** — only obtainable from the Alibaba instance, by whoever administers it:
+  `pg_dump -Fc`. One dump carries records, users, groups, permissions and settings together.
+- **The server's data directory** — attachments and browse graphics are files, not rows, so a
+  database dump alone loses them.
+- **Elasticsearch snapshot** — never taken, and **not needed**: GeoNetwork 4 treats the index as
+  derived, so point a restored instance at a fresh Elasticsearch and reindex from the admin console.
+
+### Credentials
+
+Treat every credential from that deployment as compromised. The two July 2024 deployment notes in
+`usgin/dde-metadata` contain Elasticsearch passwords in plain text and that repository is **public**.
+Rotate anything still live rather than carrying it to a new server.
+
+**This repository is public too.** Checked 2026-11-12: `deploy/` contains no `.properties` file, the
+password mentions in `HANDOVER.md` and `README.md` are placeholders with no literal values, and
+neither of the two Elasticsearch passwords from the 2024 notes appears anywhere in the repo. Re-run
+that check before committing anything else out of a deployed instance — a GeoNetwork data directory
+is full of material that must not be published.
+
 ## Documentation
 
 - `README.md` — Project overview, DDE editor view, build/deploy instructions
