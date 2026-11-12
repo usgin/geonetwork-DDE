@@ -22,7 +22,7 @@ The 2024-era fork is frozen on a 4.4.4 *snapshot* from April 2024, roughly two a
 | GeoNetwork fork, as deployed 2024 | [usgin/DDEcore-geonetwork](https://github.com/usgin/DDEcore-geonetwork), branch `DDEconfig` | Reference only. 4.4.4-SNAPSHOT, frozen April 2024, matching the deployed build. History was rewritten to strip a 273 MB war that exceeds GitHub's file limit, so commit hashes differ from the original GitLab. |
 | The deployed war file | Not published | The April 2024 binary (286 MB) exceeds GitHub's 100 MB file limit and is not needed: build the war from `DDEconfig` instead. Its `WEB-INF/config.properties` carries the 2024 Elasticsearch host and credentials; anyone who does obtain it must set a new password there at deploy. |
 | Record files from the 2024 data directory | [data-2024/](data-2024/) | `metadata_data/` (record attachments) and `resources/` (logos, images and map config; the regenerated `schemapublication/` cache is left out), scrubbed of `encryptor.properties` and cache databases. Copy these into the new data directory; nothing else from the old data directory is needed. |
-| DDE metadata standard | [usgin/dde-metadata](https://github.com/usgin/dde-metadata) | XSD, specification document, worked examples, ISO 19115-3 crosswalks, and the two July 2024 deployment PDFs. |
+| DDE metadata standard | [dde-metadata](https://code.axiomearth.ai/Steve_Geonetwork/dde-metadata) | XSD, specification document, worked examples, ISO 19115-3 crosswalks, and the two July 2024 deployment PDFs. |
 | DDE vocabularies | In the fork: `web/src/main/webapp/WEB-INF/data/config/codelist/local/thesauri/theme/` | SKOS thesauri as RDF and Turtle: resource type, topic category, acquisition code, unit codelists. |
 | Elasticsearch index mappings | In the fork: `web/.../WEB-INF/data/config/index/` | `records.json`, `features.json`, `searchlogs.json`. |
 | Harvest configuration and seed records | [harvest-records-2024/](harvest-records-2024/) | Twelve DDE-schema XML files (nine harvested records, three editor templates). Recovered from the 2024 deployment; see the harvest section below. |
@@ -122,7 +122,7 @@ The order matters: the database must be in place before the application first st
 6. Deploy the war to Tomcat's `webapps/` and start Tomcat. The catalogue serves at `http://<host>:8080/geonetwork`.
 7. Rebuild the search index from the admin console, then confirm record counts match the database and that the DDE editor view and thesauri load.
 
-The two July 2024 notes in [usgin/dde-metadata](https://github.com/usgin/dde-metadata) walk through steps 1 and 4 in more detail. They describe a Windows development machine, so paths and service management will differ on a Linux server, but the sequence is the same.
+The two July 2024 notes in [dde-metadata](https://code.axiomearth.ai/Steve_Geonetwork/dde-metadata) walk through steps 1 and 4 in more detail. They describe a Windows development machine, so paths and service management will differ on a Linux server, but the sequence is the same.
 
 ### Open questions for the migration team
 
