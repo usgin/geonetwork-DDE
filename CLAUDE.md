@@ -58,7 +58,8 @@ Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
 - Branch `DDEconfig` tracks DDE customizations on top of GeoNetwork 4.4.9 (`pom.xml` version `4.4.9-0`).
 - Branch `main` tracks upstream releases for merging.
-- **Upstream drift:** GeoNetwork opensource is at **4.4.12** (released 2026-07-08); this fork is three patch releases behind on the same 4.4 line. The local `upstream/main` ref is stale — its tip predates 4.4.10 and no 4.4.10+ tags are fetched — so start any rebase with `git fetch upstream --tags`.
+- **Upstream drift**, verified 2026-11-12. The fork sits on **4.4.9** (tagged 2025-10-06): that tag is an ancestor of `DDEconfig` and **4.4.10 is not merged**. The newest upstream release is still **4.4.12** (2026-07-08) — there is no 4.4.13 and no newer release line — so the gap is three patch releases and **224 upstream commits** between `4.4.9..4.4.12`. `upstream/main` is active well past that (tip 2026-11-09), so main carries unreleased work too; rebase onto the **tag**, not main, unless you want that.
+  Tags 4.4.10–4.4.12 are now fetched locally, so `git log 4.4.9..4.4.12` works offline. Re-run `git fetch upstream --tags` before trusting the figures above. That fetch warns `Could not access submodule 'plugins/datahub-integration/geonetwork-ui'` — expected, and harmless unless you build that plugin.
 - DDE additions are **additive** — upstream functionality is preserved alongside DDE views/converters.
 - Schema plugin files follow GeoNetwork's standard plugin directory layout.
 
