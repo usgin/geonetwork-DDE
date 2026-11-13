@@ -8,13 +8,31 @@
 # Keeping it on the normative remote costs nothing as long as nothing runs
 # automatically.
 #
-# Hence: every job is `when: manual`. Pushing creates a pipeline whose jobs sit
-# waiting for someone to press play. Do not add `when: on_success` or remove the
-# rules block without deciding to pay for a duplicate 25-minute build per push.
+# Hence: pushes create no pipeline (see the `workflow` rules), and the jobs are
+# `when: manual` on top of that. Do not add `when: on_success` or loosen the
+# workflow rules without deciding to pay for a duplicate 25-minute build per
+# push.
+#
+# As of 2026-11-13 this instance has no runners available to the project, so a
+# started job sits queued and is eventually failed on timeout — that is what
+# happened to the two Auto DevOps pipelines (#1082, #1083), which never ran at
+# all. Running anything here needs a registered runner with Docker, ~4 GB RAM
+# and ~10 GB disk.
 #
 # Kept deliberately in step with .github/workflows/linux.yml. If you change the
 # Maven invocations in one, change them in the other, or this stops being a
 # usable fallback.
+
+# No pipeline is created by a push at all. Without this, every push left a
+# permanent "blocked" row in Build > Pipelines waiting on its manual jobs, which
+# reads as something pending or broken to anyone glancing at the list. Gating on
+# `web`/`api` means the config sits dormant until someone deliberately starts it
+# from Build > Pipelines > Run pipeline (or via the API).
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - when: never
 
 default:
   # Exact parity with the GitHub job: Temurin JDK 11 + Maven 3.8.3.
