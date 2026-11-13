@@ -8,7 +8,7 @@ This is **GeoNetwork-DDE**, a fork of GeoNetwork opensource (v4.4.9) customized 
 
 | Remote | URL | Role |
 |---|---|---|
-| `origin` | `code.axiomearth.ai/Steve_Geonetwork/dde-geonetwork2026` | **Normative.** `DDEconfig` tracks it. Push here. |
+| `origin` | `code.axiomearth.ai/Steve_Geonetwork/dde-geonetwork2026` | **Normative.** `DDEconfig` tracks it. Push here. Holds `DDEconfig` and `main`. |
 | `github` | `github.com/usgin/geonetwork-DDE` | Mirror. Push deliberately to keep it current; it is not the source of truth. |
 | `upstream` | `github.com/geonetwork/core-geonetwork` | GeoNetwork opensource, for merging releases. |
 
@@ -67,7 +67,15 @@ Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 ## Conventions
 
 - Branch `DDEconfig` tracks DDE customizations on top of GeoNetwork 4.4.9 (`pom.xml` version `4.4.9-0`).
-- Branch `main` tracks upstream releases for merging.
+- Branch `main` is **not** a working upstream-tracking branch, despite the name. Its tip is
+  `1a588c24d9`, dated **2024-03-08**: 948 commits behind `upstream/main` and 5 ahead of it, and
+  those 5 are merge commits plus a comment-out/revert pair on the fork's GitHub Actions run
+  conditions — no DDE work and no release content. It is also not an ancestor of tag `4.4.9`.
+  Pushed to GitLab 2026-11-13 so the normative remote holds a complete copy, but do not treat it
+  as a merge base without fast-forwarding it from `upstream` first.
+- Merging an upstream release therefore keys off the `upstream` remote and its tags, not off
+  `main`. GitLab has no `upstream` remote and no mirroring configured, so that work happens in a
+  local clone carrying all three remotes and is then pushed to GitLab.
 - **Upstream drift**, verified 2026-11-12. The fork sits on **4.4.9** (tagged 2025-10-06): that tag is an ancestor of `DDEconfig` and **4.4.10 is not merged**. The newest upstream release is still **4.4.12** (2026-07-08) — there is no 4.4.13 and no newer release line — so the gap is three patch releases and **224 upstream commits** between `4.4.9..4.4.12`. `upstream/main` is active well past that (tip 2026-11-09), so main carries unreleased work too; rebase onto the **tag**, not main, unless you want that.
   Tags 4.4.10–4.4.12 are now fetched locally, so `git log 4.4.9..4.4.12` works offline. Re-run `git fetch upstream --tags` before trusting the figures above. That fetch warns `Could not access submodule 'plugins/datahub-integration/geonetwork-ui'` — expected, and harmless unless you build that plugin.
 - DDE additions are **additive** — upstream functionality is preserved alongside DDE views/converters.
