@@ -18,7 +18,8 @@ One repository is normative on purpose. The previous arrangement — a GitLab th
 
 ```bash
 # Full build (Java 11, Maven 3.8.3+)
-mvn clean install -DskipTests
+mvn clean install -DskipTests                     # dev
+mvn clean install -DskipTests -Dwro.debug=false   # anything deployed
 
 # Start Elasticsearch
 cd es && docker-compose up -d
@@ -29,7 +30,18 @@ cd web && mvn jetty:run -Penv-dev
 
 Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
-**JDK:** the build targets Java 11, but the JDK on `PATH` on this machine is Temurin 21. Point `JAVA_HOME` at a JDK 11 install before running Maven — the ambient default is wrong and the failure surfaces as unrelated compile errors.
+**`wro.debug` defaults to `true` and no profile turns it off**, so a stock build serves web assets
+compiled at request time. Harmless locally once warm, but unusable for a deployment: measured
+2026-11-13, the first page load spent 253 s compiling `gn_search_default.js` and
+`gn_search_default.css` recompiled on every request (~8 s per page). Pass `-Dwro.debug=false` for any
+war that leaves this machine. See `deploy/README.md` Step 1.
+
+**JDK:** the build targets Java 11, and GeoNetwork 4.4 does not support 17 or later. On this
+machine `JAVA_HOME` is already correct at the **User** scope
+(`C:\Program Files\Java\jdk-11.0.2`), which is why Maven reports Java 11 even though `PATH`
+carries Temurin 21. Leave it alone: the **Machine** scope sets `JAVA_HOME` to
+`C:\Program Files\OpenJDK\jdk-25`, so clearing or changing the User value silently falls back
+to JDK 25 and the build fails with compile errors that look unrelated. Verified 2026-11-13.
 
 ## Repository Structure
 

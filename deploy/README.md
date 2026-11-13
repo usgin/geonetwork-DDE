@@ -48,7 +48,7 @@ Give Tomcat at least 2 GB of heap (`-Xmx2g`) and Elasticsearch at least 1 GB. Al
 
 ```bash
 git clone -b DDEconfig --recurse-submodules https://code.axiomearth.ai/Steve_Geonetwork/dde-geonetwork2026.git
-cd geonetwork-DDE
+cd dde-geonetwork2026
 ```
 
 2. Point Maven at JDK 11 and confirm it:
@@ -61,8 +61,20 @@ mvn -version                          # must report Java version 11
 3. Build, skipping tests (expect 15 to 30 minutes the first time while Maven downloads dependencies):
 
 ```bash
-mvn clean install -DskipTests
+mvn clean install -DskipTests -Dwro.debug=false
 ```
+
+**`-Dwro.debug=false` is not optional for a deployment.** The root `pom.xml`
+defaults `wro.debug` to `true`, and no profile overrides it — not `env-prod`, not
+the default `no-env-specified`; the only two occurrences of the property in the
+whole tree both set it `true`. A plain `mvn clean install` therefore bakes
+`debug=true` into `WEB-INF/wro.properties`, directly under that file's own
+comment saying it should be false in production. The wro4j filter then builds the
+web assets at request time instead of serving pre-built bundles. Measured on
+4.4.9-0 on 2026-11-13: the first page load spent **253 seconds** compiling
+`gn_search_default.js`, and `gn_search_default.css` recompiled on *every*
+request, adding ~8 seconds to each page. The JS is cached after the first hit;
+the CSS is not.
 
 4. The result is `web/target/geonetwork.war`. Copy it to the server.
 
