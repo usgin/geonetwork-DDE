@@ -64,42 +64,79 @@ mvn -version                          # must report Java version 11
 mvn clean install -DskipTests -Dprebuild-cache=true
 ```
 
-**Read this before deploying — `-Dprebuild-cache=true` is the flag that matters.**
+**Web asset serving is slow and not fully understood. Read this before deploying.**
 
-GeoNetwork's web UI is served as a handful of wro4j bundles (`lib.js`,
-`gn_search_default.js`, `gn_search_default.css`). `GeonetWro4jFilter` intercepts
-`/static/*` and *builds the bundle on the spot if it is not cached*, compiling
-LESS and concatenating ~1.4 MB of JavaScript. Measured on 4.4.9-0, 2026-11-13:
-the first page load spent **253 seconds** in that compile, and
-`gn_search_default.css` recompiled on **every** request, ~9 s per page. The JS
-caches after the first hit; the CSS does not.
+GeoNetwork serves its UI as wro4j bundles (`lib.js`, `gn_search_default.js`,
+`gn_search_default.css`). `GeonetWro4jFilter` intercepts `/static/*` and compiles
+a bundle on request when it has no usable cache.
 
-Only the `wro4j-prebuild-cache` profile (`web/pom.xml`) prevents this. It is
-opt-in, activated by `-Dprebuild-cache=true`, and runs the wro4j Maven plugin at
-`prepare-package` to bake the bundles into the war. No profile enables it by
-default, so a plain `mvn clean install` — the command in GeoNetwork's own install
-docs — produces a war with **no** `static/` entries at all.
+Measured on 4.4.9-0 under `mvn jetty:run`, 2026-11-13:
 
-`-Dwro.debug=false` does *not* fix this. It was measured: with `debug=false`
-confirmed in `WEB-INF/wro.properties`, `gn_search_default.css` still took 9.4 s
-on a repeat request. The property controls wro4j's debug behaviour, not whether
-the cache is built.
+| asset | pass 1 | pass 2 | pass 3 |
+|---|---|---|---|
+| `gn_search_default.js` | 253 s (cold build) | 3.3 s | 0.009 s |
+| `gn_search_default.css` | 15.5 s | 8.4 s | 8.3 s |
+| `lib.js` | 0.07 s | 0.03 s | — |
 
-**Known blocker on old JDK 11 builds.** On JDK 11.0.2 the prebuild step fails:
+The JS warms up and ends up cached. **The CSS never does** — it recompiles on
+every request indefinitely, so every page load carries roughly 8 s.
 
+What is established:
+
+- The `wro4j-prebuild-cache` profile (`-Dprebuild-cache=true`) really does build
+  the bundles at `prepare-package`: 22 files in `web/target/wro4j-output` and a
+  19 MB H2 cache at `WEB-INF/prebuilt/wro4j-cache.mv.db` inside the war.
+- **It did not make serving faster.** With that cache present in the deployed
+  webapp *and* `debug=false` confirmed in `WEB-INF/wro.properties`, the CSS still
+  took 8.3 s per request. Neither flag, alone or together, fixed it under
+  `jetty:run`.
+- `-Dwro.debug=false` is easy to think you have applied when you have not. Maven
+  skips re-filtering `wro.properties` when the target is newer than the source, so
+  the flag silently has no effect on an incremental build. Check the deployed
+  `WEB-INF/wro.properties` rather than trusting the command line.
+
+What is NOT established, and matters before deployment:
+
+- **The war on Tomcat was never measured.** All timings above come from
+  `jetty:run`, which may not consume the prebuilt cache at all: its
+  `wro.properties` points `wroSources` at `target/webapp/WEB-INF/wro-sources.xml`,
+  while the prebuild ran against `target/geonetwork/WEB-INF/wro-sources-maven.xml`.
+  Different model paths plausibly mean different cache keys, hence a permanent
+  miss — but that is a hypothesis, not a diagnosis. Measure on Tomcat before
+  concluding anything about a deployment.
+
+On Windows the prebuild needs **two** invocations, because `wro4j:run` keeps the
+H2 cache file open for the life of the Maven JVM and `maven-war-plugin` then
+cannot copy it ("The process cannot access the file because another process has
+locked a portion of the file"). This is not caused by a running Jetty; it happens
+with nothing else running:
+
+```bash
+mvn package -pl web -DskipTests -Dprebuild-cache=true   # builds cache, fails at the war copy
+mvn war:war -pl web -Dprebuild-cache=true               # fresh JVM, packages the cache in
 ```
-ro.isdc.wro4j:wro4j-maven-plugin:1.10.1:run ... could not be resolved:
-org.webjars.npm:once:jar:1.4.0 (absent), wrappy:1.0.2, inflight:1.0.6
-Could not transfer ... from sonatype-public-repository: peer not authenticated
-```
 
-"peer not authenticated" is a TLS trust failure — that JDK's CA truststore
-(January 2019) predates roots the repository now presents, so the plugin's
-webjars dependencies never download. Use a current JDK 11 (for example a recent
-Temurin 11) for the build, or build the war in GitHub Actions, whose
-`linux.yml` already sets up a modern Temurin 11. The TLS workaround noted at the
-end of this section does not help, because the failure is certificate
-validation, not protocol negotiation.
+Three dependency problems must be cleared first, none of which the error names:
+
+1. `oss.sonatype.org` (OSSRH) is **retired** and 302-redirects. `web/pom.xml`
+   still routes plugin dependencies through it. The artifacts
+   (`org.webjars.npm:wrappy`, `minimatch`, `once`, `inflight`) are on Maven
+   Central. A `settings.xml` mirroring that repository id to Central is the
+   durable fix.
+2. An old JDK 11's truststore cannot validate the redirect target: JDK 11.0.2
+   carries 93 roots against 152 in Temurin 11.0.25, and Maven reports this
+   unhelpfully as "peer not authenticated". Use a current Temurin 11, or pass
+   `-Djavax.net.ssl.trustStore` pointing at a modern `cacerts`.
+3. `.lastUpdated` markers in `~/.m2` make Maven refuse jars it already has
+   ("present, but unavailable"). Delete them for the affected artifacts.
+
+**Recommendation: build the deployable war in CI, not on a workstation.**
+`.github/workflows/linux.yml` already provisions a modern Temurin 11 with current
+certificates and a clean `~/.m2`, which removes all three dependency problems, and
+on Linux the war plugin can copy an open file, which removes the two-invocation
+split. Publishing that war as a release asset with a checksum also avoids
+repeating the 2024 situation, where the only copy of the deployed binary existed
+on one machine.
 
 4. The result is `web/target/geonetwork.war`. Copy it to the server.
 

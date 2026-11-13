@@ -19,7 +19,6 @@ One repository is normative on purpose. The previous arrangement — a GitLab th
 ```bash
 # Full build (Java 11, Maven 3.8.3+)
 mvn clean install -DskipTests                        # dev
-mvn clean install -DskipTests -Dprebuild-cache=true  # anything deployed (see note)
 
 # Start Elasticsearch
 cd es && docker-compose up -d
@@ -30,17 +29,23 @@ cd web && mvn jetty:run -Penv-dev
 
 Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
-**The wro4j asset cache is never built by default.** `GeonetWro4jFilter` intercepts `/static/*` and
-compiles each bundle on request unless a cache exists. Measured 2026-11-13 on 4.4.9-0: 253 s for the
-first `gn_search_default.js`, and `gn_search_default.css` recompiled on *every* request (~9 s per
-page). Only the opt-in `wro4j-prebuild-cache` profile fixes it, via `-Dprebuild-cache=true`, which
-runs the wro4j plugin at `prepare-package`. `-Dwro.debug=false` does **not** — that was measured too,
-and the CSS still took 9.4 s. A stock war contains no `static/` entries at all.
+**Web assets are slow to serve and the cause is not pinned down.** `GeonetWro4jFilter` compiles each
+`/static/*` bundle on request. Measured 2026-11-13 under `mvn jetty:run` on 4.4.9-0:
+`gn_search_default.js` took 253 s cold, then 3.3 s, then 0.009 s — it caches. `gn_search_default.css`
+went 15.5 s, 8.4 s, 8.3 s — it **never** caches, so every page load costs ~8 s.
 
-That prebuild **fails on this machine**: JDK 11.0.2's 2019 truststore cannot validate
-`oss.sonatype.org`, so the plugin's webjars dependencies fail with "peer not authenticated". Build
-with a current Temurin 11, or in GitHub Actions. Same root cause as the `sass-gems` warning from
-`repo.osgeo.org` that every build here prints. See `deploy/README.md` Step 1.
+`-Dprebuild-cache=true` (profile `wro4j-prebuild-cache`) does build the bundles and a 19 MB H2 cache
+into `WEB-INF/prebuilt/`, but **it did not speed anything up**: with that cache deployed and
+`debug=false` verified in `WEB-INF/wro.properties`, the CSS still took 8.3 s per request. Neither that
+flag nor `-Dwro.debug=false` fixed it. Note `-Dwro.debug=false` silently does nothing on an
+incremental build, because Maven skips re-filtering `wro.properties` when the target is newer —
+check the deployed file, not the command line.
+
+**The war on Tomcat has never been measured**, and that is the configuration that matters. Do not
+repeat any of the above as a deployment fact until it has been. `deploy/README.md` Step 1 has the
+full measurements, the Windows two-invocation prebuild recipe, and the three dependency problems
+(retired `oss.sonatype.org`, stale JDK truststore, `.lastUpdated` markers) that block the prebuild
+here.
 
 **JDK:** the build targets Java 11, and GeoNetwork 4.4 does not support 17 or later. On this
 machine `JAVA_HOME` is already correct at the **User** scope
