@@ -12,7 +12,7 @@ Requires:
     - GeoNetwork running at localhost:8080 (or set GEONETWORK_URL env var)
     - Elasticsearch running at localhost:9200 (or set ES_URL env var)
     - jsonschema >= 4.18 (pip install jsonschema)
-    - CDIFcomplete resolved schema at the path below (or set CDIF_SCHEMA_DIR env var)
+    - cdifComplete resolved schema at the path below (or set CDIF_SCHEMA_DIR env var)
 """
 
 import argparse
@@ -27,15 +27,21 @@ from jsonschema import Draft202012Validator
 
 GEONETWORK_URL = os.environ.get("GEONETWORK_URL", "http://localhost:8080/geonetwork")
 ES_URL = os.environ.get("ES_URL", "http://localhost:9200")
+# Base of the CDIF register's profile sources. The profiles were renamed and
+# regrouped upstream on 2026-03-21 (metadataBuildingBlocks dab021ad26, "Rename
+# profiles with Profile suffix"): CDIFcomplete and CDIFDiscovery became
+# cdifCompositeProfile/cdifComplete and cdifProfile/cdifDiscovery, which is why
+# the two paths below sit under different parents.
 CDIF_SCHEMA_DIR = os.environ.get(
     "CDIF_SCHEMA_DIR",
-    r"C:\Users\smrTu\OneDrive\Documents\GithubC\USGIN"
-    r"\metadataBuildingBlocks\_sources\profiles\cdifProfiles",
+    r"C:\GithubC\USGIN\metadataBuildingBlocks\_sources\profiles",
 )
 
 SCHEMAS = {
-    "complete": os.path.join(CDIF_SCHEMA_DIR, "CDIFcomplete", "resolvedSchema.json"),
-    "discovery": os.path.join(CDIF_SCHEMA_DIR, "CDIFDiscovery", "resolvedSchema.json"),
+    "complete": os.path.join(CDIF_SCHEMA_DIR, "cdifCompositeProfile",
+                             "cdifComplete", "resolvedSchema.json"),
+    "discovery": os.path.join(CDIF_SCHEMA_DIR, "cdifProfile",
+                              "cdifDiscovery", "resolvedSchema.json"),
 }
 
 
