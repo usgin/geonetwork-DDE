@@ -4,7 +4,7 @@ CDIFcomplete JSON Schema.
 Usage:
     python validate_cdif_output.py                  # validate all records
     python validate_cdif_output.py UUID1 UUID2 ...  # validate specific records
-    python validate_cdif_output.py --schema discovery  # use CDIFDiscovery schema
+    python validate_cdif_output.py --schema complete   # cdifComplete instead of cdifDiscovery
     python validate_cdif_output.py --max 10         # limit to 10 records
     python validate_cdif_output.py --save-failures  # save failing output to files
 
@@ -115,7 +115,7 @@ def main():
         description="Validate CDIF JSON-LD output from GeoNetwork against CDIF JSON Schema")
     parser.add_argument("uuids", nargs="*",
                         help="Specific record UUIDs to validate (default: all)")
-    parser.add_argument("--schema", choices=list(SCHEMAS.keys()), default="complete",
+    parser.add_argument("--schema", choices=list(SCHEMAS.keys()), default="discovery",
                         help="Which CDIF schema to validate against (default: complete)")
     parser.add_argument("--max", type=int, default=None,
                         help="Maximum number of records to validate")

@@ -335,9 +335,9 @@
     <xsl:if test="$bboxes or $geoDescs">
   "schema:spatialCoverage": [<xsl:for-each select="$bboxes">
     {
-      "@type": "schema:Place",
+      "@type": ["schema:Place"],
       "schema:geo": {
-        "@type": "schema:GeoShape",
+        "@type": ["schema:GeoShape"],
         "schema:box": "<xsl:value-of select="string-join((
           gex:southBoundLatitude/gco:Decimal,
           gex:westBoundLongitude/gco:Decimal,
@@ -353,7 +353,7 @@
   </xsl:for-each>
     <xsl:if test="not($bboxes) and $geoDescs">
     {
-      "@type": "schema:Place",
+      "@type": ["schema:Place"],
       "schema:name": [<xsl:for-each select="$geoDescs">
         "<xsl:value-of select="util:escapeForJson(.)"/>"<xsl:if test="position() != last()">,</xsl:if>
       </xsl:for-each>]
@@ -592,7 +592,7 @@
     <xsl:if test="$measurements">
   "dqv:hasQualityMeasurement": [<xsl:for-each select="$measurements">
     {
-      "@type": "dqv:QualityMeasurement"
+      "@type": ["dqv:QualityMeasurement"]
       ,"dqv:isMeasurementOf": "<xsl:value-of select="util:escapeForJson(mdq:measure/mdq:DQ_MeasureReference/mdq:nameOfMeasure/gco:CharacterString)"/>"
       ,"dqv:value": "<xsl:value-of select="util:escapeForJson(mdq:result/mdq:DQ_DescriptiveResult/mdq:statement/gco:CharacterString)"/>"
     }<xsl:if test="position() != last()">,</xsl:if>
@@ -636,7 +636,7 @@
                               then substring-before($afterMTTrimmed, '&#10;')
                               else $afterMTTrimmed"/>
         <xsl:if test="normalize-space($mtText) != ''">
-  "schema:measurementTechnique": "<xsl:value-of select="util:escapeForJson(normalize-space($mtText))"/>",
+  "schema:measurementTechnique": ["<xsl:value-of select="util:escapeForJson(normalize-space($mtText))"/>"],
         </xsl:if>
       </xsl:if>
 
@@ -721,12 +721,16 @@
     <xsl:if test="$revisionDate[normalize-space() != '']">
     ,"schema:dateModified": "<xsl:value-of select="$revisionDate"/>"
     </xsl:if>
-    <!-- dcterms:conformsTo is required by CDIF schema; default to CDIF discovery profile -->
-    ,"dcterms:conformsTo": [<xsl:choose>
-      <xsl:when test="$profiles"><xsl:for-each select="$profiles">
+    <!-- dcterms:conformsTo: the CDIF discovery profile requires this array to CONTAIN
+         exactly {"@id": "https://w3id.org/cdif/discovery/1.1"} (additionalProperties
+         false). `contains` permits further entries, so any profiles declared in the
+         source metadata are appended alongside it rather than replacing it. -->
+    ,"dcterms:conformsTo": [
+      {"@id": "https://w3id.org/cdif/discovery/1.1"}
+      <xsl:for-each select="$profiles">
       <xsl:variable name="profName" select="cit:title/gco:CharacterString"/>
       <xsl:variable name="profUrl" select="cit:onlineResource/*/cit:linkage/gco:CharacterString"/>
-      {
+      ,{
         "@type": "schema:CreativeWork"
         <xsl:if test="$profName[normalize-space() != '']">
         ,"schema:name": "<xsl:value-of select="util:escapeForJson($profName)"/>"
@@ -734,15 +738,9 @@
         <xsl:if test="$profUrl[normalize-space() != '']">
         ,"schema:url": "<xsl:value-of select="util:escapeForJson($profUrl)"/>"
         </xsl:if>
-      }<xsl:if test="position() != last()">,</xsl:if>
-    </xsl:for-each></xsl:when>
-      <xsl:otherwise>
-      {
-        "@type": "schema:CreativeWork",
-        "schema:name": "CDIF Discovery Profile",
-        "schema:url": "https://w3id.org/cdif/profiles/discovery"
-      }</xsl:otherwise>
-    </xsl:choose>]
+      }
+      </xsl:for-each>
+    ]
     <xsl:if test="$maintainer">
     ,"schema:maintainer": <xsl:call-template name="buildAgentJsonLd">
         <xsl:with-param name="resp" select="$maintainer"/>

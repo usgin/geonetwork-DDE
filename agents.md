@@ -565,11 +565,36 @@ When funding data has structured markers (funder name, grant ID), it outputs `sc
 
 ## Roundtrip Validation
 
-The CDIF roundtrip (JSON-LD → ISO 19115-3 → JSON-LD) has been validated against 121 ADA (Astromaterials Data Archive) records:
+`validate_cdif_output.py` fetches `/formatters/cdif` for every indexed record and validates it
+against the CDIF **discovery** profile (`_sources/profiles/cdifProfile/cdifDiscovery/resolvedSchema.json`
+in the CDIF register).
 
-- **120 PASS** — all expected fields preserved through the roundtrip
-- **1 FAIL** — source data issue (`sameAs` value mismatch in source record)
-- **0 ERROR** — no conversion failures
+**Measured 2026-11-13 on 4.4.9-0: 121 PASS, 0 FAIL, 0 ERROR** of 121 ADA records.
+
+The earlier figure of "120/121 PASS" was measured against `CDIFcomplete`, a schema that no longer
+exists under that name: the CDIF register renamed and regrouped its profiles on 2026-03-21
+(metadataBuildingBlocks `dab021ad26`). Re-measured against the current register *before* the fixes
+below, the result was **0/121** — CDIF had tightened two shapes that `iso19115-3-to-cdif.xsl` still
+emitted in the pre-2026 form. Both are now fixed:
+
+- `dcterms:conformsTo` must **contain** `{"@id": "https://w3id.org/cdif/discovery/1.1"}` — a bare
+  `@id` reference (`additionalProperties: false`), and the *versioned* URI, not
+  `https://w3id.org/cdif/profiles/discovery`. Because the constraint is `contains`, further entries
+  are allowed, so profiles declared in the source metadata are appended alongside it rather than
+  replacing it.
+- `@type` and `schema:measurementTechnique` must be **arrays** where the formatter emitted scalars:
+  `schema:Place` (both spatialCoverage branches), `schema:GeoShape`, `dqv:QualityMeasurement`, and
+  the measurement-technique string. The `schema:box` value itself was already correct — SW
+  latitude/longitude then NE — only its `@type` was wrong.
+
+Use the default `--schema discovery`. `--schema complete` is the wrong profile for this output and
+reports 121 failures with ~879 error paths, because `cdifComplete` requires `schema:variableMeasured`
+— data-description metadata that GeoNetwork does not emit.
+
+This measurement requires GeoNetwork and Elasticsearch running, and a current clone of the CDIF
+register at the path in `validate_cdif_output.py`'s `CDIF_SCHEMA_DIR`. Re-run it after any change to
+`iso19115-3-to-cdif.xsl`, and after any CDIF register update — the register is the moving part here,
+as the 0/121 result showed.
 
 Expected structural differences in the roundtrip output (not considered failures):
 - `@id` uses GeoNetwork API URL instead of original
@@ -580,7 +605,7 @@ Expected structural differences in the roundtrip output (not considered failures
 ## Test Data
 
 - **CDIF validation repository**: The [CDIF validation repo](https://github.com/Cross-Domain-Interoperability-Framework/validation/tree/main/testJSONMetadata) contains 77 CDIF JSON-LD test files validated against the [CDIF Complete Schema](https://github.com/Cross-Domain-Interoperability-Framework/validation/blob/main/CDIFCompleteSchema.json) (JSON Schema Draft 2020-12). All 77 records have been successfully harvested and indexed.
-- **ADA (Astromaterials Data Archive)**: 121 records harvested from the ADA sitemap at `https://ada.astromat.org/metadata/sitemap.xml`. These records include complex distributions (zip archives with `hasPart` members), funding, provenance, and measurement techniques. Roundtrip validation: 120/121 PASS.
+- **ADA (Astromaterials Data Archive)**: 121 records harvested from the ADA sitemap at `https://ada.astromat.org/metadata/sitemap.xml`. These records include complex distributions (zip archives with `hasPart` members), funding, provenance, and measurement techniques. Roundtrip validation: 121/121 PASS against the CDIF discovery profile, measured 2026-11-13 (see Roundtrip Validation).
 
 ## Related Repositories
 
