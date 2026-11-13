@@ -1,0 +1,108 @@
+# GitLab CI for the DDE GeoNetwork fork — INSURANCE, NOT THE BUILD.
+#
+# The real CI is .github/workflows/linux.yml on the GitHub mirror, which runs on
+# every push to every branch and takes 21-26 minutes. This file exists because
+# that recipe is itself a GitHub artifact: if GitHub ever went the way of
+# opencode.deep-time.org, the build definition would vanish with the hosting and
+# somebody would have to rediscover "JDK 11, Maven 3.8.3, -Drelease -Pwith-doc".
+# Keeping it on the normative remote costs nothing as long as nothing runs
+# automatically.
+#
+# Hence: every job is `when: manual`. Pushing creates a pipeline whose jobs sit
+# waiting for someone to press play. Do not add `when: on_success` or remove the
+# rules block without deciding to pay for a duplicate 25-minute build per push.
+#
+# Kept deliberately in step with .github/workflows/linux.yml. If you change the
+# Maven invocations in one, change them in the other, or this stops being a
+# usable fallback.
+
+default:
+  # Exact parity with the GitHub job: Temurin JDK 11 + Maven 3.8.3.
+  # The build targets Java 11; a newer JDK surfaces as unrelated compile errors.
+  image: maven:3.8.3-eclipse-temurin-11
+
+variables:
+  # Copied verbatim from linux.yml.
+  MAVEN_OPTS: >-
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=25
+    -Dmaven.wagon.http.retryHandler.count=3
+    -Xmx512m
+    -Dorg.slf4j.simpleLogger.showDateTime=true
+    -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss,SSS
+    -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+  # GitLab-only addition. GitHub Actions caches ~/.m2 via setup-java; GitLab can
+  # only cache paths inside the build directory, so the local repo is relocated.
+  MAVEN_CLI_OPTS: -B -ntp -V -Dmaven.repo.local=.m2/repository
+  # linux.yml uses fetch-depth 500 rather than a full clone.
+  GIT_DEPTH: "500"
+  # Matches `submodules: recursive`. Note that plugins/datahub-integration/
+  # geonetwork-ui is normally left uninitialized in working clones and is only
+  # needed by the datahub plugin; a failure to fetch it is not a build problem.
+  GIT_SUBMODULE_STRATEGY: recursive
+
+cache:
+  key: "maven-$CI_COMMIT_REF_SLUG"
+  paths:
+    - .m2/repository
+
+stages:
+  - build
+  - qa
+
+# Mirrors the `build` job in linux.yml (~18 min there).
+build:war:
+  stage: build
+  rules:
+    - when: manual
+  allow_failure: false
+  before_script:
+    # -Pwith-doc activates the `docs` module, which builds the manual with
+    # mkdocs, so Python is required. The GitHub job gets this from
+    # actions/setup-python. Drop this step and -Pwith-doc together if it ever
+    # breaks: the documentation is not part of the war.
+    - apt-get update -qq
+    - apt-get install -y -qq --no-install-recommends python3-pip
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install -r docs/manual/requirements.txt
+  script:
+    - mvn $MAVEN_CLI_OPTS install -DskipTests=true -Dmaven.javadoc.skip=true -Drelease -Pwith-doc
+  after_script:
+    # linux.yml does this to keep the Maven cache from accumulating SNAPSHOTs.
+    - find .m2/repository -name "*SNAPSHOT*" -type d -prune -exec rm -rf {} + || true
+  artifacts:
+    name: "geonetwork-war-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - web/target/*.war
+    expire_in: 1 week
+
+# Mirrors the `QA` job in linux.yml (~24 min there): unit and integration tests,
+# then the formatting gate.
+qa:verify:
+  stage: qa
+  rules:
+    - when: manual
+  allow_failure: false
+  script:
+    - mvn $MAVEN_CLI_OPTS resources:resources@copy-index-schema-to-source -f web
+    # -Drelesae is a typo carried from linux.yml. It sets a property nothing
+    # reads, so it is a no-op; the `build` job above passes the real -Drelease.
+    # Reproduced rather than corrected, because fixing it here would make this
+    # job diverge from the one that actually gates the mirror.
+    - mvn $MAVEN_CLI_OPTS -fae verify -Drelesae -Pit
+    # Same gate as linux.yml: the build must not leave the tree dirty, which
+    # catches generated resources that were committed stale.
+    - |
+      if [[ -n "$(git status -s)" ]]; then
+        echo "Uncommitted changes after the build:"
+        git status -s
+        exit 1
+      fi
+  after_script:
+    - find .m2/repository -name "*SNAPSHOT*" -type d -prune -exec rm -rf {} + || true
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - "**/target/surefire-reports/TEST-*.xml"
+        - "**/target/failsafe-reports/TEST-*.xml"
+    expire_in: 1 week
