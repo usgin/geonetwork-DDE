@@ -27,7 +27,15 @@ cd es && docker-compose up -d
 cd web && mvn jetty:run -Penv-dev
 ```
 
-Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
+Hot-reload schema/UI changes: `cd web && mvn process-resources -DschemasCopy=true`
+
+`schemasCopy` is a **property**, not a profile id (`web/pom.xml:1109` and `:1175` switch on
+`-DschemasCopy=true` / `!true`). `-PschemasCopy`, documented here until 2026-11-13, names a
+profile that does not exist: Maven ignores it, reports `BUILD SUCCESS` in a few seconds, and
+copies nothing, so edits under `schemas/` never reach the running catalogue. The deployed copy
+lives at `web/src/main/webapp/WEB-INF/data/config/schema_plugins/` and is gitignored
+(`.gitignore:68`) — a build artifact, not a second source. GeoNetwork caches formatters, so
+restart Jetty after copying.
 
 **Web assets are slow to serve and the cause is not pinned down.** `GeonetWro4jFilter` compiles each
 `/static/*` bundle on request. Measured 2026-11-13 under `mvn jetty:run` on 4.4.9-0:
