@@ -18,8 +18,8 @@ One repository is normative on purpose. The previous arrangement — a GitLab th
 
 ```bash
 # Full build (Java 11, Maven 3.8.3+)
-mvn clean install -DskipTests                     # dev
-mvn clean install -DskipTests -Dwro.debug=false   # anything deployed
+mvn clean install -DskipTests                        # dev
+mvn clean install -DskipTests -Dprebuild-cache=true  # anything deployed (see note)
 
 # Start Elasticsearch
 cd es && docker-compose up -d
@@ -30,11 +30,17 @@ cd web && mvn jetty:run -Penv-dev
 
 Hot-reload schema/UI changes: `cd web && mvn process-resources -PschemasCopy`
 
-**`wro.debug` defaults to `true` and no profile turns it off**, so a stock build serves web assets
-compiled at request time. Harmless locally once warm, but unusable for a deployment: measured
-2026-11-13, the first page load spent 253 s compiling `gn_search_default.js` and
-`gn_search_default.css` recompiled on every request (~8 s per page). Pass `-Dwro.debug=false` for any
-war that leaves this machine. See `deploy/README.md` Step 1.
+**The wro4j asset cache is never built by default.** `GeonetWro4jFilter` intercepts `/static/*` and
+compiles each bundle on request unless a cache exists. Measured 2026-11-13 on 4.4.9-0: 253 s for the
+first `gn_search_default.js`, and `gn_search_default.css` recompiled on *every* request (~9 s per
+page). Only the opt-in `wro4j-prebuild-cache` profile fixes it, via `-Dprebuild-cache=true`, which
+runs the wro4j plugin at `prepare-package`. `-Dwro.debug=false` does **not** — that was measured too,
+and the CSS still took 9.4 s. A stock war contains no `static/` entries at all.
+
+That prebuild **fails on this machine**: JDK 11.0.2's 2019 truststore cannot validate
+`oss.sonatype.org`, so the plugin's webjars dependencies fail with "peer not authenticated". Build
+with a current Temurin 11, or in GitHub Actions. Same root cause as the `sass-gems` warning from
+`repo.osgeo.org` that every build here prints. See `deploy/README.md` Step 1.
 
 **JDK:** the build targets Java 11, and GeoNetwork 4.4 does not support 17 or later. On this
 machine `JAVA_HOME` is already correct at the **User** scope

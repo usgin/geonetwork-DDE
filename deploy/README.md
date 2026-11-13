@@ -61,20 +61,45 @@ mvn -version                          # must report Java version 11
 3. Build, skipping tests (expect 15 to 30 minutes the first time while Maven downloads dependencies):
 
 ```bash
-mvn clean install -DskipTests -Dwro.debug=false
+mvn clean install -DskipTests -Dprebuild-cache=true
 ```
 
-**`-Dwro.debug=false` is not optional for a deployment.** The root `pom.xml`
-defaults `wro.debug` to `true`, and no profile overrides it — not `env-prod`, not
-the default `no-env-specified`; the only two occurrences of the property in the
-whole tree both set it `true`. A plain `mvn clean install` therefore bakes
-`debug=true` into `WEB-INF/wro.properties`, directly under that file's own
-comment saying it should be false in production. The wro4j filter then builds the
-web assets at request time instead of serving pre-built bundles. Measured on
-4.4.9-0 on 2026-11-13: the first page load spent **253 seconds** compiling
-`gn_search_default.js`, and `gn_search_default.css` recompiled on *every*
-request, adding ~8 seconds to each page. The JS is cached after the first hit;
-the CSS is not.
+**Read this before deploying — `-Dprebuild-cache=true` is the flag that matters.**
+
+GeoNetwork's web UI is served as a handful of wro4j bundles (`lib.js`,
+`gn_search_default.js`, `gn_search_default.css`). `GeonetWro4jFilter` intercepts
+`/static/*` and *builds the bundle on the spot if it is not cached*, compiling
+LESS and concatenating ~1.4 MB of JavaScript. Measured on 4.4.9-0, 2026-11-13:
+the first page load spent **253 seconds** in that compile, and
+`gn_search_default.css` recompiled on **every** request, ~9 s per page. The JS
+caches after the first hit; the CSS does not.
+
+Only the `wro4j-prebuild-cache` profile (`web/pom.xml`) prevents this. It is
+opt-in, activated by `-Dprebuild-cache=true`, and runs the wro4j Maven plugin at
+`prepare-package` to bake the bundles into the war. No profile enables it by
+default, so a plain `mvn clean install` — the command in GeoNetwork's own install
+docs — produces a war with **no** `static/` entries at all.
+
+`-Dwro.debug=false` does *not* fix this. It was measured: with `debug=false`
+confirmed in `WEB-INF/wro.properties`, `gn_search_default.css` still took 9.4 s
+on a repeat request. The property controls wro4j's debug behaviour, not whether
+the cache is built.
+
+**Known blocker on old JDK 11 builds.** On JDK 11.0.2 the prebuild step fails:
+
+```
+ro.isdc.wro4j:wro4j-maven-plugin:1.10.1:run ... could not be resolved:
+org.webjars.npm:once:jar:1.4.0 (absent), wrappy:1.0.2, inflight:1.0.6
+Could not transfer ... from sonatype-public-repository: peer not authenticated
+```
+
+"peer not authenticated" is a TLS trust failure — that JDK's CA truststore
+(January 2019) predates roots the repository now presents, so the plugin's
+webjars dependencies never download. Use a current JDK 11 (for example a recent
+Temurin 11) for the build, or build the war in GitHub Actions, whose
+`linux.yml` already sets up a modern Temurin 11. The TLS workaround noted at the
+end of this section does not help, because the failure is certificate
+validation, not protocol negotiation.
 
 4. The result is `web/target/geonetwork.war`. Copy it to the server.
 
