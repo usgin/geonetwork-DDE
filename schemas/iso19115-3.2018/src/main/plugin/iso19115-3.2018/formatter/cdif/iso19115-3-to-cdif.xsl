@@ -372,34 +372,63 @@
     <xsl:if test="$temporals">
   "schema:temporalCoverage": [<xsl:for-each select="$temporals">
       <xsl:choose>
-        <!-- Geologic time: gml:TimeInstant with frame attribute -->
-        <xsl:when test=".//gml:timePosition[@frame]">
-          <xsl:variable name="beginVal" select="(.//gml:timePosition[@frame])[1]"/>
-          <xsl:variable name="endVal" select="(.//gml:timePosition[@frame])[2]"/>
-          <xsl:variable name="trs" select="(.//gml:timePosition/@frame)[1]"/>
+        <!-- Geologic time: gml:begin / gml:end wrapping gml:TimeInstant.
+             The CDIF discovery profile models this as two INDEPENDENT anyOf branches:
+               named eras   -> time:intervalStartedBy / time:intervalFinishedBy, plain URI strings
+               numeric ages -> time:hasBeginning / time:hasEnd, each of which REQUIRES
+                               time:inTimePosition {@type[], time:hasTRS, time:numericPosition}
+             Emit the two independently. A bound carrying only a name must NOT produce a
+             time:hasBeginning: a hasBeginning without inTimePosition fails the numeric branch
+             without satisfying the named one, so a partial bound is worse than none. -->
+        <xsl:when test=".//gml:begin/gml:TimeInstant or .//gml:end/gml:TimeInstant">
+          <xsl:variable name="beginInst" select="(.//gml:begin/gml:TimeInstant)[1]"/>
+          <xsl:variable name="endInst" select="(.//gml:end/gml:TimeInstant)[1]"/>
+          <!-- a position counts only if it is a number CDIF can take as time:numericPosition -->
+          <xsl:variable name="beginPos"
+                        select="$beginInst/gml:timePosition[@frame][. castable as xs:decimal][1]"/>
+          <xsl:variable name="endPos"
+                        select="$endInst/gml:timePosition[@frame][. castable as xs:decimal][1]"/>
+          <!-- an era identifier counts only if it is an absolute URI; the editor template seeds
+               gml:identifier with the placeholder "http://", which must not be published -->
+          <xsl:variable name="beginUri"
+                        select="$beginInst/gml:identifier[matches(normalize-space(.), '^[a-zA-Z][a-zA-Z0-9+.-]*://.+')][1]"/>
+          <xsl:variable name="endUri"
+                        select="$endInst/gml:identifier[matches(normalize-space(.), '^[a-zA-Z][a-zA-Z0-9+.-]*://.+')][1]"/>
     {
-      "@type": "time:ProperInterval",
-      <xsl:if test="$beginVal[normalize-space() != '']">
-      "time:hasBeginning": {
-        "@type": "time:Instant",
-        "time:inTimePosition": {
-          "@type": "time:TimePosition",
-          "time:hasTRS": {"@id": "<xsl:value-of select="util:escapeForJson(string($trs))"/>"},
-          "schema:value": <xsl:value-of select="$beginVal"/>
-        }
-      },
+      "@type": ["time:ProperInterval"]
+      <xsl:if test="$beginUri">
+      ,"time:intervalStartedBy": "<xsl:value-of select="util:escapeForJson(normalize-space($beginUri))"/>"
       </xsl:if>
-      <xsl:if test="$endVal[normalize-space() != '']">
-      "time:hasEnd": {
-        "@type": "time:Instant",
-        "time:inTimePosition": {
-          "@type": "time:TimePosition",
-          "time:hasTRS": {"@id": "<xsl:value-of select="util:escapeForJson(string($trs))"/>"},
-          "schema:value": <xsl:value-of select="$endVal"/>
-        }
-      },
+      <xsl:if test="$endUri">
+      ,"time:intervalFinishedBy": "<xsl:value-of select="util:escapeForJson(normalize-space($endUri))"/>"
       </xsl:if>
-      "@id": "_:temporal-<xsl:value-of select="position()"/>"
+      <xsl:if test="$beginPos">
+      ,"time:hasBeginning": {
+        "@type": ["time:Instant"]
+        <xsl:if test="$beginInst/gml:name[normalize-space() != '']">
+        ,"schema:name": "<xsl:value-of select="util:escapeForJson(normalize-space($beginInst/gml:name[1]))"/>"
+        </xsl:if>
+        ,"time:inTimePosition": {
+          "@type": ["time:TimePosition"],
+          "time:hasTRS": "<xsl:value-of select="util:escapeForJson(normalize-space($beginPos/@frame))"/>",
+          "time:numericPosition": <xsl:value-of select="xs:decimal($beginPos)"/>
+        }
+      }
+      </xsl:if>
+      <xsl:if test="$endPos">
+      ,"time:hasEnd": {
+        "@type": ["time:Instant"]
+        <xsl:if test="$endInst/gml:name[normalize-space() != '']">
+        ,"schema:name": "<xsl:value-of select="util:escapeForJson(normalize-space($endInst/gml:name[1]))"/>"
+        </xsl:if>
+        ,"time:inTimePosition": {
+          "@type": ["time:TimePosition"],
+          "time:hasTRS": "<xsl:value-of select="util:escapeForJson(normalize-space($endPos/@frame))"/>",
+          "time:numericPosition": <xsl:value-of select="xs:decimal($endPos)"/>
+        }
+      }
+      </xsl:if>
+      ,"@id": "_:temporal-<xsl:value-of select="position()"/>"
     }</xsl:when>
         <!-- ISO dates: TimePeriod with begin/end -->
         <xsl:when test="gml:TimePeriod">

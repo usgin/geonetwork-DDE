@@ -569,7 +569,7 @@ When funding data has structured markers (funder name, grant ID), it outputs `sc
 against the CDIF **discovery** profile (`_sources/profiles/cdifProfile/cdifDiscovery/resolvedSchema.json`
 in the CDIF register).
 
-**Measured 2026-11-13 on 4.4.9-0: 121 PASS, 0 FAIL, 0 ERROR** of 121 ADA records.
+**Measured 2026-11-13 on 4.4.9-0: 122 PASS, 0 FAIL, 0 ERROR** of 122 records (121 ADA plus the geologic-age fixture below).
 
 The earlier figure of "120/121 PASS" was measured against `CDIFcomplete`, a schema that no longer
 exists under that name: the CDIF register renamed and regrouped its profiles on 2026-03-21
@@ -586,6 +586,34 @@ emitted in the pre-2026 form. Both are now fixed:
   `schema:Place` (both spatialCoverage branches), `schema:GeoShape`, `dqv:QualityMeasurement`, and
   the measurement-technique string. The `schema:box` value itself was already correct — SW
   latitude/longitude then NE — only its `@type` was wrong.
+
+### Geologic time, and why the ADA corpus does not test it
+
+`schemas/iso19115-3.2018/src/test/resources/metadata-geologic-age-cdif.xml` is the only record
+that exercises the geologic-time branch of `iso19115-3-to-cdif.xsl`. **None of the 121 ADA records
+do** — they carry no `mri:extent` at all — so a green ADA run says nothing about this code path,
+and said nothing about it while the path was broken.
+
+CDIF's discovery profile offers two independent `anyOf` forms for a geologic interval, and they
+take different properties:
+
+| form | properties | requirement |
+|---|---|---|
+| named eras | `time:intervalStartedBy` / `time:intervalFinishedBy` | plain URI strings |
+| numeric ages | `time:hasBeginning` / `time:hasEnd` | each REQUIRES `time:inTimePosition` with `@type` (array), `time:hasTRS` (string), `time:numericPosition` (number) |
+
+The formatter emits both independently, which matters because **a bound with a name but no age must
+not produce a `time:hasBeginning`**: a bound lacking `time:inTimePosition` fails the numeric form
+without satisfying the named one, so a partial bound is worse than none. The fixture is built around
+exactly that asymmetry — its begin bound (Paleoproterozoic) has an era URI *and* an age, its end
+bound (Holocene) has only an era URI and a name — so a formatter that emits a bare `time:hasEnd`
+fails it.
+
+Until 2026-11-13 the branch emitted scalar `@type` instead of arrays, `time:hasTRS` as an
+`{"@id": ...}` object instead of a string, and `schema:value` instead of `time:numericPosition`;
+it also selected bounds by document order (`(.//gml:timePosition[@frame])[2]`) rather than by
+`gml:begin` / `gml:end`, so an end bound without an age silently became the *next* interval's
+begin value. Re-import the fixture and re-run the validator after touching this branch.
 
 Use the default `--schema discovery`. `--schema complete` is the wrong profile for this output and
 reports 121 failures with ~879 error paths, because `cdifComplete` requires `schema:variableMeasured`
@@ -605,7 +633,7 @@ Expected structural differences in the roundtrip output (not considered failures
 ## Test Data
 
 - **CDIF validation repository**: The [CDIF validation repo](https://github.com/Cross-Domain-Interoperability-Framework/validation/tree/main/testJSONMetadata) contains 77 CDIF JSON-LD test files validated against the [CDIF Complete Schema](https://github.com/Cross-Domain-Interoperability-Framework/validation/blob/main/CDIFCompleteSchema.json) (JSON Schema Draft 2020-12). All 77 records have been successfully harvested and indexed.
-- **ADA (Astromaterials Data Archive)**: 121 records harvested from the ADA sitemap at `https://ada.astromat.org/metadata/sitemap.xml`. These records include complex distributions (zip archives with `hasPart` members), funding, provenance, and measurement techniques. Roundtrip validation: 121/121 PASS against the CDIF discovery profile, measured 2026-11-13 (see Roundtrip Validation).
+- **ADA (Astromaterials Data Archive)**: 121 records harvested from the ADA sitemap at `https://ada.astromat.org/metadata/sitemap.xml`. These records include complex distributions (zip archives with `hasPart` members), funding, provenance, and measurement techniques. Roundtrip validation: 121/121 PASS against the CDIF discovery profile, measured 2026-11-13 (see Roundtrip Validation). None of them carry a temporal extent, so they do not cover geologic time.
 
 ## Related Repositories
 
