@@ -25,7 +25,7 @@ The 2024-era fork is frozen on a 4.4.4 *snapshot* from April 2024, roughly two a
 | DDE metadata standard | [dde-metadata](https://code.axiomearth.ai/Steve_Geonetwork/dde-metadata) | XSD, specification document, worked examples, ISO 19115-3 crosswalks, and the two July 2024 deployment PDFs. |
 | DDE vocabularies | In the fork: `web/src/main/webapp/WEB-INF/data/config/codelist/local/thesauri/theme/` | SKOS thesauri as RDF and Turtle: resource type, topic category, acquisition code, unit codelists. |
 | Elasticsearch index mappings | In the fork: `web/.../WEB-INF/data/config/index/` | `records.json`, `features.json`, `searchlogs.json`. |
-| Harvest configuration and seed records | [harvest-records-2024/](harvest-records-2024/) | Twelve DDE-schema XML files (nine harvested records, three editor templates). Recovered from the 2024 deployment; see the harvest section below. |
+| Harvest configuration and seed records | [harvest-records-2024/](harvest-records-2024/) | The complete 2024 harvest source: 21 XML files — DDE records, three editor templates, three `DDEInstance*` examples and four ISO 19139 records. Completed 2026-11-14 from the backup named below; see the harvest section. |
 
 The DDE customizations are concentrated in the ISO 19115-3:2018 schema plugin at `schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/` — the editor view, converters, formatter, indexing and labels. Cloning the fork brings all of it.
 
@@ -73,24 +73,39 @@ Both the configuration and the source records were nevertheless recovered from t
 
 ### The seed records
 
-Nine records were harvested. All twelve files below are in [harvest-records-2024/](harvest-records-2024/). The 2024 harvester log is not included.
+All **21** files of the 2024 harvest source are in [harvest-records-2024/](harvest-records-2024/). The 2024 harvester log is not included.
 
-| File | Harvested |
+Until 2026-11-14 only 12 were, because the live `C:\tmp\forHarvest` on the build workstation had lost 10 of the originals. They were recovered from a backup of that machine at `E:\Toolkit\Backup\EMERALD\c\tmp\forHarvest`, which still holds all 21 and is the only copy outside this repository. **Anyone taking over should keep a copy of that directory**, not rely on the workstation.
+
+| File | Kind |
 | --- | --- |
-| `ArizonaLithostratigraphyOneGeologyDDE.xml` | yes |
-| `CHN-CGS-EN-BedrockLithostratigraphyDDE.xml` | yes |
-| `EIPExample_g01065-DDE.xml` | yes |
-| `ISO19115-3ServiceExampleDDE.xml` | yes |
-| `MultibeamDataAustralia-DDE.xml` | yes |
-| `TestingMetadata-DDE.xml` | yes |
-| `arctichydrology-DDE.xml` | yes |
-| `minimalInstanceDDE.xml` | yes |
-| `ddeTransformTest-DDE.xml` | yes (recovered from usgin/dde-metadata `ExampleXML/`) |
-| `DDEDatasetTemplate.xml` | no — editor template |
-| `DDEImageTemplate.xml` | no — editor template |
-| `DDEServiceTemplate.xml` | no — editor template |
+| `ArizonaLithostratigraphyOneGeologyDDE.xml` | DDE record |
+| `ArizonaLithostratigraphyServiceDDE.xml` | DDE record (recovered 2026-11-14) |
+| `CHN-CGS-EN-BedrockLithostratigraphyDDE.xml` | DDE record |
+| `EIPExample_g01065-DDE.xml` | DDE record |
+| `EIPExample_g01065_-DDE.xml` | DDE record, earlier variant (recovered 2026-11-14) |
+| `ISO19115-3ServiceExampleDDE.xml` | DDE record |
+| `MultibeamDataAustralia-DDE.xml` | DDE record |
+| `TestingMetadata-DDE.xml` | DDE record |
+| `arctichydrology-DDE.xml` | DDE record |
+| `minimalInstanceDDE.xml` | DDE record |
+| `ddeTransformTest-DDE.xml` | DDE record — **see the revision note below** |
+| `DDEInstanceDataset.xml` | DDE instance example (recovered 2026-11-14) |
+| `DDEInstanceImage.xml` | DDE instance example (recovered 2026-11-14) |
+| `DDEInstanceService.xml` | DDE instance example (recovered 2026-11-14) |
+| `DDEDatasetTemplate.xml` | editor template |
+| `DDEImageTemplate.xml` | editor template |
+| `DDEServiceTemplate.xml` | editor template |
+| `KismetQuad-19139.xml` | **ISO 19139** record (recovered 2026-11-14) |
+| `freeAirAnomalies-19139.xml` | **ISO 19139** record (recovered 2026-11-14) |
+| `grantsPassGravity-19139.xml` | **ISO 19139** record (recovered 2026-11-14) |
+| `homerNYQuad-19139.xml` | **ISO 19139** record (recovered 2026-11-14) |
 
-**These files are in the DDE schema, not ISO 19115-3.** Their root element is `MD_Metadata` in namespace `https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0`, and GeoNetwork converts them on import using the `fromDDE` XSLTs in the DDE schema plugin. A stock GeoNetwork will reject them — re-harvesting requires the fork.
+**Most of these are DDE schema, not ISO 19115-3.** Their root element is `MD_Metadata` in namespace `https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0`, and GeoNetwork converts them on import using the `fromDDE` XSLTs in the DDE schema plugin. A stock GeoNetwork will reject them — re-harvesting requires the fork. The four ISO 19139 records need no fork, but the same conversion handles them, so one harvester covers the whole folder.
+
+**Revision note on `ddeTransformTest-DDE.xml`.** The copy committed here until 2026-11-14 came from `usgin/dde-metadata/ExampleXML/` and was in the older namespace `https://www.ddeworld.org/resource/metadata/0.4`, which `fromDDE-any` does not handle — it harvested as `unknownSchema` and produced no record. It has been replaced with the harvested original from the EMERALD backup, in the 1.0 namespace. Prefer that backup over the dde-metadata examples for anything that claims to be a 2024 artifact.
+
+**Verified 2026-11-14 on a fresh 4.4.9-0 deployment** (Tomcat 9.0.85, Elasticsearch 8.14.3): a Directory harvester over all 21 files with `importxslt = schema:iso19115-3.2018:convert/fromDDE-any` reported **21 total, 0 unknownSchema, 0 badFormat, 0 doesNotValidate**, yielding 18 distinct records — some files share a uuid — each indexed as `iso19115-3.2018`. `formatters/dde` and `formatters/cdif` both returned valid output.
 
 Three limits on what this recovers. The records are **as they were in early 2024**: anything created or edited in the catalogue interface after that exists only in the PostgreSQL database. The three templates were never harvested and are normally loaded as template records rather than ordinary ones, so they need registering as templates after import. And record identifiers assigned by the catalogue on first import will differ from the originals unless the database is restored, which matters if anything external cites them.
 

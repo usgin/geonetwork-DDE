@@ -269,6 +269,26 @@
                 <requireMavenVersion>
                   <version>3.8.3</version>
                 </requireMavenVersion>
+                <!-- Java 11, but not the early 11.0.x builds. <source>/<target>11
+                     only sets the bytecode level, so an ancient 11 passed silently and
+                     the failures it caused never named the JDK:
+
+                     - 11.0.2 carries 93 CA roots against 118 in Temurin 11.0.33, so
+                       Maven cannot validate some redirect targets and reports it
+                       unhelpfully as "peer not authenticated".
+                     - its TLS 1.3 session resumption fails with "No PSK available.
+                       Unable to resume.", which breaks outbound HTTPS at RUNTIME, not
+                       only during the build: ImageIO.read(URL) throws inside the
+                       Spring Security filter chain on a deployed catalogue.
+
+                     The upper bound excludes 12+ because GeoNetwork 4.4 does not
+                     support 17 or later, and on a machine whose Machine-scope
+                     JAVA_HOME points at a newer JDK, a missing User-scope value
+                     selects it silently. -->
+                <requireJavaVersion>
+                  <version>[11.0.25,12)</version>
+                  <message>GeoNetwork 4.4 needs a current Java 11: use Temurin 11.0.25 or later, and not 12+. The early 11.0.x builds have both an outdated CA root set and a broken TLS 1.3 stack. Set JAVA_HOME explicitly and confirm with: mvn -version</message>
+                </requireJavaVersion>
               </rules>
             </configuration>
           </execution>
