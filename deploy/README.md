@@ -201,13 +201,61 @@ If you are restoring the old catalogue, restore the `pg_dump` from the existing 
 pg_restore --no-owner --role=geonetwork -d geonetwork geonetwork.dump
 ```
 
-If you are starting fresh, leave it empty. GeoNetwork creates its tables and default data on first start.
+If you are starting fresh, leave it empty. GeoNetwork creates its tables and default data on first start — Hibernate builds the schema (`hibernate.hbm2ddl.auto` is `update` whenever `db.migration_onstartup=true`), so no `create` SQL script is involved. Verified 2026-11-14 against PostgreSQL 15 with an empty database: **71 tables** in the `public` schema, the catalogue answering in about 30 s, and `gn-records`, `gn-features` and `gn-searchlogs` all created in Elasticsearch. Expect `Unable to retrieve the current GeoNetwork version from the database` and several `Requested setting … not found` lines during that first start; they are probes that run before the schema exists and are harmless if the catalogue then serves.
+
+The role needs only to own the database — no superuser, and PostGIS is not required. In pgAdmin that is one login role with **Can login** set, and one database with that role as **Owner** and encoding `UTF8`.
 
 Use new passwords for both services. Do not reuse any credential from the 2024 deployment; [HANDOVER.md](HANDOVER.md) explains why.
 
 ## Step 3: Deploy to Tomcat and configure
 
 All connection settings in this build are read from environment variables and Java system properties, so you never need to edit files inside the war. Put them in Tomcat's `bin/setenv.sh` (Linux) or `bin\setenv.bat` (Windows), readable only by the Tomcat user.
+
+### Two mechanisms, not one — and they are not interchangeable
+
+This is the single easiest thing to get wrong, because both failure modes are silent.
+
+**Environment variables.** The database and Elasticsearch settings are read at runtime through
+Spring SpEL as `#{systemEnvironment['NAME']}` (`pom.xml`, filtered into
+`WEB-INF/config-db/jdbc.properties` and `WEB-INF/config.properties`). That is `System.getenv()`, so
+passing them as `-DGEONETWORK_DB_PASSWORD=…` does **nothing at all**:
+
+| variable | required? | baked fallback if unset |
+|---|---|---|
+| `GEONETWORK_DB_NAME` | **yes** | `~/gn` — an **H2 file**, see the warning below |
+| `GEONETWORK_DB_USERNAME` | **yes** | `www-data` |
+| `GEONETWORK_DB_PASSWORD` | **yes** | `www-data` |
+| `GEONETWORK_DB_PORT` | **yes for PostgreSQL** | **empty** — see below |
+| `GEONETWORK_DB_HOST` | optional | `localhost` |
+| `GEONETWORK_DB_CONNECTION_PROPERTIES` | optional | empty |
+| `GEONETWORK_ES_PROTOCOL` / `_HOST` / `_PORT` | set them | `http` / `localhost` / `9200` |
+| `GEONETWORK_ES_USERNAME` / `_PASSWORD` | if security is on | empty |
+
+**Java system properties**, in `CATALINA_OPTS` as `-D`, *not* environment variables:
+`-Dgeonetwork.db.type=postgres` (selects `config-db/<type>.xml`; `config-node/srv.xml` defaults it
+to `h2`), `-Dgeonetwork.dir=…`, `-Dfile.encoding=UTF-8`.
+
+`GEONETWORK_DB_TYPE` exists as a *build-time* Maven default only. Do not rely on it at runtime; use
+the `-D` form.
+
+> **`GEONETWORK_DB_PORT` has no default, and omitting it breaks PostgreSQL in a way that names the
+> wrong culprit.** Its definition is `#{systemEnvironment['GEONETWORK_DB_PORT']}` with no fallback,
+> so an unset port yields the URL `jdbc:postgresql://localhost:/geonetwork?` and the error
+> `Cannot create JDBC driver of class 'org.postgresql.Driver'` — which reads as a missing driver,
+> not a missing port. H2 is unaffected because it is a file database with no port. Confirmed
+> 2026-11-14.
+
+> **An unset `GEONETWORK_DB_*` is a silent success, not an error.** The fallbacks above are a
+> complete, working H2 configuration, so a forgotten setting means the catalogue quietly starts on
+> a local H2 file — possibly one an earlier build left at `~/gn` — rather than failing. Always set
+> them explicitly and confirm with `-Dgeonetwork.db.type=postgres` present.
+
+> **On Windows, `setenv.bat` is ignored when Tomcat runs as a service.** `tomcat9.exe` does not read
+> it. Environment variables must go in the service definition instead —
+> `tomcat9w.exe //ES//<service>` → Java tab → Environment, or `--Environment` at install time.
+> `setenv.bat` applies only when Tomcat is started with `catalina.bat` / `startup.bat`. The
+> equivalent under Linux systemd is `Environment=` or `EnvironmentFile=` in the unit; `setenv.sh` is
+> read by `catalina.sh`, so either works there.
 
 1. Create the data directory outside Tomcat, owned by the Tomcat user, for example `/srv/geonetwork_data`. Keeping it outside `webapps/` means redeploying the war never touches it.
 2. Create `bin/setenv.sh`:
@@ -327,6 +375,8 @@ Then start Tomcat, sign in with an existing administrator account, and run **Reb
 | --- | --- |
 | Build fails with compile errors in unrelated modules | Maven is using a JDK other than 11. Check `mvn -version` and set `JAVA_HOME`. |
 | Build fails on `RequireJavaVersion` | Working as intended: the JDK is older than 11.0.25 or newer than 11. Install Temurin 11 and set `JAVA_HOME`. |
+| Startup fails with `Cannot create JDBC driver of class 'org.postgresql.Driver' for connect URL jdbc:postgresql://localhost:/<db>?` | **The port is missing, not the driver.** `GEONETWORK_DB_PORT` has no baked default, so an unset value produces that malformed URL. Set `GEONETWORK_DB_PORT=5432`. The subsequent `entityManagerFactory` / `jdbcDataSource` bean-creation failures are consequences, not separate faults. |
+| Catalogue starts, but on H2 when PostgreSQL was intended | Either `-Dgeonetwork.db.type=postgres` is missing from `CATALINA_OPTS`, or the `GEONETWORK_DB_*` environment variables never reached the process — on Windows, check whether Tomcat is running as a service, in which case `setenv.bat` is not read at all. |
 | An `/srv/api/*` path returns HTTP 500 `{"error":{"class":"ServiceNotFoundEx","message":"Service not found"}}` | **Almost always a missing `Accept` header, not a broken catalogue.** The API negotiates on content type, and `Accept: */*` — which `curl` sends by default — does not match, so the request falls through and Jeeves reports "Service not found". Add the header: `curl -H "Accept: application/json" .../srv/api/standards`. Verified 2026-11-14: identical requests returned 500 without the header and 200 with it. The 500 is emitted with **no entry in any log**, which makes it easy to misread as a server fault; cost several hours of misdiagnosis here before the two commands were compared. |
 | Catalogue log shows `Requested setting with name: … not found. Add it to the settings table.` plus `Unable to retrieve the current GeoNetwork version from the database` | Normal on a genuinely empty database during the first start: Hibernate creates the schema (`hibernate.hbm2ddl.auto` is `update` whenever `db.migration_onstartup=true`), and these probes run before it finishes. Harmless if the catalogue then serves. The matching H2 complaints — `Table "SETTINGS" not found (this database is empty)` and `Column "ID" not found` in `<db>.trace.db` — are the same startup probes and are **not** evidence of a fault. |
 | Catalogue starts against the wrong database | With `GEONETWORK_DB_*` unset the baked fallbacks are an **H2** database at `~/gn` with user/password `www-data`. That is a silent success, not an error, so a forgotten setting means the catalogue quietly uses a local H2 file — possibly one an earlier build left behind. Always set `GEONETWORK_DB_*` explicitly and add `-Dgeonetwork.db.type=postgres`; `config-node/srv.xml` imports `config-db/${geonetwork.db.type:h2}.xml`, so h2 is what you get by default. |
