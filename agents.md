@@ -178,6 +178,54 @@ The sitemap must follow the [sitemaps.org protocol](https://www.sitemaps.org/pro
 
 Sitemaps with or without the `http://www.sitemaps.org/schemas/sitemap/0.9` namespace are both supported.
 
+Entries may also point at **HTML landing pages** that carry their metadata in a
+`<script type="application/ld+json">` block — the science-on-schema.org pattern — as well as at
+`.json` documents. Added 2026-11-15; before that an HTML entry failed with a JSON parse error on the
+leading `<`. Where a page holds several JSON-LD blocks, the one describing a `Dataset` is selected
+(`BreadcrumbList` and `Organization` blocks commonly sit beside it); the whole block is passed on,
+not the matched node, so `@context` survives and framing still runs.
+
+### How a record is identified as CDIF
+
+Today: **by configuration, not by content.** `isCdifConversion()` is a substring test for
+`fromJsonCdif` against the configured conversion name. Nothing examines `@context`, `@type` or
+`dcterms:conformsTo`. The only content-dependent behaviour is that JSON-LD framing is applied solely
+when the record has an `@context`.
+
+#### Planned: dispatch on the catalog record's conformance class
+
+Selecting the XSLT from the record's declared conformance, so one harvester can take a mixed feed.
+Not implemented. The matcher specification, which is narrower than it first appears:
+
+1. Find `schema:subjectOf` (accept the unprefixed `subjectOf`, and object-or-array).
+2. Among its entries, take the one whose `schema:additionalType` contains `dcat:CatalogRecord` —
+   accepting both the compacted form and the expanded `http://www.w3.org/ns/dcat#CatalogRecord`.
+   **Do not** match on `@type`: the catalog record is `"@type": ["schema:Dataset"]` with
+   `dcat:CatalogRecord` carried in `schema:additionalType`, so an `@type` test never fires.
+3. Read `dcterms:conformsTo` **on that node only**, as array-or-object of `{"@id": …}`.
+4. Match ordered rules against those `@id`s, most specific first.
+
+Step 3 is the part that matters. `dcterms:conformsTo` is legal in four places in v1.1.1
+`profile-core` — on a distribution, on a distribution's `potentialAction` result, and on
+`schema:subjectOf` (twice). A "find any `conformsTo`" matcher would dispatch a record on the format
+conformance of one of its *data files*.
+
+Rules must be ordered because every CDIF record asserts several classes at once: the released
+vocabulary is `cdif/core/1.1`, `discovery/1.1`, `data_description/1.1`, `data_structure/1.1`,
+`manifest/1.1` and `codelist/1.1`, and a record declares `core/1.1` alongside its specific profile.
+A `core/1.1` rule placed first would swallow everything.
+
+Two implementation notes. Read the conformance from the **unframed** record — framing rewrites
+structure, which is why `recoverDroppedFields()` exists. And `isCdifConversion()` must then test the
+*selected* conversion rather than the configured one, or a rule-dispatched CDIF record would
+silently skip framing.
+
+Blocked on the DDE conformance URIs. `ddeCatalogRecord` currently declares
+`https://w3id.org/cdif/bbr/metadata/DDEproperties/ddeCore`, which is a building-block register path
+rather than a versioned conformance class: it sits inside CDIF's register and carries no version, so
+a rule written against it cannot distinguish DDE profile revisions. Settle those URIs before
+building the dispatcher — the rules are only as precise as what they match on.
+
 ### Serving Local Files for Testing
 
 To test with local JSON-LD files, serve them via a simple HTTP server and create a sitemap:
