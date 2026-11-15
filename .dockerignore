@@ -1,0 +1,26 @@
+# Build context exclusions for deploy/docker/Dockerfile, whose context is the
+# repository root (the build needs the whole multi-module tree).
+#
+# Without this the context is well over a gigabyte: the git history alone is
+# ~888 MB, and every module's target/ would be shipped to the daemon only to be
+# overwritten by the build.
+
+.git
+.github
+**/target
+**/node_modules
+
+# Never send deployment material or credentials into a build context.
+.env
+**/*.env
+deploy/data-2024
+deploy/harvest-records-2024
+**/*.war
+**/*.mv.db
+**/*.docx
+
+# Editor and OS noise
+.idea
+.vscode
+**/.DS_Store
+**/*.iml

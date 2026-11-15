@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Mirror the retired oss.sonatype.org to Maven Central for the Docker build.
+
+  web/pom.xml still routes four plugin dependencies through OSSRH
+  (org.webjars.npm:wrappy, minimatch, once, inflight). That service is retired
+  and 302-redirects, and Maven reports the result as an authentication or
+  redirect error that names neither the repository nor the artifacts. All four
+  are on Central. See deploy/README.md Step 1, which records this as one of
+  three dependency problems that block the wro4j prebuild.
+
+  Mirroring by repository id rather than using <mirrorOf>*</mirrorOf> keeps any
+  other repository the build declares reachable.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>central-for-ossrh-snapshots</id>
+      <name>Central instead of the retired oss.sonatype.org snapshots</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <mirrorOf>sonatype-public-grid,oss.sonatype.org,sonatype-nexus-snapshots,sonatype-snapshots</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>

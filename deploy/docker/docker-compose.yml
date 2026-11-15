@@ -1,0 +1,105 @@
+# GeoNetwork-DDE 4.4.9-0: catalogue, Elasticsearch, PostgreSQL.
+#
+#   cd deploy/docker
+#   cp .env.example .env     # then edit it — it will not start without
+#   docker compose up -d --build
+#
+# No `version:` key: Compose v2 treats it as obsolete and warns. The same key
+# was removed from es/docker-compose.yml on 2026-11-14 for that reason.
+#
+# This is NOT docker/gn-postgres/docker-compose.yml, which is upstream's
+# development composition and uses a different set of environment variable
+# names (POSTGRES_DB_HOST, DATA_DIR, ES_HOST) understood only by the official
+# geonetwork image's entrypoint. This image is built from this fork's war and
+# takes the real names. See README.md.
+
+name: dde-geonetwork
+
+volumes:
+  gn_data:
+  es_data:
+  pg_data:
+
+services:
+  geonetwork:
+    build:
+      # The repository root: the war is built from the whole module tree.
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: dde-geonetwork:4.4.9-0
+    restart: unless-stopped
+    ports:
+      - "${GN_PORT:-8080}:8080"
+    environment:
+      # Database. All five are required; see entrypoint.sh for why an unset one
+      # is worse than an error.
+      GEONETWORK_DB_TYPE: postgres
+      GEONETWORK_DB_HOST: postgres
+      GEONETWORK_DB_PORT: 5432
+      GEONETWORK_DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      GEONETWORK_DB_USERNAME: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      GEONETWORK_DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # Search
+      GEONETWORK_ES_PROTOCOL: http
+      GEONETWORK_ES_HOST: elasticsearch
+      GEONETWORK_ES_PORT: 9200
+      # Heap
+      GN_HEAP: ${GN_HEAP:--Xms1g -Xmx2g}
+    volumes:
+      - gn_data:/var/lib/geonetwork_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  elasticsearch:
+    # 8.14.3 is pinned, not preferred: pom.xml pins es.version to it, which
+    # drives the bundled Java client, and the upstream manual marks 8.14.x the
+    # minimum. es/elasticsearch-8.11.3 in this repo is BELOW that minimum — do
+    # not substitute it.
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    restart: unless-stopped
+    environment:
+      - cluster.name=dde-geonetwork
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms1g -Xmx1g}
+      # Security off because this sits on a private compose network and is not
+      # published. If you publish 9200, turn it back on and set credentials.
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    # Deliberately not published. Uncomment only to debug, and prefer
+    # `docker compose exec` over opening a port.
+    # ports:
+    #   - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    # Not published either; restoring a dump goes through
+    # `docker compose exec -T postgres pg_restore`.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
