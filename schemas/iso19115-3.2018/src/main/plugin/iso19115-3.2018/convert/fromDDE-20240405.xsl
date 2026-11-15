@@ -1228,41 +1228,62 @@
             <xsl:for-each select="dde:browseGraphic">
                 <mri:graphicOverview>
                     <mcc:MD_BrowseGraphic>
+                        <!-- mcc:fileName is mandatory (1..1) in MD_BrowseGraphic, so a
+                             browseGraphic with no dde:title would otherwise emit an empty
+                             CharacterString: schema-valid but meaningless. Default it. -->
                         <mcc:fileName>
                             <gco:CharacterString>
-                                <xsl:value-of select="string(dde:title)"/>
+                                <xsl:value-of
+                                    select="if (normalize-space(dde:title) != '')
+                                            then normalize-space(dde:title)
+                                            else 'browse graphic'"/>
                             </gco:CharacterString>
                         </mcc:fileName>
-                        <xsl:if test="dde:description">
+                        <!-- DDE supplies both description and function; ISO offers one
+                             free-text slot, so they are joined. function is a FunctionCode
+                             (download, information, offlineAccess, order, search), which is
+                             worth keeping rather than discarding. -->
+                        <xsl:if test="dde:description[normalize-space()] or dde:function[normalize-space()]">
                             <mcc:fileDescription>
                                 <gco:CharacterString>
-                                    <xsl:value-of select="string(dde:description)"/>
+                                    <xsl:value-of
+                                        select="string-join((dde:description[normalize-space()],
+                                                             dde:function[normalize-space()]), ' &amp; ')"/>
                                 </gco:CharacterString>
                             </mcc:fileDescription>
                         </xsl:if>
                         <xsl:if test="dde:applicationProfile">
                             <mcc:fileType>
                                 <gco:CharacterString>
-                                    <xsl:variable name="apcount"
-                                        select="count(dde:applicationProfile)"/>
+                                    <!-- position() != last(), not count() > 1: the old
+                                         test appended the separator after every item
+                                         including the final one, giving "image/png; image/jpg; "
+                                         with a trailing separator. -->
                                     <xsl:for-each select="dde:applicationProfile">
-                                        <xsl:value-of select="string(.)"/>
-                                        <xsl:if test="$apcount > 1">
+                                        <xsl:value-of select="normalize-space(.)"/>
+                                        <xsl:if test="position() != last()">
                                             <xsl:value-of select="string('; ')"/>
                                         </xsl:if>
                                     </xsl:for-each>
                                 </gco:CharacterString>
                             </mcc:fileType>
                         </xsl:if>
-                        <mcc:linkage>
-                            <cit:CI_OnlineResource>
-                                <cit:linkage>
-                                    <gco:CharacterString>
-                                        <xsl:value-of select="dde:linkage"/>
-                                    </gco:CharacterString>
-                                </cit:linkage>
-                            </cit:CI_OnlineResource>
-                        </mcc:linkage>
+                        <!-- mcc:linkage is 0..*, and cit:linkage inside CI_OnlineResource
+                             is mandatory, so emit the block only when there is a URL.
+                             Some older DDE records carry the URL in dde:title with no
+                             dde:linkage at all; those get no linkage element rather than an
+                             empty one. -->
+                        <xsl:if test="normalize-space(dde:linkage) != ''">
+                            <mcc:linkage>
+                                <cit:CI_OnlineResource>
+                                    <cit:linkage>
+                                        <gco:CharacterString>
+                                            <xsl:value-of select="normalize-space(dde:linkage)"/>
+                                        </gco:CharacterString>
+                                    </cit:linkage>
+                                </cit:CI_OnlineResource>
+                            </mcc:linkage>
+                        </xsl:if>
                     </mcc:MD_BrowseGraphic>
                 </mri:graphicOverview>
             </xsl:for-each>

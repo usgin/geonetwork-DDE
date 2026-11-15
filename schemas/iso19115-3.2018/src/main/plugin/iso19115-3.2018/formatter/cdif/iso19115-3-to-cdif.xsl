@@ -65,6 +65,8 @@
 
   <xsl:call-template name="cdif-keywords"/>
 
+  <xsl:call-template name="cdif-browse-graphics"/>
+
   <xsl:call-template name="cdif-constraints"/>
 
   <xsl:call-template name="cdif-spatial"/>
@@ -282,6 +284,43 @@
     <xsl:if test="$allKeywords">
   "schema:keywords": [<xsl:for-each select="$allKeywords">
     "<xsl:value-of select="util:escapeForJson(.)"/>"<xsl:if test="position() != last()">,</xsl:if>
+  </xsl:for-each>],
+    </xsl:if>
+  </xsl:template>
+
+
+  <!-- ================================================================
+       Browse graphics: mri:graphicOverview -> schema:image (ImageObject)
+       ================================================================ -->
+  <xsl:template name="cdif-browse-graphics">
+    <xsl:variable name="graphics"
+                  select="mdb:identificationInfo/*/mri:graphicOverview/mcc:MD_BrowseGraphic"/>
+    <!-- The image location lives in mcc:linkage/cit:CI_OnlineResource/cit:linkage.
+         mcc:fileName carries the caption, because the DDE browseGraphic it comes
+         from is a CI_OnlineResource whose title maps there. Records that predate
+         that convention put the URL in fileName and have no linkage, so fall back
+         to fileName when it looks like one. schema:contentUrl is required by
+         ddeCore's ImageObject, so a graphic that yields no URL is skipped rather
+         than emitted invalid. -->
+    <xsl:variable name="usable" select="$graphics[
+        normalize-space(mcc:linkage/*/cit:linkage/gco:CharacterString) != ''
+        or matches(normalize-space(mcc:fileName/gco:CharacterString),
+                   '^[a-zA-Z][a-zA-Z0-9+.-]*://.+')]"/>
+    <xsl:if test="$usable">
+  "schema:image": [<xsl:for-each select="$usable">
+      <xsl:variable name="link"
+                    select="normalize-space(mcc:linkage/*/cit:linkage/gco:CharacterString)"/>
+      <xsl:variable name="fileName" select="normalize-space(mcc:fileName/gco:CharacterString)"/>
+      <xsl:variable name="url" select="if ($link != '') then $link else $fileName"/>
+    {
+      "@type": ["schema:ImageObject"],
+      "schema:contentUrl": "<xsl:value-of select="util:escapeForJson($url)"/>"<xsl:if test="$link != '' and $fileName != ''">,
+      "schema:name": "<xsl:value-of select="util:escapeForJson($fileName)"/>"</xsl:if>
+      <xsl:if test="normalize-space(mcc:fileDescription/gco:CharacterString) != ''">,
+      "schema:description": "<xsl:value-of select="util:escapeForJson(normalize-space(mcc:fileDescription/gco:CharacterString))"/>"</xsl:if>
+      <xsl:if test="normalize-space(mcc:fileType/gco:CharacterString) != ''">,
+      "schema:encodingFormat": "<xsl:value-of select="util:escapeForJson(normalize-space(mcc:fileType/gco:CharacterString))"/>"</xsl:if>
+    }<xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>],
     </xsl:if>
   </xsl:template>
