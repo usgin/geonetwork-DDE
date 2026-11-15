@@ -335,6 +335,20 @@ The DDE schema plugin and thesauri arrive with the war, so this step is checking
 5. **Check the DDE editor.** Open any ISO 19115-3 record and click **Edit**. The editor should open on the **DDE** view with eight tabs, starting at **Basic Metadata**. The upstream Default, Advanced and XML views stay available from the view switcher.
 6. **CDIF harvester (optional).** It is a separate harvester type that does nothing unless configured. To use it: **Admin console > Harvesting > Harvest from > Simple URL**, choose the **CDIF Sitemap** preset, set the sitemap URL, and confirm the conversion is `schema:iso19115-3.2018:convert/fromJsonCdif`. Details are in the repo's [agents.md](../agents.md).
 
+   The sitemap may list either JSON documents or **HTML landing pages carrying their metadata in a
+   `<script type="application/ld+json">` block** — the science-on-schema.org pattern. Landing-page
+   support was added 2026-11-15; before that, an HTML entry failed with a JSON parse error on the
+   leading `<`. Where a page carries several JSON-LD blocks, the one describing a `Dataset` is
+   chosen (navigation markup such as `BreadcrumbList` is common alongside it), blocks that are not
+   valid JSON are skipped rather than failing the record, and a page with no usable JSON-LD still
+   reports the original parse error.
+
+   **That conversion name is also how the harvester decides a record is CDIF.** `isCdifConversion()`
+   is a substring test for `fromJsonCdif` on the configured conversion — nothing inspects
+   `@context`, `@type` or `dcterms:conformsTo`. Choosing the right conversion for the endpoint is
+   therefore not a formatting preference; it is the identification step. The only content-based
+   check is that JSON-LD framing is applied solely when the record has an `@context`.
+
 ## Step 5: Verify
 
 Tick these off before handing the catalogue to users.

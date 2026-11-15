@@ -52,6 +52,7 @@ import org.jdom.JDOMException;
 import org.jdom.Text;
 import org.json.JSONObject;
 import org.json.XML;
+import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.ClientHttpResponse;
 
@@ -147,7 +148,7 @@ class Harvester implements IHarvester<HarvestResult> {
                     if (!isXMLLike(content)) {
                         log.info("URL returned JSON content — processing as single CDIF record: " + url);
                         Map<String, Element> singleRecord = new HashMap<>();
-                        JsonNode recordJson = objectMapper.readTree(content);
+                        JsonNode recordJson = parseRecordContent(content, url, objectMapper);
                         collectSingleJsonRecord(recordJson, singleRecord, url);
                         aligner.align(singleRecord, errors);
                         listOfUuids.addAll(singleRecord.keySet());
@@ -166,7 +167,8 @@ class Harvester implements IHarvester<HarvestResult> {
                         try {
                             log.debug("Fetching sitemap entry: " + recordUrl);
                             String recordContent = retrieveUrl(recordUrl);
-                            JsonNode recordJson = objectMapper.readTree(recordContent);
+                            JsonNode recordJson =
+                                parseRecordContent(recordContent, recordUrl, objectMapper);
                             collectSingleJsonRecord(recordJson, allSitemapUuids, recordUrl);
                         } catch (Exception e) {
                             errors.add(new HarvestError(this.context, e));
@@ -445,6 +447,116 @@ class Harvester implements IHarvester<HarvestResult> {
                 uuid, e.getMessage()));
         }
         return null;
+    }
+
+    /**
+     * Parse a harvested document into JSON, extracting embedded JSON-LD when the
+     * response is an HTML landing page rather than a JSON document.
+     *
+     * <p>A CDIF sitemap commonly lists landing pages carrying their metadata in a
+     * {@code <script type="application/ld+json">} block (the science-on-schema.org
+     * pattern) rather than listing .json documents directly. Without this step those
+     * entries fail with a Jackson parse error on the leading {@code <}.
+     *
+     * @return the parsed record; never null
+     * @throws java.io.IOException if the content is neither JSON nor an HTML page
+     *                             carrying usable JSON-LD, preserving the original
+     *                             parse error
+     */
+    private JsonNode parseRecordContent(String content, String sourceUrl, ObjectMapper mapper)
+        throws java.io.IOException {
+        String trimmed = content == null ? "" : content.trim();
+        if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+            JsonNode embedded = extractJsonLdFromHtml(trimmed, mapper);
+            if (embedded != null) {
+                log.info("Extracted embedded JSON-LD from HTML landing page: " + sourceUrl);
+                return embedded;
+            }
+        }
+        // Not HTML, or HTML with no usable JSON-LD: parse as JSON so the original
+        // error is what the operator sees.
+        return mapper.readTree(content);
+    }
+
+    /**
+     * Pull JSON-LD out of an HTML page's {@code application/ld+json} script blocks.
+     *
+     * <p>The whole script block is returned, not the matching node inside it, so that
+     * {@code @context} survives — {@link #frameJsonLd} is only reached when the record
+     * has one. A page may carry several blocks (a BreadcrumbList beside the Dataset is
+     * common), so a block describing a Dataset wins; failing that, the first block that
+     * parses is used. Blocks that are not valid JSON are skipped rather than aborting
+     * the record.
+     *
+     * @return the chosen JSON-LD document, or null if the page has none that parse
+     */
+    @VisibleForTesting
+    static JsonNode extractJsonLdFromHtml(String html, ObjectMapper mapper) {
+        JsonNode firstParsed = null;
+        try {
+            for (org.jsoup.nodes.Element script :
+                Jsoup.parse(html).select("script[type=application/ld+json]")) {
+                JsonNode node;
+                try {
+                    node = mapper.readTree(script.data());
+                } catch (Exception skip) {
+                    continue;
+                }
+                if (node == null || node.isMissingNode() || node.isNull()) {
+                    continue;
+                }
+                if (firstParsed == null) {
+                    firstParsed = node;
+                }
+                if (describesDataset(node)) {
+                    return node;
+                }
+            }
+        } catch (Exception e) {
+            return firstParsed;
+        }
+        return firstParsed;
+    }
+
+    /**
+     * Does this JSON-LD document describe a Dataset, at the top level, in an array, or
+     * inside an {@code @graph}? Matching ignores any prefix, so "Dataset",
+     * "schema:Dataset" and a fully-qualified schema.org IRI all count.
+     */
+    private static boolean describesDataset(JsonNode node) {
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                if (describesDataset(item)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        JsonNode graph = node.get("@graph");
+        if (graph != null && describesDataset(graph)) {
+            return true;
+        }
+        JsonNode type = node.get("@type");
+        if (type == null) {
+            return false;
+        }
+        if (type.isArray()) {
+            for (JsonNode t : type) {
+                if (isDatasetType(t.asText(""))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return isDatasetType(type.asText(""));
+    }
+
+    private static boolean isDatasetType(String type) {
+        if (StringUtils.isEmpty(type)) {
+            return false;
+        }
+        String local = type.substring(Math.max(type.lastIndexOf('/'), type.lastIndexOf(':')) + 1);
+        return "Dataset".equalsIgnoreCase(local);
     }
 
     /**
