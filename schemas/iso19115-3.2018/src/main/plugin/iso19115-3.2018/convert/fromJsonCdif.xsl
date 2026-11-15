@@ -583,28 +583,85 @@
                     </gex:geographicElement>
                   </xsl:if>
 
-                  <!-- Temporal element -->
+                  <!-- Temporal element.
+
+                       Two shapes, matching what formatter/cdif/iso19115-3-to-cdif.xsl
+                       reads back, so a record survives DDE -> ISO -> CDIF -> ISO:
+
+                         geologic  gml:begin/gml:TimeInstant carrying gml:identifier
+                                   (era URI), gml:name and gml:timePosition with
+                                   @frame holding the numeric age
+                         ordinary  gml:beginPosition / gml:endPosition
+
+                       The numeric age is read from time:numericPosition, which is what
+                       the CDIF discovery profile requires and what the formatter emits.
+                       schema:value is accepted as a fallback because the formatter
+                       wrote that until 2026-11-13 and harvested records may carry it.
+                       The reference frame comes from time:hasTRS; before this it was
+                       not read at all, so "Ma before present" was lost on import. -->
                   <xsl:for-each select="schema_temporalCoverage">
-                    <xsl:variable name="tempStart">
-                      <xsl:choose>
-                        <xsl:when test="time_hasBeginning/time_inTimePosition/schema_value != ''">
-                          <xsl:value-of select="time_hasBeginning/time_inTimePosition/schema_value"/>
-                        </xsl:when>
-                        <xsl:when test="time_intervalStartedBy != ''">
-                          <xsl:value-of select="time_intervalStartedBy"/>
-                        </xsl:when>
-                      </xsl:choose>
-                    </xsl:variable>
-                    <xsl:variable name="tempEnd">
-                      <xsl:choose>
-                        <xsl:when test="time_hasEnd/time_inTimePosition/schema_value != ''">
-                          <xsl:value-of select="time_hasEnd/time_inTimePosition/schema_value"/>
-                        </xsl:when>
-                        <xsl:when test="time_intervalFinishedBy != ''">
-                          <xsl:value-of select="time_intervalFinishedBy"/>
-                        </xsl:when>
-                      </xsl:choose>
-                    </xsl:variable>
+                    <xsl:variable name="startUri" select="normalize-space(time_intervalStartedBy)"/>
+                    <xsl:variable name="endUri" select="normalize-space(time_intervalFinishedBy)"/>
+                    <xsl:variable name="startNum"
+                                  select="normalize-space((time_hasBeginning/time_inTimePosition/time_numericPosition,
+                                                           time_hasBeginning/time_inTimePosition/schema_value)[normalize-space() != ''][1])"/>
+                    <xsl:variable name="endNum"
+                                  select="normalize-space((time_hasEnd/time_inTimePosition/time_numericPosition,
+                                                           time_hasEnd/time_inTimePosition/schema_value)[normalize-space() != ''][1])"/>
+                    <xsl:variable name="startTrs"
+                                  select="normalize-space((time_hasBeginning/time_inTimePosition/time_hasTRS)[1])"/>
+                    <xsl:variable name="endTrs"
+                                  select="normalize-space((time_hasEnd/time_inTimePosition/time_hasTRS)[1])"/>
+                    <xsl:variable name="startName" select="normalize-space((time_hasBeginning/schema_name)[1])"/>
+                    <xsl:variable name="endName" select="normalize-space((time_hasEnd/schema_name)[1])"/>
+                    <xsl:variable name="isGeologic"
+                                  select="$startUri != '' or $endUri != '' or $startNum != '' or $endNum != ''"/>
+                    <xsl:if test="$isGeologic">
+                      <gex:temporalElement>
+                        <gex:EX_TemporalExtent>
+                          <gex:extent>
+                            <gml:TimePeriod gml:id="temporal-extent-geologic-{position()}">
+                              <gml:begin>
+                                <gml:TimeInstant gml:id="temporal-begin-{position()}">
+                                  <xsl:if test="$startUri != ''">
+                                    <gml:identifier codeSpace="http://www.ddeworld.org/resource/"><xsl:value-of select="$startUri"/></gml:identifier>
+                                  </xsl:if>
+                                  <xsl:if test="$startName != ''">
+                                    <gml:name><xsl:value-of select="$startName"/></gml:name>
+                                  </xsl:if>
+                                  <gml:timePosition>
+                                    <xsl:if test="$startTrs != ''">
+                                      <xsl:attribute name="frame"><xsl:value-of select="$startTrs"/></xsl:attribute>
+                                    </xsl:if>
+                                    <xsl:value-of select="$startNum"/>
+                                  </gml:timePosition>
+                                </gml:TimeInstant>
+                              </gml:begin>
+                              <gml:end>
+                                <gml:TimeInstant gml:id="temporal-end-{position()}">
+                                  <xsl:if test="$endUri != ''">
+                                    <gml:identifier codeSpace="http://www.ddeworld.org/resource/"><xsl:value-of select="$endUri"/></gml:identifier>
+                                  </xsl:if>
+                                  <xsl:if test="$endName != ''">
+                                    <gml:name><xsl:value-of select="$endName"/></gml:name>
+                                  </xsl:if>
+                                  <gml:timePosition>
+                                    <xsl:if test="$endTrs != ''">
+                                      <xsl:attribute name="frame"><xsl:value-of select="$endTrs"/></xsl:attribute>
+                                    </xsl:if>
+                                    <xsl:value-of select="$endNum"/>
+                                  </gml:timePosition>
+                                </gml:TimeInstant>
+                              </gml:end>
+                            </gml:TimePeriod>
+                          </gex:extent>
+                        </gex:EX_TemporalExtent>
+                      </gex:temporalElement>
+                    </xsl:if>
+                    <xsl:variable name="tempStart"
+                                  select="if ($isGeologic) then '' else normalize-space(substring-before(concat(., '/'), '/'))"/>
+                    <xsl:variable name="tempEnd"
+                                  select="if ($isGeologic) then '' else normalize-space(substring-after(., '/'))"/>
                     <xsl:if test="$tempStart != '' or $tempEnd != ''">
                       <gex:temporalElement>
                         <gex:EX_TemporalExtent>
@@ -877,8 +934,36 @@
                         <gco:Boolean>false</gco:Boolean>
                       </gfc:isAbstract>
                       <xsl:for-each select="schema_variableMeasured">
+                        <!-- Element order follows FC_FeatureAttribute_Type and the types it extends:
+                             constrainedBy (AbstractFC_CarrierOfCharacteristics), then memberName /
+                             definition / cardinality (AbstractFC_PropertyType), then code /
+                             valueMeasurementUnit / valueType. The previous order emitted valueType
+                             before valueMeasurementUnit, which is not schema-valid. -->
+                        <xsl:variable name="unitCode" select="normalize-space(schema_unitCode)"/>
+                        <xsl:variable name="unitText" select="normalize-space(schema_unitText)"/>
+                        <xsl:variable name="minVal" select="normalize-space(schema_minValue)"/>
+                        <xsl:variable name="maxVal" select="normalize-space(schema_maxValue)"/>
+                        <!-- What FC_FeatureAttribute has no slot for goes into constrainedBy as fixed
+                             "key: value" pairs, which the cdif formatter parses back. Without it
+                             minValue/maxValue survived only as prose in supplementalInformation, and
+                             unitCode was lost entirely. -->
+                        <xsl:variable name="facets"
+                                      select="string-join((
+                                                if ($minVal != '') then concat('minValue: ', $minVal) else (),
+                                                if ($maxVal != '') then concat('maxValue: ', $maxVal) else (),
+                                                if ($unitCode != '') then concat('unitCode: ', $unitCode) else ()
+                                              ), '; ')"/>
                         <gfc:carrierOfCharacteristics>
                           <gfc:FC_FeatureAttribute>
+                            <xsl:if test="$facets != ''">
+                              <gfc:constrainedBy>
+                                <gfc:FC_Constraint>
+                                  <gfc:description>
+                                    <gco:CharacterString><xsl:value-of select="$facets"/></gco:CharacterString>
+                                  </gfc:description>
+                                </gfc:FC_Constraint>
+                              </gfc:constrainedBy>
+                            </xsl:if>
                             <gfc:memberName>
                               <xsl:choose>
                                 <xsl:when test="schema_name != ''"><xsl:value-of select="schema_name"/></xsl:when>
@@ -904,6 +989,15 @@
                                 </gco:CharacterString>
                               </gfc:code>
                             </xsl:if>
+                            <!-- The human-readable unit goes here; the coded one travels in
+                                 constrainedBy above, so neither is lost. -->
+                            <xsl:if test="$unitText != '' or $unitCode != ''">
+                              <gfc:valueMeasurementUnit>
+                                <gco:UomIdentifier>
+                                  <xsl:value-of select="if ($unitText != '') then $unitText else $unitCode"/>
+                                </gco:UomIdentifier>
+                              </gfc:valueMeasurementUnit>
+                            </xsl:if>
                             <xsl:if test="cdi_intendedDataType != ''">
                               <gfc:valueType>
                                 <gco:TypeName>
@@ -912,16 +1006,6 @@
                                   </gco:aName>
                                 </gco:TypeName>
                               </gfc:valueType>
-                            </xsl:if>
-                            <xsl:if test="schema_unitText != '' or schema_unitCode != ''">
-                              <gfc:valueMeasurementUnit>
-                                <gco:UomIdentifier>
-                                  <xsl:choose>
-                                    <xsl:when test="schema_unitCode != ''"><xsl:value-of select="schema_unitCode"/></xsl:when>
-                                    <xsl:otherwise><xsl:value-of select="schema_unitText"/></xsl:otherwise>
-                                  </xsl:choose>
-                                </gco:UomIdentifier>
-                              </gfc:valueMeasurementUnit>
                             </xsl:if>
                           </gfc:FC_FeatureAttribute>
                         </gfc:carrierOfCharacteristics>

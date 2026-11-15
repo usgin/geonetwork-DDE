@@ -568,29 +568,65 @@
   <!-- ================================================================
        Variables measured (Feature Catalogue)
        ================================================================ -->
+  <!-- Reads back what the inbound converter writes. Every attribute is emitted,
+       including one with no gfc:definition: CDIF requires a description, so a
+       missing one becomes the sentinel "missing" rather than the attribute being
+       dropped, which is what happened until 2026-11-15. minValue, maxValue and
+       unitCode are recovered from gfc:constrainedBy, where the inbound converter
+       puts what FC_FeatureAttribute has no slot for. -->
   <xsl:template name="cdif-variables">
-    <!-- Only include attributes that have a description (required by CDIF schema) -->
     <xsl:variable name="attrs"
                   select="mdb:contentInfo/mrc:MD_FeatureCatalogue/mrc:featureCatalogue/
                           gfc:FC_FeatureCatalogue/gfc:featureType/gfc:FC_FeatureType/
-                          gfc:carrierOfCharacteristics/gfc:FC_FeatureAttribute[
-                            gfc:definition/gco:CharacterString[normalize-space() != '']]"/>
+                          gfc:carrierOfCharacteristics/gfc:FC_FeatureAttribute"/>
     <xsl:if test="$attrs">
   "schema:variableMeasured": [<xsl:for-each select="$attrs">
+    <xsl:variable name="facets"
+                  select="string-join(gfc:constrainedBy/gfc:FC_Constraint/gfc:description/gco:CharacterString, '; ')"/>
+    <xsl:variable name="minVal" select="normalize-space(substring-before(substring-after(concat('; ', $facets, '; '), '; minValue: '), ';'))"/>
+    <xsl:variable name="maxVal" select="normalize-space(substring-before(substring-after(concat('; ', $facets, '; '), '; maxValue: '), ';'))"/>
+    <xsl:variable name="unitCode" select="normalize-space(substring-before(substring-after(concat('; ', $facets, '; '), '; unitCode: '), ';'))"/>
+    <xsl:variable name="unitUom" select="normalize-space(gfc:valueMeasurementUnit/gco:UomIdentifier)"/>
+    <xsl:variable name="code" select="normalize-space(gfc:code/gco:CharacterString)"/>
     {
       "@type": ["schema:PropertyValue"],
       "schema:name": "<xsl:value-of select="util:escapeForJson(gfc:memberName)"/>"
-      <xsl:if test="gfc:definition/gco:CharacterString[normalize-space() != '']">
+      <xsl:choose>
+        <xsl:when test="gfc:definition/gco:CharacterString[normalize-space() != '']">
       ,"schema:description": "<xsl:value-of select="util:escapeForJson(gfc:definition/gco:CharacterString)"/>"
-      </xsl:if>
-      <xsl:if test="gfc:code/gco:CharacterString[normalize-space() != '']">
-      ,"schema:propertyID": ["<xsl:value-of select="util:escapeForJson(gfc:code/gco:CharacterString)"/>"]
+        </xsl:when>
+        <xsl:otherwise>
+      ,"schema:description": "missing"
+        </xsl:otherwise>
+      </xsl:choose>
+      <xsl:if test="$code != ''">
+        <xsl:choose>
+          <!-- CDIF allows an objectReference in propertyID, so a URI is emitted as
+               one rather than flattened to a string. -->
+          <xsl:when test="matches($code, '^[a-zA-Z][a-zA-Z0-9+.-]*://.+')">
+      ,"schema:propertyID": [{"@id": "<xsl:value-of select="util:escapeForJson($code)"/>"}]
+          </xsl:when>
+          <xsl:otherwise>
+      ,"schema:propertyID": ["<xsl:value-of select="util:escapeForJson($code)"/>"]
+          </xsl:otherwise>
+        </xsl:choose>
       </xsl:if>
       <xsl:if test="gfc:valueType/gco:TypeName/gco:aName/gco:CharacterString[normalize-space() != '']">
       ,"cdi:intendedDataType": "<xsl:value-of select="util:escapeForJson(gfc:valueType/gco:TypeName/gco:aName/gco:CharacterString)"/>"
       </xsl:if>
-      <xsl:if test="gfc:valueMeasurementUnit/gco:UomIdentifier[normalize-space() != '']">
-      ,"schema:unitText": "<xsl:value-of select="util:escapeForJson(gfc:valueMeasurementUnit/gco:UomIdentifier)"/>"
+      <xsl:if test="$unitCode != ''">
+      ,"schema:unitCode": "<xsl:value-of select="util:escapeForJson($unitCode)"/>"
+      </xsl:if>
+      <!-- Suppressed when it merely repeats the code, which is what the inbound
+           converter stores if a record carried only unitCode. -->
+      <xsl:if test="$unitUom != '' and $unitUom != $unitCode">
+      ,"schema:unitText": "<xsl:value-of select="util:escapeForJson($unitUom)"/>"
+      </xsl:if>
+      <xsl:if test="$minVal != ''">
+      ,"schema:minValue": <xsl:value-of select="$minVal"/>
+      </xsl:if>
+      <xsl:if test="$maxVal != ''">
+      ,"schema:maxValue": <xsl:value-of select="$maxVal"/>
       </xsl:if>
     }<xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>],
