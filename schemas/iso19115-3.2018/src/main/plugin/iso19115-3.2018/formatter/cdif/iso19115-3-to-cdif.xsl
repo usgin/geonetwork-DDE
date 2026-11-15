@@ -36,7 +36,22 @@
 
   <xsl:output method="text"/>
 
+  <!-- Which conformance classes to declare, decided from the emitted body. -->
+  <xsl:include href="cdif-conformance.xsl"/>
+
   <xsl:param name="baseUrl" select="util:getSettingValue('nodeUrl')"/>
+
+  <!--
+    The CDIF version family this output declares conformance to. CDIF versions its
+    conformance URIs as https://w3id.org/cdif/{module}/{version}, and a release changes
+    only the version: `main` is the 1.1 family throughout, the unmerged
+    release/conformance-2.0 branch is 2.0 throughout. So one parameter covers the switch.
+
+    Default 1.1, which is what CDIF publishes and what the DDE building blocks vendor.
+    Overridable per request, because XsltFormatter passes URL parameters to the stylesheet
+    by name (see its class comment): /formatters/cdif?cdifVersion=2.0.
+  -->
+  <xsl:param name="cdifVersion" select="'1.1'"/>
 
   <!-- ================================================================
        Main entry template
@@ -49,6 +64,41 @@
     <xsl:variable name="recordUrl"
                   select="concat($baseUrl, 'api/records/', $uuid)"/>
 
+    <!--
+      The dataset body is built first, into a variable, so that cdif-subjectOf can read
+      what was actually emitted and declare conformance to match. Before this the record
+      declared a fixed single class whatever it contained.
+    -->
+    <xsl:variable name="body">
+      <xsl:call-template name="cdif-basic-properties">
+        <xsl:with-param name="recordUrl" select="$recordUrl"/>
+      </xsl:call-template>
+
+      <xsl:call-template name="cdif-agents"/>
+
+      <xsl:call-template name="cdif-keywords"/>
+
+      <xsl:call-template name="cdif-browse-graphics"/>
+
+      <xsl:call-template name="cdif-constraints"/>
+
+      <xsl:call-template name="cdif-spatial"/>
+
+      <xsl:call-template name="cdif-temporal"/>
+
+      <xsl:call-template name="cdif-distribution"/>
+
+      <xsl:call-template name="cdif-variables"/>
+
+      <xsl:call-template name="cdif-provenance"/>
+
+      <xsl:call-template name="cdif-quality"/>
+
+      <xsl:call-template name="cdif-supplemental"/>
+
+      <xsl:call-template name="cdif-related"/>
+    </xsl:variable>
+
     <!-- Build the flat/expanded JSON-LD as a string -->
     <xsl:variable name="flatJsonLd">
 {
@@ -57,36 +107,11 @@
   "@type": ["schema:Dataset"],
   "@id": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>",
 
-  <xsl:call-template name="cdif-basic-properties">
-    <xsl:with-param name="recordUrl" select="$recordUrl"/>
-  </xsl:call-template>
-
-  <xsl:call-template name="cdif-agents"/>
-
-  <xsl:call-template name="cdif-keywords"/>
-
-  <xsl:call-template name="cdif-browse-graphics"/>
-
-  <xsl:call-template name="cdif-constraints"/>
-
-  <xsl:call-template name="cdif-spatial"/>
-
-  <xsl:call-template name="cdif-temporal"/>
-
-  <xsl:call-template name="cdif-distribution"/>
-
-  <xsl:call-template name="cdif-variables"/>
-
-  <xsl:call-template name="cdif-provenance"/>
-
-  <xsl:call-template name="cdif-quality"/>
-
-  <xsl:call-template name="cdif-supplemental"/>
-
-  <xsl:call-template name="cdif-related"/>
+  <xsl:copy-of select="$body"/>
 
   <xsl:call-template name="cdif-subjectOf">
     <xsl:with-param name="recordUrl" select="$recordUrl"/>
+    <xsl:with-param name="body" select="string($body)"/>
   </xsl:call-template>
 
   "schema:url": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>"
@@ -804,6 +829,7 @@
        ================================================================ -->
   <xsl:template name="cdif-subjectOf">
     <xsl:param name="recordUrl"/>
+    <xsl:param name="body" select="''"/>
 
     <xsl:variable name="creationDate"
                   select="mdb:dateInfo[*/cit:dateType/*/@codeListValue='creation'][1]/*/cit:date/(gco:Date|gco:DateTime)"/>
@@ -825,12 +851,26 @@
     <xsl:if test="$revisionDate[normalize-space() != '']">
     ,"schema:dateModified": "<xsl:value-of select="$revisionDate"/>"
     </xsl:if>
-    <!-- dcterms:conformsTo: the CDIF discovery profile requires this array to CONTAIN
-         exactly {"@id": "https://w3id.org/cdif/discovery/1.1"} (additionalProperties
-         false). `contains` permits further entries, so any profiles declared in the
-         source metadata are appended alongside it rather than replacing it. -->
+    <!-- dcterms:conformsTo: each CDIF profile module requires this array to CONTAIN
+         {"@id": "https://w3id.org/cdif/{module}/{version}"} with additionalProperties
+         false, so the classes compose and source-declared profiles can be appended
+         alongside them. Which classes are declared, and why three of the six CDIF
+         modules are never among them, is in cdif-conformance.xsl. -->
     ,"dcterms:conformsTo": [
-      {"@id": "https://w3id.org/cdif/discovery/1.1"}
+      <!-- The classes come from cdif-conformance.xsl, which reads the body emitted above
+           so the declaration cannot drift from the content. `contains` in each profile
+           module permits further entries, so the classes compose, and any profiles
+           declared in the source metadata are appended below alongside them. -->
+      <xsl:variable name="classes" as="xs:string*"
+                    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <xsl:call-template name="cdif-conformance-classes">
+          <xsl:with-param name="body" select="$body"/>
+          <xsl:with-param name="version" select="$cdifVersion"/>
+        </xsl:call-template>
+      </xsl:variable>
+      <xsl:for-each select="$classes">{"@id": "<xsl:value-of select="."/>"}<xsl:if
+        test="position() != last()">,</xsl:if>
+      </xsl:for-each>
       <xsl:for-each select="$profiles">
       <xsl:variable name="profName" select="cit:title/gco:CharacterString"/>
       <xsl:variable name="profUrl" select="cit:onlineResource/*/cit:linkage/gco:CharacterString"/>

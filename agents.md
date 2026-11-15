@@ -601,6 +601,56 @@ The outbound formatter at `schemas/iso19115-3.2018/.../formatter/cdif/iso19115-3
 GET /geonetwork/srv/api/records/{uuid}/formatters/cdif
 ```
 
+### Version family, and which conformance classes it declares
+
+CDIF versions its conformance URIs as `https://w3id.org/cdif/{module}/{version}`, and a release
+changes only the version: CDIF `main` is the **1.1** family throughout, the unmerged
+`release/conformance-2.0` branch is **2.0** throughout. One parameter therefore covers the switch:
+
+```
+GET /geonetwork/srv/api/records/{uuid}/formatters/cdif?cdifVersion=2.0
+```
+
+`cdifVersion` defaults to `1.1`, which is what CDIF publishes and what the DDE building blocks
+vendor. `XsltFormatter` passes URL parameters to the stylesheet by name, so no other wiring is
+needed. Nothing else in the formatter hardcodes a version.
+
+**The declared classes follow the body actually emitted**, not a fixed list, on the principle
+CDIF's own `validation/detect_conformance.py` uses: a class is declared when the record uses the
+elements that class introduces beyond its base. Before 2026-11-15 the formatter emitted a single
+fixed `discovery/1.1` whatever the record contained — over-declaring for a bare record, and never
+declaring `core`, which `cdifCore` requires.
+
+The rule lives in `formatter/cdif/cdif-conformance.xsl`, kept separate from the main formatter and
+free of `util:` extension functions so it can be driven directly under plain Saxon. It tests the
+emitted JSON text rather than re-deriving the ISO-side conditions, deliberately: re-deriving would
+leave two expressions of one rule, free to drift, which is how a record ends up declaring a class
+it does not satisfy.
+
+| class | marker |
+|---|---|
+| `core/{v}` | always — the formatter always emits a Dataset with a name and an identifier |
+| `discovery/{v}` | any of `schema:measurementTechnique`, `schema:variableMeasured`, `schema:spatialCoverage`, `schema:temporalCoverage`, `dqv:hasQualityMeasurement` |
+| `manifest/{v}` | `schema:hasPart`, which this formatter emits only for archive members on a distribution item |
+
+Three of the six CDIF modules are **not declarable from this formatter**, verified by grepping it
+for each marker:
+
+- `data_description` needs variables typed `cdi:InstanceVariable`; `cdif-variables` emits
+  `schema:PropertyValue` only.
+- `data_structure` needs `cdi:isStructuredBy` or a `cdi:` structure class; neither is emitted.
+- `provenance` needs a dual-typed `prov:Activity` + `schema:Action` carrying one of
+  `schema:instrument`, `schema:object` or `schema:actionProcess`. `cdif-provenance` emits the dual
+  type but only `schema:description` and `prov:used`, which is the minimal activity `cdifCore`
+  already covers.
+
+Verified against the oracle, not just by reading: nine records covering each marker, the
+version swap, a provenance activity carrying only description and `prov:used`, and a description
+containing the literal text `"schema:hasPart"`, were run through both the XSLT (under Saxon) and
+`detect_conformance.py`. **All nine agree.** The escaped-lookalike case confirms that searching for
+the key with its trailing colon cannot be fooled by content, because `util:escapeForJson` turns the
+quotes into `\"`.
+
 ### Formatter sections
 
 The XSLT generates these CDIF JSON-LD properties:
