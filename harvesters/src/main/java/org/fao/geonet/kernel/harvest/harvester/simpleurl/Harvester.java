@@ -425,8 +425,12 @@ class Harvester implements IHarvester<HarvestResult> {
     private Element convertJsonRecordToXml(JsonNode jsonRecord, String uuid, String apiUrl, String nodeUrl) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
+            // Pick the conversion from what the record declares, before framing: framing
+            // rewrites structure, and the framing decision below depends on the answer.
+            String conversion = selectConversion(jsonRecord, uuid);
+
             // Apply JSON-LD framing for CDIF records to normalize structure
-            if (isCdifConversion() && jsonRecord.has("@context")) {
+            if (isCdifConversion(conversion) && jsonRecord.has("@context")) {
                 jsonRecord = frameJsonLd(jsonRecord, uuid);
             }
 
@@ -441,7 +445,7 @@ class Harvester implements IHarvester<HarvestResult> {
             recordAsElement.addContent(new Element("uuid").setText(uuid));
             recordAsElement.addContent(new Element("apiUrl").setText(apiUrl));
             recordAsElement.addContent(new Element("nodeUrl").setText(nodeUrl));
-            return applyConversion(recordAsElement, uuid);
+            return applyConversion(recordAsElement, uuid, conversion);
         } catch (Exception e) {
             log.error(String.format("Failed to convert JSON record %s to XML. Error is: %s",
                 uuid, e.getMessage()));
@@ -560,11 +564,46 @@ class Harvester implements IHarvester<HarvestResult> {
     }
 
     /**
-     * Check if the harvester is configured for CDIF JSON-LD conversion.
+     * Choose the conversion for one JSON record.
+     *
+     * <p>With no dispatch rules configured this is just the harvester's single configured
+     * conversion, which is what it was before rules existed. With rules, the record's own
+     * declared conformance decides, so one harvester can take a mixed feed; a record that
+     * declares nothing a rule matches still falls back to the configured conversion rather
+     * than being dropped.
+     *
+     * <p>Must be given the <strong>unframed</strong> record -- see {@link CdifConformance}.
      */
-    private boolean isCdifConversion() {
-        return StringUtils.isNotEmpty(params.toISOConversion)
-            && params.toISOConversion.contains("fromJsonCdif");
+    private String selectConversion(JsonNode unframedRecord, String uuid) {
+        List<CdifConformance.Rule> rules = CdifConformance.parseRules(params.conformanceRules);
+        if (rules.isEmpty()) {
+            return params.toISOConversion;
+        }
+        List<String> declared = CdifConformance.conformsTo(unframedRecord);
+        String selected = CdifConformance.select(rules, declared);
+        if (selected == null) {
+            log.debug(String.format(
+                "Record %s declares %s, which no dispatch rule matches; using the configured conversion %s.",
+                uuid, declared.isEmpty() ? "no conformance class" : declared,
+                params.toISOConversion));
+            return params.toISOConversion;
+        }
+        log.debug(String.format("Record %s declares %s; dispatching to conversion %s.",
+            uuid, declared, selected));
+        return selected;
+    }
+
+    /**
+     * Check whether a conversion is the CDIF JSON-LD one, which is what decides if JSON-LD
+     * framing runs.
+     *
+     * <p>Takes the conversion rather than reading {@code params.toISOConversion}: once a
+     * record can be dispatched to a different conversion than the configured one, testing
+     * the configured value would frame -- or fail to frame -- on the wrong basis.
+     */
+    private boolean isCdifConversion(String conversion) {
+        return StringUtils.isNotEmpty(conversion)
+            && conversion.contains("fromJsonCdif");
     }
 
     /**
@@ -786,9 +825,18 @@ class Harvester implements IHarvester<HarvestResult> {
     }
 
     private Element applyConversion(Element input, String uuid) {
-        if (StringUtils.isNotEmpty(params.toISOConversion)) {
+        return applyConversion(input, uuid, params.toISOConversion);
+    }
+
+    /**
+     * Apply a named conversion. The RDF and XML collection paths call the two-argument form
+     * and so always use the configured conversion; only JSON records can be dispatched to
+     * another one, since only they carry a conformance declaration to dispatch on.
+     */
+    private Element applyConversion(Element input, String uuid, String conversion) {
+        if (StringUtils.isNotEmpty(conversion)) {
             Path xslPath = ApplicationContextHolder.get().getBean(GeonetworkDataDirectory.class)
-                .getXsltConversion(params.toISOConversion);
+                .getXsltConversion(conversion);
             try {
                 HashMap<String, Object> xslParams = new HashMap<>();
                 if (uuid != null) {

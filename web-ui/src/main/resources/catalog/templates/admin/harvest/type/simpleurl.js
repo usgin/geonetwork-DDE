@@ -24,6 +24,7 @@ var gnHarvestersimpleurl = {
         "pageFromParam": "",
         "recordIdPath": "",
         "toISOConversion": "",
+        "conformanceRules": "",
         "isSitemap": false
       },
       "content" : {
@@ -94,6 +95,7 @@ var gnHarvestersimpleurl = {
       + '    <pageFromParam>' + h.site.pageFromParam + '</pageFromParam>'
       + '    <pageSizeParam>' + h.site.pageSizeParam + '</pageSizeParam>'
       + '    <toISOConversion>' + h.site.toISOConversion + '</toISOConversion>'
+      + '    <conformanceRules><![CDATA[' + (h.site.conformanceRules || '') + ']]></conformanceRules>'
       + '    <isSitemap>' + h.site.isSitemap + '</isSitemap>'
       + '  </site>'
       + gnHarvestersimpleurl.buildResponseCSWSearch($scope)

@@ -189,6 +189,23 @@
       <p class="help-block" data-translate="">applyXSLToRecordHelp</p>
     </div>
 
+    <div id="gn-harvest-settings-simpleurl-basic-conformanceRules-row">
+      <label
+        id="gn-harvest-settings-conformanceRules-label"
+        class="control-label"
+        data-translate=""
+        >harvesterConformanceRules</label
+      >
+      <textarea
+        id="gn-harvest-settings-conformanceRules"
+        class="form-control"
+        rows="4"
+        data-ng-model="harvesterSelected.site.conformanceRules"
+        placeholder="https://w3id.org/cdif/dde/1.0/*=schema:iso19115-3.2018:convert/fromDde"
+      ></textarea>
+      <p class="help-block" data-translate="">harvesterConformanceRulesHelp</p>
+    </div>
+
     <div id="gn-harvest-settings-csw-advanced-batchEdits-row">
       <label id="gn-harvest-settings-csw-advanced-batchEdits-label" class="control-label">
         <span data-translate="">harvesterBatchEdits</span>

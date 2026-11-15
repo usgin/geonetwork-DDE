@@ -38,6 +38,12 @@ public class SimpleUrlParams extends AbstractParams {
     public String pageSizeParam;
     public String pageFromParam;
     public String toISOConversion;
+    /**
+     * Ordered conformance dispatch rules, {@code uri=conversion} one per line, most
+     * specific first. Empty means always use {@link #toISOConversion}. See
+     * {@link CdifConformance}.
+     */
+    public String conformanceRules;
     public String isSitemap;
 
     public SimpleUrlParams(DataManager dm) {
@@ -60,6 +66,7 @@ public class SimpleUrlParams extends AbstractParams {
         pageSizeParam = Util.getParam(site, "pageSizeParam", "");
         pageFromParam = Util.getParam(site, "pageFromParam", "");
         toISOConversion = Util.getParam(site, "toISOConversion", "");
+        conformanceRules = Util.getParam(site, "conformanceRules", "");
         isSitemap = Util.getParam(site, "isSitemap", "false");
         icon = Util.getParam(site, "icon", "");
     }
@@ -79,6 +86,7 @@ public class SimpleUrlParams extends AbstractParams {
         pageSizeParam = Util.getParam(site, "pageSizeParam", "");
         pageFromParam = Util.getParam(site, "pageFromParam", "");
         toISOConversion = Util.getParam(site, "toISOConversion", "");
+        conformanceRules = Util.getParam(site, "conformanceRules", "");
         isSitemap = Util.getParam(site, "isSitemap", isSitemap);
         icon = Util.getParam(site, "icon", icon);
     }

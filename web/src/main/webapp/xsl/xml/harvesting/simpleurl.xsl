@@ -28,6 +28,9 @@
     <toISOConversion>
       <xsl:value-of select="toISOConversion/value"/>
     </toISOConversion>
+    <conformanceRules>
+      <xsl:value-of select="conformanceRules/value"/>
+    </conformanceRules>
     <isSitemap>
       <xsl:value-of select="isSitemap/value"/>
     </isSitemap>

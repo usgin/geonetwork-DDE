@@ -187,12 +187,13 @@ not the matched node, so `@context` survives and framing still runs.
 
 ### How a record is identified as CDIF
 
-Today: **by configuration, not by content.** `isCdifConversion()` is a substring test for
-`fromJsonCdif` against the configured conversion name. Nothing examines `@context`, `@type` or
-`dcterms:conformsTo`. The only content-dependent behaviour is that JSON-LD framing is applied solely
-when the record has an `@context`.
+**By configuration, unless dispatch rules are set.** With no rules, `isCdifConversion()` is a
+substring test for `fromJsonCdif` against the chosen conversion, and the chosen conversion is
+whatever the harvester was configured with — the behaviour since the harvester was written. Set
+rules and a JSON record's own declared conformance picks the conversion instead, so one harvester
+can take a mixed feed.
 
-#### Planned: dispatch on the catalog record's conformance class
+#### Dispatch on the catalog record's conformance class
 
 Selecting the XSLT from the record's declared conformance, so one harvester can take a mixed feed.
 Not implemented. The matcher specification, which is narrower than it first appears:
@@ -215,16 +216,48 @@ vocabulary is `cdif/core/1.1`, `discovery/1.1`, `data_description/1.1`, `data_st
 `manifest/1.1` and `codelist/1.1`, and a record declares `core/1.1` alongside its specific profile.
 A `core/1.1` rule placed first would swallow everything.
 
-Two implementation notes. Read the conformance from the **unframed** record — framing rewrites
-structure, which is why `recoverDroppedFields()` exists. And `isCdifConversion()` must then test the
-*selected* conversion rather than the configured one, or a rule-dispatched CDIF record would
-silently skip framing.
+Two implementation notes, both now done. The conformance is read from the **unframed** record —
+framing rewrites structure, which is why `recoverDroppedFields()` exists — and `isCdifConversion()`
+takes the *selected* conversion rather than reading the configured one, or a rule-dispatched CDIF
+record would silently skip framing.
 
-Blocked on the DDE conformance URIs. `ddeCatalogRecord` currently declares
-`https://w3id.org/cdif/bbr/metadata/DDEproperties/ddeCore`, which is a building-block register path
-rather than a versioned conformance class: it sits inside CDIF's register and carries no version, so
-a rule written against it cannot distinguish DDE profile revisions. Settle those URIs before
-building the dispatcher — the rules are only as precise as what they match on.
+Implemented 2026-11-15 in `CdifConformance` (matcher and rules) and `Harvester.selectConversion()`
+(wiring), with 21 unit tests in `CdifConformanceTest`. The two traps above are each asserted by a
+named test, including that a `conformsTo` on a `schema:distribution` is **not** picked up.
+
+##### Configuring it
+
+A new harvester field, `conformanceRules`, stored beside `toISOConversion`. One rule per line (or
+separated by `;`), `conformanceUri=conversion`, blank lines and `#` comments ignored. A trailing `*`
+makes the URI a prefix, which is how one rule covers a family of profile URIs:
+
+```
+# most specific first
+https://w3id.org/cdif/dde/1.0/*=schema:iso19115-3.2018:convert/fromDde
+https://w3id.org/cdif/core/2.0=schema:iso19115-3.2018:convert/fromJsonCdifV2
+https://w3id.org/cdif/core/1.1=schema:iso19115-3.2018:convert/fromJsonCdif
+```
+
+The conversion name is the full transform identifier, the same form `toISOConversion` takes —
+`schema:iso19115-3.2018:convert/fromJsonCdif`, not the bare file name. `GET
+/srv/api/site/info/transforms` lists what the catalogue offers.
+
+Three deliberate limits:
+
+- **Rules are tried in order, and for each rule every declared URI**, so rule order decides rather
+  than the order a record happens to list its classes in. A rule for a shared base class placed
+  first swallows every record; there is a test asserting exactly that, so the cost of getting the
+  order wrong is visible rather than folklore.
+- **No match means fall back**, to the configured `toISOConversion`, logged at debug. A record is
+  never dropped for declaring something unrecognised.
+- **Only the JSON path dispatches.** `collectRecordsFromRdf` and `collectRecordsFromXml` call the
+  two-argument `applyConversion` and always use the configured conversion, since neither carries a
+  conformance declaration to dispatch on.
+
+The DDE conformance URIs this was blocked on are now settled: each DDE profile pins
+`https://w3id.org/cdif/dde/1.0/{profileName}` (usgin/ddeBuildingBlocks#7, merged 2026-11-15), which
+is a versioned conformance class rather than the register path with no version that `ddeCore` used
+to declare. The w3id redirects are perma-id/w3id.org#7199.
 
 ### Serving Local Files for Testing
 
