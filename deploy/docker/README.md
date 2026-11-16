@@ -135,6 +135,45 @@ git submodule update --init --recursive
 `plugins/datahub-integration/geonetwork-ui` will warn that it cannot be accessed. That is expected
 and harmless unless you are building that plugin.
 
+## TLS
+
+GeoNetwork on Tomcat can terminate TLS itself, with a keystore on a `:443` connector. This stack
+terminates it in an nginx container instead, so the catalogue image carries no certificates and
+renewal is a file swap. It is an optional profile:
+
+```bash
+docker compose --profile tls up -d
+```
+
+If you are migrating from a Tomcat TLS connector, convert its PKCS12 keystore to the PEM pair
+nginx wants — nginx cannot read PKCS12 directly:
+
+```bash
+mkdir -p deploy/docker/tls
+openssl pkcs12 -in keystore.pfx -clcerts -nokeys  -out deploy/docker/tls/fullchain.pem
+openssl pkcs12 -in keystore.pfx -cacerts -nokeys -chain >> deploy/docker/tls/fullchain.pem
+openssl pkcs12 -in keystore.pfx -nocerts -nodes   -out deploy/docker/tls/privkey.pem
+chmod 600 deploy/docker/tls/privkey.pem
+```
+
+`deploy/docker/tls/` is gitignored. Check the expiry before relying on it:
+
+```bash
+openssl x509 -in deploy/docker/tls/fullchain.pem -noout -subject -dates -ext subjectAltName
+```
+
+**Then set the public URL in the catalogue**, or it will build `http://` links into an `https://`
+page and the browser will block them as mixed content. `X-Forwarded-Proto` from the proxy is
+necessary but not sufficient: go to **Admin > Settings > System > Server** and set the host to the
+public name and the port to 443 with HTTPS. The `nodeUrl` setting is what the CDIF formatter uses to
+build `@id` values, so getting it wrong puts the wrong base URL into every exported record.
+
+The proxy also gives a redirect that a Tomcat connector does not. `redirectPort` on an HTTP
+connector is **not** an HTTP-to-HTTPS redirect: it applies only to requests for a resource that
+declares a `CONFIDENTIAL` transport guarantee in `web.xml`, so everything else is served over plain
+HTTP. If you are replacing such a setup, check what `:8080` has been exposing. The nginx `:80`
+block is an unconditional 301.
+
 ## Security
 
 - `.env` is gitignored and must stay that way. **This repository is public.**

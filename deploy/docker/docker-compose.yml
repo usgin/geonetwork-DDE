@@ -53,6 +53,25 @@ services:
       elasticsearch:
         condition: service_healthy
 
+  # TLS termination. Optional: without it the catalogue is reachable on
+  # ${GN_PORT} over plain HTTP, which is fine behind someone else's proxy and
+  # not fine on a public address. Start it with
+  #   docker compose --profile tls up -d
+  # once deploy/docker/tls/{fullchain,privkey}.pem exist. README.md has the
+  # openssl command that converts an existing PKCS12 keystore.
+  proxy:
+    image: nginx:1.27-alpine
+    profiles: ["tls"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/geonetwork.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./tls:/etc/nginx/tls:ro
+    depends_on:
+      - geonetwork
+
   elasticsearch:
     # 8.14.3 is pinned, not preferred: pom.xml pins es.version to it, which
     # drives the bundled Java client, and the upstream manual marks 8.14.x the
