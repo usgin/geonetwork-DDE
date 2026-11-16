@@ -670,9 +670,23 @@ ul.container-list {
   }
 }
 
+// Organisation avatar: a logo if api/logos/<orgKey>.png resolves, otherwise the
+// organisation's first letter. See gnCircleLetterIcon in UtilityDirective.js.
+//
+// The size cap is load-bearing. The directive renders an inline SVG with a
+// viewBox and no width or height, attached to a div.col-md-3, so it expands to
+// its container's width -- and below Bootstrap's md breakpoint col-md-3 becomes
+// full width, which turns the fallback letter into a circle several hundred
+// pixels across. Any catalogue whose contacts mostly lack logos then shows a
+// page of giant initials.
 [data-gn-circle-letter-icon],
 [gn-circle-letter-icon] {
   svg {
+    display: block;
+    width: 100%;
+    max-width: 64px;
+    height: auto;
+
     circle {
       stroke-width: 14;
       stroke: @brand-primary;
