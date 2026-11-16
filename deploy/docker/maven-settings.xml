@@ -2,11 +2,13 @@
 <!--
   Mirror the retired oss.sonatype.org to Maven Central for the Docker build.
 
-  web/pom.xml still routes four plugin dependencies through OSSRH
-  (org.webjars.npm:wrappy, minimatch, once, inflight). That service is retired
-  and 302-redirects, and Maven reports the result as an authentication or
-  redirect error that names neither the repository nor the artifacts. All four
-  are on Central. See deploy/README.md Step 1, which records this as one of
+The root pom.xml declares two pluginRepository entries against OSSRH at lines
+  1402-1408 (web/pom.xml has none), and four plugin dependencies resolve through
+  them: org.webjars.npm wrappy, minimatch, once and inflight. OSSRH is decaying
+  rather than cleanly retired -- /content/groups/public/ 302s and
+  /content/repositories/github-releases/ 404s -- so Maven reports a redirect or
+  authentication error that names neither the repository nor the artifacts. All
+  four artifacts are on Central. See deploy/README.md Step 1, which records this as one of
   three dependency problems that block the wro4j prebuild.
 
   Mirroring by repository id rather than using <mirrorOf>*</mirrorOf> keeps any

@@ -1,17 +1,28 @@
 # GeoNetwork-DDE 4.4.9-0 from a war built outside Docker.
 #
 # Use this when the war cannot be built inside the image. The usual reason is
-# that repo.osgeo.org is unreachable: three artifacts this project needs exist
-# only there and not on Maven Central —
+# that repo.osgeo.org is unreachable, and the exposure is far wider than the
+# handful of artifacts the first failure names: a warm .m2 for this project
+# holds roughly 360-390 artifacts fetched from OSGeo, and the ones that matter
+# are absent from Maven Central, verified by 404 —
 #
-#     net.sf.saxon:saxon:9.1.0.8b-patch       the XSLT engine the schema plugin runs on
-#     globus:cog-jglobus:1.2-060802
-#     xml-resolver:xml-resolver-patched:1.2.1
+#     the whole GeoTools stack       gt-main, gt-metadata, ... 32.3
+#     net.sf.saxon:saxon:9.1.0.8b-patch     the XSLT engine the schema plugin runs on
+#     imageio-ext-*, jaiext, opendap:2.1, jzkit, cog-jglobus,
+#     xml-resolver-patched, sardine:5.1-GEONETWORK
 #
-# — so a build on a machine with no Maven cache fails at gn-common and cannot
-# recover. A populated ~/.m2 is then the only way to build this project at all,
-# which makes `mvn -o` on a developer machine the fallback. (Observed
-# 2026-11-16: repo.osgeo.org returning 502, root URL not responding.)
+# — so a build on a machine with no Maven cache dies at gn-common and cannot
+# recover. A populated ~/.m2 is then the only reachable copy of this project's
+# dependency set, which makes `mvn -o` on a developer machine the fallback, and
+# makes that cache worth backing up.
+#
+# This is not GeoNetwork's doing and upgrading does not help. GeoTools has
+# always published to repo.osgeo.org rather than Central, a decision every
+# GeoTools-based application inherits; the OSGeo repository declarations and
+# every affected coordinate are identical in 4.4.9, 4.4.12 and upstream main,
+# and main declares six repo.osgeo.org URLs where 4.4.9 declares four. Upstream
+# issue #9520 tracks the repository's reliability. (Observed 2026-11-16:
+# repo.osgeo.org returning 502, root URL not responding.)
 #
 # Build the war first, offline, with the same two flags the normal image uses:
 #

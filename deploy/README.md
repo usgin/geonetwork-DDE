@@ -138,8 +138,13 @@ mvn war:war -pl web -Dprebuild-cache=true               # fresh JVM, packages th
 
 Three dependency problems must be cleared first, none of which the error names:
 
-1. `oss.sonatype.org` (OSSRH) is **retired** and 302-redirects. `web/pom.xml`
-   still routes plugin dependencies through it. The artifacts
+1. `oss.sonatype.org` (OSSRH) is decaying and 302-redirects. The two
+   `pluginRepository` declarations are in the **root `pom.xml`, lines
+   1402-1408** (`oss.sonatype.org-github-releases` and
+   `sonatype-public-repository`), not in `web/pom.xml`, which has none. It is
+   decaying rather than cleanly retired: `/content/groups/public/` returns 302
+   and `/content/repositories/github-releases/` returns 404, which is why Maven
+   reports a redirect or authentication error instead of a dead service. The artifacts
    (`org.webjars.npm:wrappy`, `minimatch`, `once`, `inflight`) are on Maven
    Central. A `settings.xml` mirroring that repository id to Central is the
    durable fix.
