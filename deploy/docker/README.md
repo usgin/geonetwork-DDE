@@ -258,6 +258,20 @@ cd /root/docker && docker compose run --rm --entrypoint sh geonetwork -c 'rm -f 
 ```
 
 ```bash
+cd /root/docker && docker compose run --rm --entrypoint sh geonetwork -c 'rm -rf /var/lib/geonetwork_data/data/resources/htmlcache/formatter-cache && ls /var/lib/geonetwork_data/data/resources/htmlcache/'
+```
+
+**Clearing the formatter cache is as necessary as replacing the plugin, and is easy to miss
+because everything looks right without it.** GeoNetwork caches rendered formatter output under
+`<data dir>/data/resources/htmlcache/formatter-cache`, so after an upgrade `/formatters/cdif` is
+served from a copy made by the old XSLT. On 2026-11-16 the plugin refresh succeeded and the new
+XSLT was verifiably in the volume, yet a record returned byte-identical broken output until this
+directory was removed.
+
+The `ls` prints what remains. **Leave `wro4j-cache.mv.db`**: that is the prebuild cache, and
+deleting it costs a 16 s first request for the CSS and 430 s for the JS.
+
+```bash
 cd /root/docker && docker compose up -d && docker compose logs -f geonetwork
 ```
 
