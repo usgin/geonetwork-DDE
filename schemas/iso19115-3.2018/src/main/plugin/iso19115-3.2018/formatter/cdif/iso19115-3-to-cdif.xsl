@@ -459,8 +459,25 @@
        Temporal coverage
        ================================================================ -->
   <xsl:template name="cdif-temporal">
-    <xsl:variable name="temporals"
+    <!--
+      Only extents that actually carry a date are emitted. ISO allows a TimePeriod
+      whose ends are empty with indeterminatePosition="unknown", which is a record
+      saying it does not know when the data are from. Emitting those produced the
+      string "/" alone, an interval with no bounds, and a temporalCoverage array
+      whose only member said nothing. Record G01414 is one.
+
+      Filtering here rather than inside the loop also keeps the separator honest: an
+      entry that emits nothing must not be counted when deciding where commas go,
+      which is the same mistake that put a trailing comma in schema:distribution.
+    -->
+    <xsl:variable name="allTemporals"
                   select="mdb:identificationInfo/*/mri:extent/*/gex:temporalElement/*/gex:extent"/>
+    <xsl:variable name="temporals" select="$allTemporals[
+                      .//gml:begin/gml:TimeInstant
+                      or .//gml:end/gml:TimeInstant
+                      or gml:TimePeriod/gml:beginPosition[normalize-space() != '']
+                      or gml:TimePeriod/gml:endPosition[normalize-space() != '']
+                      or (not(gml:TimePeriod) and normalize-space(.) != '')]"/>
     <xsl:if test="$temporals">
   "schema:temporalCoverage": [<xsl:for-each select="$temporals">
       <xsl:choose>
@@ -527,9 +544,16 @@
     }</xsl:when>
         <!-- ISO dates: TimePeriod with begin/end -->
         <xsl:when test="gml:TimePeriod">
-          <xsl:variable name="begin" select="gml:TimePeriod/gml:beginPosition"/>
-          <xsl:variable name="end" select="gml:TimePeriod/gml:endPosition"/>
-    "<xsl:value-of select="concat($begin, '/', $end)"/>"</xsl:when>
+          <xsl:variable name="begin"
+                        select="normalize-space(gml:TimePeriod/gml:beginPosition)"/>
+          <xsl:variable name="end"
+                        select="normalize-space(gml:TimePeriod/gml:endPosition)"/>
+          <!-- One open end is written as "..", which is how schema.org spells an
+               open-ended ISO 8601 interval. The filter above guarantees at least one
+               end is present, so this cannot produce "../..". -->
+    "<xsl:value-of select="concat(if ($begin != '') then $begin else '..',
+                                 '/',
+                                 if ($end != '') then $end else '..')"/>"</xsl:when>
         <xsl:otherwise>
     "<xsl:value-of select="normalize-space(.)"/>"</xsl:otherwise>
       </xsl:choose>
