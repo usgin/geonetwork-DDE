@@ -43,6 +43,11 @@ services:
       GEONETWORK_ES_PROTOCOL: http
       GEONETWORK_ES_HOST: elasticsearch
       GEONETWORK_ES_PORT: 9200
+      # Protects credentials stored in the database. Required rather than
+      # optional: left unset, GeoNetwork generates a random key into the data
+      # directory, and that file then becomes the one irreplaceable thing in
+      # the volume.
+      ENCRYPTOR_PASSWORD: ${ENCRYPTOR_PASSWORD:?set ENCRYPTOR_PASSWORD in .env}
       # Heap
       GN_HEAP: ${GN_HEAP:--Xms1g -Xmx2g}
     volumes:

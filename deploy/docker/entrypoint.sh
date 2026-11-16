@@ -32,6 +32,14 @@ for v in GEONETWORK_DB_HOST GEONETWORK_DB_PORT GEONETWORK_DB_NAME \
        GEONETWORK_DB_PORT in particular has no default at all."
 done
 
+# The encryptor key. Without it GeoNetwork writes a random one into the data
+# directory and that file becomes irreplaceable: lose the volume and every
+# stored credential is undecryptable, database dump or not. Checked here as
+# well as in compose so that running the image directly cannot skip it.
+[ -n "${ENCRYPTOR_PASSWORD:-}" ] || fail "ENCRYPTOR_PASSWORD is not set. GeoNetwork would
+       generate a random key into <data dir>/config/encryptor.properties, which
+       then has to be backed up separately for the volume to be restorable."
+
 : "${GEONETWORK_DB_TYPE:=postgres}"
 if [ "$GEONETWORK_DB_TYPE" != "postgres" ]; then
   echo "WARNING: GEONETWORK_DB_TYPE=$GEONETWORK_DB_TYPE, not postgres." >&2
@@ -75,6 +83,7 @@ echo "  database   ${GEONETWORK_DB_TYPE} at ${GEONETWORK_DB_HOST}:${GEONETWORK_D
 echo "  search     ${GEONETWORK_ES_PROTOCOL}://${GEONETWORK_ES_HOST}:${GEONETWORK_ES_PORT}"
 echo "  data dir   ${GN_DATA_DIR:-/var/lib/geonetwork_data}"
 echo "  heap       ${GN_HEAP:--Xms1g -Xmx2g}"
+echo "  encryptor  key supplied from ENCRYPTOR_PASSWORD (value not printed)"
 echo "  (the password is not printed; check it in .env if authentication fails)"
 
 exec "$@"
