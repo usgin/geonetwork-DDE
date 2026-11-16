@@ -1,10 +1,20 @@
 # DDE GeoNetwork redeployment handover
 
-As of 2026-10-22.
+As of 2026-11-16.
 
-The complete GeoNetwork application, the DDE schema customizations and the deployment documentation are all available and listed below. The catalogue content — metadata records, users, permissions and settings — is not: it exists only in the PostgreSQL instance on Alibaba Cloud, which USGIN has never had access to, so it has to be exported by whoever administers that server.
+The complete GeoNetwork application, the DDE schema customizations and the deployment
+documentation are all available and listed below.
 
-One qualification, added after the deployment was examined more closely: the records that originally seeded the catalogue, and the harvester configuration that loaded them, have both been recovered and are supplied in this folder. What remains unrecoverable is anything created or edited in the catalogue after early 2024, together with the users, permissions and settings.
+> **The premise this document was written on turned out to be false, and the correction is the
+> most useful thing in it.** It said the catalogue's content existed only in an inaccessible
+> PostgreSQL instance and therefore had to be exported by whoever administered that server. When
+> the running deployment was finally examined with root access on 2026-11-15, it held **five
+> records and stock settings**. There was nothing worth exporting. See
+> [What was actually on the running deployment](#what-was-actually-on-the-running-deployment).
+>
+> A redeployment is therefore a **fresh install seeded from this folder**, not a migration. The 21
+> records in [harvest-records-2024/](harvest-records-2024/) are now the authoritative starting
+> corpus — four times what was live, and verified to import cleanly.
 
 For step-by-step deployment instructions, see [README.md](README.md) in this folder.
 
@@ -29,6 +39,42 @@ The 2024-era fork is frozen on a 4.4.4 *snapshot* from April 2024, roughly two a
 
 The DDE customizations are concentrated in the ISO 19115-3:2018 schema plugin at `schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/` — the editor view, converters, formatter, indexing and labels. Cloning the fork brings all of it.
 
+## What was actually on the running deployment
+
+Examined 2026-11-15 from a root shell on the ECS instance, which until then nobody at USGIN had
+had access to. The machine was replaced with a fresh one the following day, so this is the only
+record of it.
+
+| | |
+|---|---|
+| Application | Tomcat 9 as a systemd service named "GeoNetwork Tomcat 9", running since 2026-10-23 |
+| War | 285,820,217 bytes — **the same size as the archived April 2024 build**, so the binary was the original 2024 one, not a rebuild |
+| Search | Elasticsearch **8.11.3** in Docker, bound to `127.0.0.1:9200`, security enabled |
+| Database | **No PostgreSQL** anywhere on the host: no process, no container, no service |
+| Records | **five** |
+| Settings | `system/site/name` was `My GeoNetwork catalogue` — the stock default, never branded |
+
+Two conclusions follow, and they are what matter.
+
+**Nothing was lost when that machine was replaced.** Five records and default settings are less
+than this folder already contains. The exports described below were never going to be worth
+having, and the months spent treating them as a blocker were spent on a premise nobody had
+checked.
+
+**The database was almost certainly not the Alibaba PostgreSQL this document assumed.**
+`WEB-INF/config.properties` on the deployed war carried no JDBC settings at all, and the Tomcat
+command line carried no `-Dgeonetwork.db.type` — which defaults to `h2`, because
+`config-node/srv.xml` imports `config-db/${geonetwork.db.type:h2}.xml`. That points at an embedded
+H2 file on that disk rather than a managed instance. It was never confirmed directly: the machine
+was replaced before the running process's environment could be read, which would have settled it.
+It no longer matters, but it is the reason the "export from the running deployment" section below
+is kept only as reference.
+
+Also recorded, as defects in what was running rather than anything introduced since: port 8080
+served the catalogue, login form included, over plain HTTP to the internet; `webapps/ROOT` was
+world-writable; the Elasticsearch was below the 8.14.x minimum GeoNetwork 4.4 states; and the
+wildcard TLS certificate expired on 2026-11-13.
+
 ## What is missing, and why
 
 Three things were asked for that USGIN cannot supply.
@@ -43,7 +89,12 @@ If a copy of the production database exists anywhere, it is on the Alibaba Cloud
 
 ## What must be exported from the running deployment
 
-Two exports are needed, both from the existing server, and both only obtainable by whoever has access to it.
+> **Moot, kept as reference.** The deployment this described held five records and stock settings,
+> and the machine was replaced on 2026-11-16. There is nothing left to export and nothing that was
+> worth exporting. What follows applies only if a copy of some *other*, fuller catalogue ever
+> surfaces.
+
+Two exports would be needed, both from the server, and both only obtainable by whoever has access to it.
 
 1. **The PostgreSQL database**, via `pg_dump` of the GeoNetwork database. This single dump carries metadata records, users, groups, permissions and settings — they all live in these tables. A custom-format dump is easiest to restore: `pg_dump -Fc -d <database> -f geonetwork.dump`.
 2. **The GeoNetwork data directory** from the server's filesystem, the path that `geonetwork.dir` points at. Uploaded attachments and browse-graphic images are stored as files here, **not** in the database, so a database dump alone loses them.

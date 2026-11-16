@@ -1,0 +1,90 @@
+# GeoNetwork-DDE 4.4.9-0 from a war built outside Docker.
+#
+# Use this when the war cannot be built inside the image. The usual reason is
+# that repo.osgeo.org is unreachable: three artifacts this project needs exist
+# only there and not on Maven Central —
+#
+#     net.sf.saxon:saxon:9.1.0.8b-patch       the XSLT engine the schema plugin runs on
+#     globus:cog-jglobus:1.2-060802
+#     xml-resolver:xml-resolver-patched:1.2.1
+#
+# — so a build on a machine with no Maven cache fails at gn-common and cannot
+# recover. A populated ~/.m2 is then the only way to build this project at all,
+# which makes `mvn -o` on a developer machine the fallback. (Observed
+# 2026-11-16: repo.osgeo.org returning 502, root URL not responding.)
+#
+# Build the war first, offline, with the same two flags the normal image uses:
+#
+#   mvn -o package -pl web -am -DskipTests -Dprebuild-cache=true -Dwro.debug=false
+#
+# then, from the repository root:
+#
+#   docker build -f deploy/docker/Dockerfile.prebuilt -t dde-geonetwork:4.4.9-0 .
+#
+# Everything below the war is identical to Dockerfile, including both
+# assertions: a war built without -Dprebuild-cache=true or without
+# -Dwro.debug=false is rejected here exactly as it would be there, so taking
+# this route cannot quietly produce a worse image.
+
+FROM tomcat:9.0.85-jdk11-temurin
+
+ARG WAR=web/target/geonetwork.war
+
+# Tomcat's own sample applications are not wanted on a public server.
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# curl for the HEALTHCHECK below. Installed rather than assumed: whether the
+# tomcat image ships it is not something to find out from a container that
+# reports unhealthy while working perfectly.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY ${WAR} /usr/local/tomcat/webapps/geonetwork.war
+
+# ASSERT 1: the wro4j cache is actually inside the war. Measured on Tomcat
+# 9.0.85, a war without it serves its first gn_search_default.css in 16.4 s and
+# its first .js in 429.5 s, against ~5 ms with it — and a container starts cold
+# every time. A war missing it is still valid and still deploys, which is
+# exactly why this is checked rather than trusted. `jar` comes with the JDK in
+# this image, so nothing extra is installed for it.
+RUN set -eux; \
+    cd /tmp; \
+    jar tf /usr/local/tomcat/webapps/geonetwork.war | grep -q 'WEB-INF/prebuilt/wro4j-cache.mv.db' \
+      || { echo "FAIL: wro4j prebuild cache missing from the war."; \
+           echo "      Rebuild with -Dprebuild-cache=true."; exit 1; }; \
+    echo "OK: wro4j prebuild cache is packaged"
+
+# ASSERT 2: wro4j is not in debug mode. wro.debug defaults to true in pom.xml
+# and no profile sets it false, so the flag has to be passed explicitly.
+RUN set -eux; \
+    cd /tmp && rm -rf wrocheck && mkdir wrocheck && cd wrocheck; \
+    jar xf /usr/local/tomcat/webapps/geonetwork.war WEB-INF/wro.properties; \
+    grep -E '^debug[[:space:]]*=[[:space:]]*false[[:space:]]*$' WEB-INF/wro.properties \
+      || { echo "FAIL: WEB-INF/wro.properties does not say debug=false:"; \
+           grep -E '^debug' WEB-INF/wro.properties || true; \
+           echo "      Rebuild with -Dwro.debug=false."; exit 1; }; \
+    cd /tmp && rm -rf wrocheck; \
+    echo "OK: wro.debug=false is baked in"
+
+# The data directory holds uploaded files, thumbnails, schema plugins, the DDE
+# thesauri and the index configuration. It lives outside webapps/ so that
+# redeploying the war never touches it, and is a named volume in compose.
+ENV GN_DATA_DIR=/var/lib/geonetwork_data
+RUN mkdir -p "$GN_DATA_DIR"
+
+COPY deploy/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENV GN_HEAP="-Xms1g -Xmx2g"
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
+  CMD curl -fsS -H 'Accept: application/json' \
+      'http://localhost:8080/geonetwork/srv/api/search/records/_search?bucket=bucket' \
+      -X POST -H 'Content-Type: application/json' -d '{"size":0}' > /dev/null || exit 1
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["catalina.sh", "run"]

@@ -24,3 +24,10 @@ deploy/harvest-records-2024
 .vscode
 **/.DS_Store
 **/*.iml
+
+# Dockerfile.prebuilt needs exactly one of the files excluded above: the war
+# built outside Docker. Re-included by name, with its directory, because a
+# parent exclusion otherwise stops the context descending into it. Nothing else
+# under web/target comes along.
+!web/target
+!web/target/geonetwork.war
