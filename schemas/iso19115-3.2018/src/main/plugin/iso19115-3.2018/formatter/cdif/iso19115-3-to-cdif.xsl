@@ -53,6 +53,34 @@
   -->
   <xsl:param name="cdifVersion" select="'1.1'"/>
 
+  <!--
+    Base for IRIs minted for nodes the source gives no identifier of their own:
+    agents without a partyIdentifier, and temporal extents. Previously these were
+    JSON-LD blank nodes, "_:agent-creator-1" and the like.
+
+    Blank nodes are legal JSON-LD, but cdifDataType/objectReference describes @id as a
+    "resolvable @id", and a blank node is by definition not resolvable: it is scoped to
+    the document and means nothing once two records are merged into one graph. Two
+    records' _:agent-creator-1 are different people that a merge cannot tell apart.
+
+    Minting them under the record's own URL fixes that: the IRIs are resolvable, in a
+    namespace the catalogue owns, and unique across records because the record uuid is
+    in the path. example.org was considered and rejected : RFC 2606 reserves it for
+    documentation, so publishing identifiers there asserts a namespace that can never
+    resolve and is explicitly not for real use, which is worse than a blank node
+    honestly saying the node has no identifier.
+
+    If the record has no identifier there is nothing to build on, and the blank node
+    form is kept.
+  -->
+  <xsl:variable name="recordNodeBase">
+    <xsl:variable name="uuid"
+                  select="(//mdb:MD_Metadata)[1]/mdb:metadataIdentifier[1]/*/mcc:code/gco:CharacterString"/>
+    <xsl:if test="normalize-space($uuid) != ''">
+      <xsl:value-of select="concat($baseUrl, 'api/records/', normalize-space($uuid))"/>
+    </xsl:if>
+  </xsl:variable>
+
   <!-- ================================================================
        Main entry template
        ================================================================ -->
@@ -492,7 +520,10 @@
         }
       }
       </xsl:if>
-      ,"@id": "_:temporal-<xsl:value-of select="position()"/>"
+      ,"@id": "<xsl:value-of select="util:escapeForJson(
+                 if ($recordNodeBase != '')
+                 then concat($recordNodeBase, '#temporal-', position())
+                 else concat('_:temporal-', position()))"/>"
     }</xsl:when>
         <!-- ISO dates: TimePeriod with begin/end -->
         <xsl:when test="gml:TimePeriod">
@@ -518,8 +549,24 @@
                   select="mdb:distributionInfo/*/mrd:distributor/mrd:MD_Distributor/
                           mrd:distributorContact/cit:CI_Responsibility/cit:party/
                           (cit:CI_Organisation|cit:CI_Individual)/cit:name/gco:CharacterString[normalize-space() != '']"/>
-    <xsl:if test="$transferOpts/mrd:onLine/cit:CI_OnlineResource[cit:linkage/gco:CharacterString[normalize-space() != '']]">
-  "schema:distribution": [<xsl:for-each select="$transferOpts">
+    <!--
+      Only the transfer options that actually yield a distribution object are
+      iterated. Iterating all of them emitted a trailing comma whenever one had no
+      primary online resource: the inner loop produced nothing for it, but the
+      preceding option's separator had already been written, giving "},]" and JSON
+      that will not parse. Seen on record G01414, whose CDIF output was rejected by a
+      JSON validator at the closing bracket of schema:distribution.
+
+      A transfer option with only archive members produces no object either way: the
+      members are emitted as schema:hasPart inside the primary object, so with no
+      primary there is nothing to attach them to. Excluding such an option therefore
+      changes only the punctuation.
+    -->
+    <xsl:variable name="distOpts" select="$transferOpts[mrd:onLine/cit:CI_OnlineResource[
+                        not(contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil/OGC/0/inapplicable')
+                            and cit:function/*/@codeListValue = 'information')]]"/>
+    <xsl:if test="$distOpts">
+  "schema:distribution": [<xsl:for-each select="$distOpts">
       <!-- Primary resource: NOT an archive member (inapplicable nil URL with function=information) -->
       <xsl:variable name="primary"
                     select="mrd:onLine/cit:CI_OnlineResource[
@@ -932,7 +979,11 @@
       <xsl:choose>
         <xsl:when test="$indivId[normalize-space() != '']"><xsl:value-of select="$indivId"/></xsl:when>
         <xsl:when test="$orgId[normalize-space() != '']"><xsl:value-of select="$orgId"/></xsl:when>
-        <xsl:otherwise>_:agent-<xsl:value-of select="$agentIndex"/></xsl:otherwise>
+        <xsl:otherwise>
+          <xsl:value-of select="if ($recordNodeBase != '')
+                                then concat($recordNodeBase, '#agent-', $agentIndex)
+                                else concat('_:agent-', $agentIndex)"/>
+        </xsl:otherwise>
       </xsl:choose>
     </xsl:variable>
 
