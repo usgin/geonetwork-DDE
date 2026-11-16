@@ -15,3 +15,33 @@
     display: none;
   }
 }
+
+// Records with no thumbnail.
+//
+// infolist.html, grid.html, list.html, metadataCard.html, grid4maps.html and
+// featuredusersearchescards.html all set a class for this case:
+//
+//   <div class="gn-md-thumbnail" data-ng-class="{'gn-md-no-thumbnail': !md.overview[0]}">
+//     <div class="gn-img-thumbnail" style="background-image: url('{{md.overview[0].url|...}}')">
+//
+// but no stylesheet implemented either class, so the element was laid out as
+// though it held an image and rendered as an empty bordered box. On a catalogue
+// where few records carry a browse graphic the result is a page of them: here,
+// 150 records out of 7112 have one.
+//
+// The element is collapsed rather than given a placeholder image, so a card
+// without a thumbnail is simply a card of text. A placeholder would need an
+// asset, and a generic one says nothing a reader cannot already see.
+.gn-md-thumbnail.gn-md-no-thumbnail {
+  display: none;
+}
+
+// The card itself carries hasThumbnail / noThumbnail, set on the <li>. Give the
+// text the full width when there is no image beside it, rather than leaving the
+// gap the thumbnail would have occupied.
+.gn-info-list > li.noThumbnail {
+  .gn-md-details,
+  .gn-md-contents {
+    width: 100%;
+  }
+}
