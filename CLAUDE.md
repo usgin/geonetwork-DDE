@@ -240,14 +240,31 @@ never in it. The logs preserved it anyway:
 
 | Setting | Value |
 |---|---|
-| Harvesters | Two, both `LocalFilesystemHarvester`: `local DDE` and `clone: local DDE` |
+| Harvesters | Two by name, **three by id**: `local DDE` and `clone: local DDE`, both `LocalFilesystemHarvester`, but ids 100, 277 and 313 all appear in `harvesting/id:*/options/status`. One was deleted and recreated, or a third existed and never ran under its own log. |
 | Source directory | `C:\tmp\forHarvest`, `recurse = true` |
 | Owner | `ownerId = 1` |
 | Runs | 29 logged, 2024-02-09 → 2024-04-02 |
 
-**There is no remote harvest endpoint to recover** — no CSW, OAI-PMH or sitemap, and no credentials.
-The catalogue was loaded from a folder of files on a workstation, so recreating the harvester is a
-few fields in the admin console.
+**There is no remote harvest endpoint to recover** — no CSW, OAI-PMH or sitemap, and no
+credentials. The catalogue was loaded from a folder of files on a workstation, so recreating the
+harvester is a few fields in the admin console.
+
+Re-verified 2026-11-16 across all 30 logs, including the 715 MB `harvester_default.log`, because
+the three candidate protocols all *appear* in them and none means what it looks like:
+
+| candidate | hits | what it actually is |
+|---|---|---|
+| `csw` | 8,424 | the **`csw-record` schema plugin** loading at startup, `<csw:BriefRecord xmlns:csw=…>` namespace declarations |
+| `sitemap` | 8 | `metadata/url/sitemapLinkUrl` read at startup, **value empty** — GeoNetwork's own setting for *publishing* a sitemap |
+| `GetRecords` | 7 | `[geonetwork.csw] - GetRecords getElementNames` — the catalogue **serving** CSW to someone else |
+
+OAI-PMH, WebDAV, Z39.50, THREDDS, WFS and SimpleUrl appear **zero** times. Every harvest is a
+`[geonetwork.harvester] - reading file: C:\tmp\forHarvest\…` line in the `filesystem` logs.
+
+**The 2024 catalogue had at least one external CSW consumer.** Those seven `GetRecords` entries
+are inbound: something was querying `/srv/eng/csw` on 2024-02-11, 2024-02-12 and 2024-04-02.
+Nothing else records that the catalogue was being consumed by a client, and it is worth knowing
+before assuming a redeployment has no downstream users.
 
 ### The seed records
 
