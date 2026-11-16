@@ -861,8 +861,23 @@
        Related Links (from associatedResource)
        ================================================================ -->
   <xsl:template name="cdif-related">
-    <xsl:variable name="assocResources"
+    <!--
+      Only associations that name something are emitted. An MD_AssociatedResource can
+      carry an associationType with no metadataReference, which produced a LinkRole
+      with a linkRelationship and no target: a record saying something is part of it
+      without saying what. CDIF's linkRole does not require schema:target, so that
+      output is schema-valid and useless, which is the harder kind of defect to
+      notice. Seen on Geoscience Australia records carrying a bare isPartOf.
+
+      Filtering before the loop, rather than skipping inside it, also keeps the
+      separator correct: an entry that emits nothing must not be counted when
+      deciding where commas go.
+    -->
+    <xsl:variable name="allAssocResources"
                   select="mdb:identificationInfo/*/mri:associatedResource/mri:MD_AssociatedResource"/>
+    <xsl:variable name="assocResources" select="$allAssocResources[
+                      mri:metadataReference/cit:CI_Citation/cit:title/gco:CharacterString[normalize-space() != '']
+                      or mri:metadataReference/cit:CI_Citation/cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != '']]"/>
     <xsl:if test="$assocResources">
   "schema:relatedLink": [<xsl:for-each select="$assocResources">
     <xsl:variable name="assocCode" select="mri:associationType/*/@codeListValue"/>
