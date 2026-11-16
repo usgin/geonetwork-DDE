@@ -325,6 +325,8 @@ The DDE schema plugin and thesauri arrive with the war, so this step is checking
    > Proven 2026-11-14 on a fresh 4.4.9-0 deployment: a Directory harvester over all 21 files of
    > `harvest-records-2024/` reported **21 total, 0 unknownSchema, 0 badFormat, 0 doesNotValidate**
    > and produced 18 distinct records, all indexed as `iso19115-3.2018`.
+   >
+   > The 18 was not deduplication of copies: three files collided on two identifiers and were silently discarded. Fixed 2026-11-16 in 71ed4ac004, so a harvest of the current files should now give 21.
 
    Two traps when defining that harvester by hand (via `admin.harvester.add`, which is what the
    admin console posts to):

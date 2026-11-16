@@ -291,8 +291,10 @@ editor templates. GeoNetwork loads templates as *template* records, so importing
 
 **Verified end to end on 2026-11-14**: a `LocalFilesystemHarvester` over all 21 with
 `importxslt = schema:iso19115-3.2018:convert/fromDDE-any` gave **21 total, 0 unknownSchema, 0
-badFormat, 0 doesNotValidate**, producing 18 distinct records (some files share a uuid), every one
-indexed as `iso19115-3.2018`. `fromDDE-any` really does handle "any" — DDE 1.0, DDE instances, DDE
+badFormat, 0 doesNotValidate**, producing 18 distinct records, every one indexed as
+`iso19115-3.2018`. The 18 was not deduplication of copies: three files collided on two identifiers and were silently discarded. Fixed 2026-11-16 in 71ed4ac004, so a harvest of the current files should now give 21. A dataset and its service shared
+`c98705ae-058a-43fb-85a2-7b5209d9a4b3`, and the three `DDEInstance*` files all carried the
+placeholder `metadataIdentifier-IDCode0`. `fromDDE-any` really does handle "any" — DDE 1.0, DDE instances, DDE
 templates *and* ISO 19139 in a single pass, which is how one harvester loaded a mixed folder in 2024.
 `formatters/dde` and `formatters/cdif` both return valid output for the harvested Arizona record.
 
