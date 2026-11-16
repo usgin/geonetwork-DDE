@@ -99,6 +99,60 @@ The `HEALTHCHECK` endpoint is also unproven. It POSTs to the search API with
 logged nowhere. If the container reports unhealthy while the catalogue answers in a browser, check
 that endpoint by hand first rather than assuming the catalogue is broken.
 
+## Upgrading to a new image
+
+Nothing you configured is lost. Settings, users, the admin password, harvester definitions and
+records all live in PostgreSQL; attachments and `encryptor.properties` live in the `gn_data`
+volume. Only the `geonetwork` container is replaced, so there is no reconfiguration to redo.
+
+**But a new image does not, by itself, update the schema plugin.** That is the step to get right,
+and getting it wrong looks like the fix not working rather than like a mistake.
+
+Schemas are loaded from the data directory, not from the war:
+
+```
+[geonetwork.schemamanager] - Loading schema /var/lib/geonetwork_data/config/schema_plugins/iso19115-3.2018/...
+```
+
+and `GeonetworkDataDirectory` copies them there only on a first start:
+
+```java
+Path schemaCatFile = configDir.resolve(Geonet.File.SCHEMA_PLUGINS_CATALOG);
+if (!Files.exists(schemaCatFile)) {          // only when the catalogue is ABSENT
+    ...
+    if (!Files.exists(destDir)) {            // and only plugins that are MISSING
+        IO.copyDirectoryOrFile(next, destDir, false);
+```
+
+Both guards have to be false for a plugin to be refreshed. On an upgrade the catalogue file exists,
+so the outer block never runs and the **old XSLTs stay in the volume**. Anything in
+`schemas/iso19115-3.2018/` — the DDE converters, the CDIF formatter, the editor view, the indexing
+fields — will appear not to have changed.
+
+So the upgrade is: load the image, remove the catalogue file and the plugin, start.
+
+```bash
+cd /root/docker && docker compose stop geonetwork
+```
+
+```bash
+docker compose run --rm --entrypoint sh geonetwork -c 'rm -f /var/lib/geonetwork_data/config/schemaplugin-uri-catalog.xml && rm -rf /var/lib/geonetwork_data/config/schema_plugins/iso19115-3.2018'
+```
+
+```bash
+docker compose up -d && docker compose logs -f geonetwork
+```
+
+**Check for `- Copying schema plugin catalogue ...` in the log.** That line is the confirmation the
+plugin was re-copied. Without it the new XSLTs are not live, whatever the image says.
+
+Only `iso19115-3.2018` is deleted, so the other schema plugins stay and GeoNetwork re-copies just
+the missing one. Nothing user-created lives in that directory: it is a build artifact, and the DDE
+thesauri are elsewhere, under `config/codelist/`.
+
+A full reindex is not needed for a formatter change, since `/formatters/cdif` reads the record
+rather than the index. It *is* needed after a change to `index-fields/`, from Admin > Tools.
+
 ## Host prerequisites
 
 Elasticsearch 8 needs this on the **host**, not in the container:
