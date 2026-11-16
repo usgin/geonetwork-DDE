@@ -95,3 +95,10 @@ web/src/main/webapp/WEB-INF/data/data/resources/schemapublication
 # Keep the template, keep the secrets out.
 deploy/docker/.env
 !deploy/docker/.env.example
+
+# TLS material for the container stack: certificates and private keys.
+deploy/docker/tls/
+
+# Site notes for live deployments: hostnames, addresses and findings about
+# running machines. This repository is public; that material stays local.
+deploy/site-notes/
