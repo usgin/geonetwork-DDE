@@ -4,7 +4,7 @@
     xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0 ../DDEMetadataXSD_20240103.xsd">
     <metadata:metadataIdentifier>
-        <metadata:code>http://www.ddeworld.org/metadata/3427q5wuh4oy</metadata:code>
+        <metadata:code>3427q5wuh4oy</metadata:code>
     </metadata:metadataIdentifier>
     <metadata:metadataStandardName>DDE S01-2023: Geosciences Information Metadata</metadata:metadataStandardName>
     <metadata:metadataResponsibleParty>

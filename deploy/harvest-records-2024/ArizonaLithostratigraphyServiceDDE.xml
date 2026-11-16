@@ -7,7 +7,7 @@
             <name>Arizona Geological Survey</name>
             <role>resourceProvider</role>
         </authority>
-        <code>c98705ae-058a-43fb-85a2-7b5209d9a4b3</code>
+        <code>c98705ae-058a-43fb-85a2-7b5209d9a4b3-service</code>
         <codeSpace>UUID</codeSpace>
     </metadataIdentifier>
     <metadataStandardName>DDE S01-2023: Geosciences Information Metadata</metadataStandardName>

@@ -10,7 +10,7 @@
             <metadata:country>AD</metadata:country>
             <metadata:electronicMailAddress>metadataIdentifierAuthority@email.org</metadata:electronicMailAddress>
         </metadata:authority>
-        <metadata:code>metadataIdentifier-IDCode0</metadata:code>
+        <metadata:code>metadataIdentifier-IDCode0-image</metadata:code>
         <metadata:codeSpace>metadataIdentifier-IDcodeSpace0</metadata:codeSpace>
         <metadata:version nilReason="unknown"/>
         <metadata:description>metadataIdentifier-IDdescription0</metadata:description>
