@@ -871,18 +871,21 @@
       <xsl:for-each select="$classes">{"@id": "<xsl:value-of select="."/>"}<xsl:if
         test="position() != last()">,</xsl:if>
       </xsl:for-each>
-      <xsl:for-each select="$profiles">
-      <xsl:variable name="profName" select="cit:title/gco:CharacterString"/>
-      <xsl:variable name="profUrl" select="cit:onlineResource/*/cit:linkage/gco:CharacterString"/>
-      ,{
-        "@type": "schema:CreativeWork"
-        <xsl:if test="$profName[normalize-space() != '']">
-        ,"schema:name": "<xsl:value-of select="util:escapeForJson($profName)"/>"
-        </xsl:if>
-        <xsl:if test="$profUrl[normalize-space() != '']">
-        ,"schema:url": "<xsl:value-of select="util:escapeForJson($profUrl)"/>"
-        </xsl:if>
-      }
+      <!-- Profiles declared in the source metadata, appended alongside the CDIF
+           classes above. Each entry must be an objectReference and nothing else:
+           cdifCatalogRecord types every dcterms:conformsTo item as one, and
+           objectReference requires @id with additionalProperties false. A
+           citation with no online resource therefore has no valid form here and
+           is skipped, rather than emitted as a named CreativeWork.
+
+           Until 2026-11-16 this emitted {"@type": "schema:CreativeWork",
+           "schema:name": ...} with no @id whenever the citation had no linkage,
+           which failed validation twice over: missing @id, and two properties
+           additionalProperties forbids. Every DDE record hit it, because they all
+           carry a "DDE S01-2023: Geosciences Information Metadata" profile
+           citation with a title and no onlineResource. -->
+      <xsl:for-each select="$profiles[cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != '']]">
+      ,{"@id": "<xsl:value-of select="util:escapeForJson(cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != ''][1])"/>"}
       </xsl:for-each>
     ]
     <xsl:if test="$maintainer">
