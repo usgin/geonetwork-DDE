@@ -655,27 +655,37 @@
                           ., $allLanguages, false(), true())"/>
                     </values>
 
-                    <!--  If keyword is related to a thesaurus available
-                    in current catalogue, checked the keyword exists in the thesaurus.
-                    If not, report an error in indexingErrorMsg field.
+                    <!-- A keywordNotFoundInThesaurus warning was emitted here, as an
+                         <errors><indexingErrorMsg type="object"> pair, when a keyword cited
+                         a thesaurus the catalogue does not hold. It is removed because it
+                         did not warn about the record: it destroyed it.
 
-                    This case may trigger editor warning message when a keyword is not
-                     found in the thesaurus. Try to anticipate this and advertise those
-                     records in the admin. -->
-                    <xsl:if test="$thesaurusId != '' and $keywordUri = ''">
-                      <errors>
-                        <indexingErrorMsg type="object">
-                          {
-                            "string": "indexingErrorMsg-keywordNotFoundInThesaurus",
-                            "type": "warning",
-                            "values": {
-                              "keyword": "<xsl:value-of select="util:escapeForJson((*/text())[1])"/>",
-                              "thesaurus": "<xsl:value-of select="util:escapeForJson($thesaurusId)"/>"
-                            }
-                          }
-                        </indexingErrorMsg>
-                      </errors>
-                    </xsl:if>
+                         The warning is built inside the $allKeywords variable, nested in the
+                         keyword structure rather than at the document root. By the time it
+                         reaches the root the type="object" marker is gone, so
+                         EsSearchManager.java:659 takes its non-object branch and writes the
+                         JSON as a plain string, which is why the rejected documents show
+                         indexingErrorMsg as an array of strings still carrying their raw
+                         newlines and indentation. records.json maps indexingErrorMsg as an
+                         object, so Elasticsearch refuses the whole document and GeoNetwork
+                         stores a stub holding nothing but id, uuid, title and the error.
+
+                         Measured on the deployed catalogue 2026-11-17: 9,955 of 32,049
+                         records (31%) were stubs, every one triggered by keywords citing
+                         "ANZRC Fields of Research", a Geoscience Australia vocabulary this
+                         catalogue does not have. They were invisible to search and to
+                         anonymous users, because a stub has no op0 field either. Nothing in
+                         the UI reported it.
+
+                         Upstream carries the same construct at
+                         schemas/iso19139/.../index-fields/index.xsl:559, so this is not a
+                         DDE defect, and it will recur for any harvested vocabulary the
+                         catalogue does not hold. Losing a third of a catalogue to an
+                         editor convenience is not a trade worth keeping.
+
+                         Unknown vocabularies still deserve reporting, see agents.md, but
+                         from a root-level field that can be aggregated, not from a nested
+                         warning that cannot survive serialisation. -->
 
                     <tree>
                       <defaults>
