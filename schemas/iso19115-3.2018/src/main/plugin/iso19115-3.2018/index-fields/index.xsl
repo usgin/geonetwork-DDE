@@ -48,6 +48,7 @@
                 xmlns:gn-fn-index="http://geonetwork-opensource.org/xsl/functions/index"
                 xmlns:xlink="http://www.w3.org/1999/xlink"
                 xmlns:daobs="http://daobs.org"
+                xmlns:dde-bg="https://www.ddeworld.org/xslt/browse-graphic"
                 xmlns:saxon="http://saxon.sf.net/"
                 extension-element-prefixes="saxon"
                 exclude-result-prefixes="#all"
@@ -58,6 +59,7 @@
   <xsl:import href="common/inspire-constant.xsl"/>
   <xsl:import href="common/index-utils.xsl"/>
   <xsl:import href="link-utility.xsl"/>
+  <xsl:import href="../convert/utilityDDE/browse-graphic.xsl"/>
 
   <xsl:output name="default-serialize-mode"
               indent="no"
@@ -446,18 +448,27 @@
         <xsl:copy-of select="gn-fn-index:add-multilingual-field('supplementalInformation', mri:supplementalInformation[* != ''], $allLanguages)"/>
         <xsl:copy-of select="gn-fn-index:add-multilingual-field('purpose', mri:purpose[* != ''], $allLanguages)"/>
 
+        <!-- The graphic's URL can sit in any of four places in MD_BrowseGraphic;
+             dde-bg:url searches them in order of authority and returns '' when
+             none holds something that is actually a URL. Reading mcc:fileName
+             unconditionally, as this did, indexed captions as URLs: a record
+             whose fileName is "Quick view lithostratigraphic map of Arizona",
+             with the real link in mcc:linkage, produced a request for that
+             sentence against the site root and a card with an empty image box.
+
+             A graphic with no URL is now dropped rather than indexed, so
+             hasOverview is false and the card renders as text. -->
         <xsl:variable name="overviews"
-                      select="mri:graphicOverview/mcc:MD_BrowseGraphic/
-                                mcc:fileName/(gco:CharacterString[. != '']|gcx:FileName[@src != ''])"/>
+                      select="mri:graphicOverview/mcc:MD_BrowseGraphic[dde-bg:url(.) != '']"/>
         <xsl:copy-of select="gn-fn-index:add-field('hasOverview', if (count($overviews) > 0) then 'true' else 'false')"/>
 
 
         <xsl:for-each select="$overviews">
           <overview type="object">{
-            "url": "<xsl:value-of select="if (local-name() = 'FileName') then util:escapeForJson(@src) else util:escapeForJson(normalize-space(.))"/>"
-            <xsl:if test="normalize-space(../../mcc:fileDescription) != ''">,
+            "url": "<xsl:value-of select="util:escapeForJson(dde-bg:url(.))"/>"
+            <xsl:if test="normalize-space(mcc:fileDescription) != ''">,
               "nameObject":
-              <xsl:value-of select="gn-fn-index:add-multilingual-field('name', ../../mcc:fileDescription, $allLanguages, true())"/>
+              <xsl:value-of select="gn-fn-index:add-multilingual-field('name', mcc:fileDescription, $allLanguages, true())"/>
             </xsl:if>
             }</overview>
         </xsl:for-each>

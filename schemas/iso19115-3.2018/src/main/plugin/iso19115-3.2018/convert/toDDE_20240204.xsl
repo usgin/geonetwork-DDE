@@ -42,11 +42,13 @@
     xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
     xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:dde="https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0"
+    xmlns:dde-bg="https://www.ddeworld.org/xslt/browse-graphic"
     exclude-result-prefixes="#all">
 
 
     <!--    <xsl:import href="utility/create19115-3Namespaces.xsl"/>-->
     <xsl:import href="utilityDDE/DDEutilities.xsl"/>
+    <xsl:import href="utilityDDE/browse-graphic.xsl"/>
     <xsl:output method="xml" indent="yes"/>
     <xsl:strip-space elements="*"/>
 
@@ -346,22 +348,14 @@
 
                 <xsl:for-each select="mdb:identificationInfo//mri:graphicOverview">
                     <dde:browseGraphic>
+                        <!-- dde:title is the caption. dde-bg:label yields the
+                             fileName text only when it is a label rather than a
+                             URL, and also reads gcx:FileName, which the choose
+                             this replaces did not. -->
+                        <xsl:variable name="bgLabel" select="dde-bg:label(mcc:MD_BrowseGraphic)"/>
                         <dde:title>
-                            <xsl:choose>
-                                <xsl:when
-                                    test="starts-with(mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString, 'http')">
-                                    <xsl:value-of select="string('Browse graphic')"/>
-                                </xsl:when>
-                                <xsl:when
-                                    test="mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString">
-                                    <xsl:value-of
-                                        select="mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString"
-                                    />
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <xsl:value-of select="string('Browse graphic')"/>
-                                </xsl:otherwise>
-                            </xsl:choose>
+                            <xsl:value-of
+                                select="if ($bgLabel != '') then $bgLabel else 'Browse graphic'"/>
                         </dde:title>
                         <xsl:if test="mcc:MD_BrowseGraphic/mcc:fileType/child::*">
                             <dde:applicationProfile>
@@ -377,19 +371,17 @@
                             </dde:description>
                         </xsl:if>
 
+                        <!-- dde:linkage is the URL, wherever MD_BrowseGraphic
+                             happened to carry it; see utilityDDE/browse-graphic.xsl.
+                             The choose this replaces looked only in mcc:linkage and
+                             in a fileName starting with 'http', so a URL held in
+                             gcx:FileName or its @src was lost and the graphic came
+                             out nil. -->
+                        <xsl:variable name="bgUrl" select="dde-bg:url(mcc:MD_BrowseGraphic)"/>
                         <dde:linkage>
                             <xsl:choose>
-                                <xsl:when
-                                    test="mcc:MD_BrowseGraphic/mcc:linkage//cit:linkage/gco:CharacterString">
-                                    <xsl:value-of
-                                        select="mcc:MD_BrowseGraphic/mcc:linkage//cit:linkage/gco:CharacterString"
-                                    />
-                                </xsl:when>
-                                <xsl:when
-                                    test="starts-with(mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString, 'http')">
-                                    <xsl:value-of
-                                        select="mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString"
-                                    />
+                                <xsl:when test="$bgUrl != ''">
+                                    <xsl:value-of select="$bgUrl"/>
                                 </xsl:when>
                                 <xsl:otherwise>
                                     <xsl:attribute name="nilReason" select="string('missing')"/>

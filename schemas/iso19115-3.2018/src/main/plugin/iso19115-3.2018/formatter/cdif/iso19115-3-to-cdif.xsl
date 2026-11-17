@@ -22,6 +22,7 @@
                 xmlns:xlink="http://www.w3.org/1999/xlink"
                 xmlns:util="java:org.fao.geonet.util.XslUtil"
                 xmlns:gn="http://www.fao.org/geonetwork"
+                xmlns:dde-bg="https://www.ddeworld.org/xslt/browse-graphic"
                 exclude-result-prefixes="#all">
   <!--
     Convert ISO 19115-3:2018 metadata to CDIF-compliant JSON-LD.
@@ -38,6 +39,7 @@
 
   <!-- Which conformance classes to declare, decided from the emitted body. -->
   <xsl:include href="cdif-conformance.xsl"/>
+  <xsl:include href="../../convert/utilityDDE/browse-graphic.xsl"/>
 
   <xsl:param name="baseUrl" select="util:getSettingValue('nodeUrl')"/>
 
@@ -348,27 +350,23 @@
   <xsl:template name="cdif-browse-graphics">
     <xsl:variable name="graphics"
                   select="mdb:identificationInfo/*/mri:graphicOverview/mcc:MD_BrowseGraphic"/>
-    <!-- The image location lives in mcc:linkage/cit:CI_OnlineResource/cit:linkage.
-         mcc:fileName carries the caption, because the DDE browseGraphic it comes
-         from is a CI_OnlineResource whose title maps there. Records that predate
-         that convention put the URL in fileName and have no linkage, so fall back
-         to fileName when it looks like one. schema:contentUrl is required by
-         ddeCore's ImageObject, so a graphic that yields no URL is skipped rather
-         than emitted invalid. -->
-    <xsl:variable name="usable" select="$graphics[
-        normalize-space(mcc:linkage/*/cit:linkage/gco:CharacterString) != ''
-        or matches(normalize-space(mcc:fileName/gco:CharacterString),
-                   '^[a-zA-Z][a-zA-Z0-9+.-]*://.+')]"/>
+    <!-- The image location can sit in any of four places in MD_BrowseGraphic,
+         so dde-bg:url searches them all; see convert/utilityDDE/browse-graphic.xsl.
+         This template used to search two of them with its own copy of the logic,
+         which agreed with neither the indexer nor the DDE converter.
+         schema:contentUrl is required by ddeCore's ImageObject, so a graphic
+         that yields no URL is skipped rather than emitted invalid. -->
+    <xsl:variable name="usable" select="$graphics[dde-bg:url(.) != '']"/>
     <xsl:if test="$usable">
   "schema:image": [<xsl:for-each select="$usable">
-      <xsl:variable name="link"
-                    select="normalize-space(mcc:linkage/*/cit:linkage/gco:CharacterString)"/>
-      <xsl:variable name="fileName" select="normalize-space(mcc:fileName/gco:CharacterString)"/>
-      <xsl:variable name="url" select="if ($link != '') then $link else $fileName"/>
+      <xsl:variable name="url" select="dde-bg:url(.)"/>
+      <!-- '' when fileName held the URL rather than a caption, since repeating
+           the URL as a name tells a reader nothing. -->
+      <xsl:variable name="label" select="dde-bg:label(.)"/>
     {
       "@type": ["schema:ImageObject"],
-      "schema:contentUrl": "<xsl:value-of select="util:escapeForJson($url)"/>"<xsl:if test="$link != '' and $fileName != ''">,
-      "schema:name": "<xsl:value-of select="util:escapeForJson($fileName)"/>"</xsl:if>
+      "schema:contentUrl": "<xsl:value-of select="util:escapeForJson($url)"/>"<xsl:if test="$label != ''">,
+      "schema:name": "<xsl:value-of select="util:escapeForJson($label)"/>"</xsl:if>
       <xsl:if test="normalize-space(mcc:fileDescription/gco:CharacterString) != ''">,
       "schema:description": "<xsl:value-of select="util:escapeForJson(normalize-space(mcc:fileDescription/gco:CharacterString))"/>"</xsl:if>
       <xsl:if test="normalize-space(mcc:fileType/gco:CharacterString) != ''">,
