@@ -23,6 +23,7 @@
                 xmlns:util="java:org.fao.geonet.util.XslUtil"
                 xmlns:gn="http://www.fao.org/geonetwork"
                 xmlns:dde-bg="https://www.ddeworld.org/xslt/browse-graphic"
+                xmlns:dde-or="https://www.ddeworld.org/xslt/online-resource"
                 exclude-result-prefixes="#all">
   <!--
     Convert ISO 19115-3:2018 metadata to CDIF-compliant JSON-LD.
@@ -40,6 +41,7 @@
   <!-- Which conformance classes to declare, decided from the emitted body. -->
   <xsl:include href="cdif-conformance.xsl"/>
   <xsl:include href="../../convert/utilityDDE/browse-graphic.xsl"/>
+  <xsl:include href="../../convert/utilityDDE/online-resource.xsl"/>
 
   <xsl:param name="baseUrl" select="util:getSettingValue('nodeUrl')"/>
 
@@ -95,6 +97,46 @@
                   select="concat($baseUrl, 'api/records/', $uuid)"/>
 
     <!--
+      CDIF asks three different things of a link, and ISO 19115-3 puts all three in
+      mrd:onLine: an endpoint to call becomes a schema:WebAPI distribution, a member of
+      a package becomes schema:hasPart, and a page a person opens becomes the dataset's
+      schema:url. cdifCore says so outright: "If user must access data through a landing
+      page, provide link to landing page in the url property for the dataset".
+
+      Only a record whose resourceScope is collection can have parts or a landing page
+      here. On an ordinary dataset record a persistent-identifier link is one of its own
+      distributions, so classifying those as parts would turn thousands of records into
+      packages and make them declare manifest conformance they do not have. Service
+      detection is not gated, because a WFS endpoint is a WFS endpoint on any record.
+    -->
+    <xsl:variable name="isCollection" as="xs:boolean"
+                  select="boolean(mdb:metadataScope/*/mdb:resourceScope/*/@codeListValue = 'collection')"/>
+    <xsl:variable name="distOnline"
+                  select="mdb:distributionInfo/*/(mrd:transferOptions
+                            | mrd:distributor/mrd:MD_Distributor/mrd:distributorTransferOptions)
+                          /mrd:MD_DigitalTransferOptions/mrd:onLine/cit:CI_OnlineResource"/>
+    <xsl:variable name="partLinks"
+                  select="$distOnline[$isCollection
+                                      and not(dde-or:is-service(.))
+                                      and dde-or:is-persistent-id(.)]"/>
+    <xsl:variable name="landingLinks"
+                  select="$distOnline[$isCollection
+                                      and not(dde-or:is-service(.))
+                                      and not(dde-or:is-persistent-id(.))]"/>
+    <!--
+      schema:url is a single string in CDIF, so one landing page is all a record can
+      carry. Prefer the one the source marked function=information, since that is the
+      closest ISO has to "this is the page to open"; otherwise take the first. With no
+      landing page at all the record URL stands, as it did before.
+    -->
+    <xsl:variable name="landingUrl" as="xs:string"
+                  select="normalize-space(string((
+                            $landingLinks[cit:function/*/@codeListValue = 'information']
+                              /cit:linkage/gco:CharacterString[normalize-space() != ''],
+                            $landingLinks/cit:linkage/gco:CharacterString[normalize-space() != ''],
+                            $recordUrl)[1]))"/>
+
+    <!--
       The dataset body is built first, into a variable, so that cdif-subjectOf can read
       what was actually emitted and declare conformance to match. Before this the record
       declared a fixed single class whatever it contained.
@@ -116,7 +158,13 @@
 
       <xsl:call-template name="cdif-temporal"/>
 
-      <xsl:call-template name="cdif-distribution"/>
+      <xsl:call-template name="cdif-distribution">
+        <xsl:with-param name="excluded" select="$partLinks | $landingLinks"/>
+      </xsl:call-template>
+
+      <xsl:call-template name="cdif-has-part">
+        <xsl:with-param name="partLinks" select="$partLinks"/>
+      </xsl:call-template>
 
       <xsl:call-template name="cdif-variables"/>
 
@@ -144,7 +192,7 @@
     <xsl:with-param name="body" select="string($body)"/>
   </xsl:call-template>
 
-  "schema:url": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>"
+  "schema:url": "<xsl:value-of select="util:escapeForJson($landingUrl)"/>"
 }
     </xsl:variable>
 
@@ -195,9 +243,42 @@
   "schema:description": "<xsl:value-of select="util:escapeForJson($identInfo/mri:abstract/gco:CharacterString)"/>",
     </xsl:if>
 
+    <!--
+      The resource scope, which is what the catalogue's "Type of resource" facet is
+      built from (index-fields/index.xsl reads the same codeListValue), as the ISO
+      codelist term URI. schema:additionalType is for exactly this: "identifiers for
+      datatypes from other vocabularies (not schema.org)".
+
+      GeoNetwork synthesises three facet values that are not codelist terms at all,
+      map-static, map-interactive and featureCatalog, so those get no term URI and are
+      emitted as the bare string the record carried. None of the 22,094 records here
+      currently has one, but a record from another source could.
+    -->
+    <xsl:variable name="scopeCodes" as="xs:string*"
+                  select="distinct-values(
+                            mdb:metadataScope/*/mdb:resourceScope/*/@codeListValue[normalize-space() != ''])"/>
+    <xsl:if test="count($scopeCodes) > 0">
+  "schema:additionalType": [<xsl:for-each select="$scopeCodes">
+    <xsl:choose>
+      <xsl:when test=". = ('map-static', 'map-interactive', 'featureCatalog')">"<xsl:value-of select="util:escapeForJson(.)"/>"</xsl:when>
+      <xsl:otherwise>{"@id": "https://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_ScopeCode/<xsl:value-of select="util:escapeForJson(.)"/>"}</xsl:otherwise>
+    </xsl:choose><xsl:if test="position() != last()">,</xsl:if>
+  </xsl:for-each>],
+    </xsl:if>
+
     <!-- identifier (first non-sameAs) -->
+    <!--
+      The parentheses matter. In A/B[1] the positional predicate applies to each A
+      separately, so without them this selected the first MD_Identifier of EVERY
+      cit:identifier rather than the first one overall. A record carrying both a
+      persistent identifier and a DOI then produced a two-node sequence, and
+      util:escapeForJson() rejects a sequence: the whole formatter failed with
+      "A sequence of more than one item is not allowed". The Thin Sections Collection
+      returned HTTP 500 from /formatters/cdif for exactly this reason.
+    -->
     <xsl:variable name="primaryId"
-                  select="$citation/cit:identifier/mcc:MD_Identifier[not(mcc:codeSpace/gco:CharacterString = 'sameAs')][1]"/>
+                  select="($citation/cit:identifier/mcc:MD_Identifier[
+                            not(mcc:codeSpace/gco:CharacterString = 'sameAs')])[1]"/>
     <xsl:if test="$primaryId/mcc:code/gco:CharacterString[normalize-space() != '']">
       <xsl:choose>
         <xsl:when test="$primaryId/mcc:codeSpace/gco:CharacterString[normalize-space() != '']">
@@ -562,11 +643,94 @@
 
 
   <!-- ================================================================
+       Package members (CDIF manifest)
+       ================================================================ -->
+  <xsl:template name="cdif-has-part">
+    <xsl:param name="partLinks" select="()"/>
+    <!--
+      schema:hasPart on the dataset is the manifest profile's resourcePartArray: the
+      members of a package that are each retrievable at their own address. That is the
+      opposite end of the profile from the hasPart inside a distribution, which is for
+      files in an archive that have no address of their own, and which this formatter
+      already emits for ADA records from the nil-URL convention.
+
+      Emitting this is all that is needed to declare the profile. cdif-conformance.xsl
+      keys the manifest class on the string "schema:hasPart": appearing in the body, so
+      the declaration follows the content instead of a fixed list, which is CDIF's own
+      rule for how a class is declared.
+
+      resourcePartItem requires @type to contain a schema:CreativeWork subclass. ISO
+      records a format for the distribution as a whole and not per member, so the choice
+      is made from the record's formats: a package declaring pdf is a set of documents,
+      anything else is left as the generic schema:Dataset.
+    -->
+    <xsl:if test="$partLinks">
+      <xsl:variable name="formats"
+                    select="(mdb:distributionInfo//mrd:distributionFormat
+                             | mdb:distributionInfo//mrd:distributorFormat
+                             | mdb:identificationInfo/*/mri:resourceFormat)
+                            /mrd:MD_Format/mrd:formatSpecificationCitation/cit:CI_Citation/
+                              cit:title/gco:CharacterString[normalize-space() != '']"/>
+      <xsl:variable name="isPdf" as="xs:boolean"
+                    select="boolean($formats[matches(normalize-space(.), '^pdf$', 'i')])"/>
+  "schema:hasPart": [<xsl:for-each select="$partLinks">
+    {
+      "@id": "<xsl:value-of select="util:escapeForJson(cit:linkage/gco:CharacterString)"/>",
+      "@type": ["<xsl:value-of select="if ($isPdf) then 'schema:DigitalDocument' else 'schema:Dataset'"/>"],
+      "schema:url": "<xsl:value-of select="util:escapeForJson(cit:linkage/gco:CharacterString)"/>"
+      <xsl:if test="cit:name/gco:CharacterString[normalize-space() != '']">
+      ,"schema:name": "<xsl:value-of select="util:escapeForJson(cit:name/gco:CharacterString)"/>"
+      </xsl:if>
+      <xsl:if test="cit:description/gco:CharacterString[normalize-space() != '']">
+      ,"schema:description": "<xsl:value-of select="util:escapeForJson(cit:description/gco:CharacterString)"/>"
+      </xsl:if>
+      <xsl:if test="$isPdf">
+      ,"schema:encodingFormat": ["application/pdf"]
+      </xsl:if>
+    }<xsl:if test="position() != last()">,</xsl:if>
+  </xsl:for-each>],
+    </xsl:if>
+  </xsl:template>
+
+
+  <!-- ================================================================
        Distribution
        ================================================================ -->
   <xsl:template name="cdif-distribution">
+    <!--
+      Links already accounted for elsewhere: package members emitted as schema:hasPart,
+      and the page emitted as schema:url. Emitting them here as well would claim the
+      same URL is both a download and a part.
+    -->
+    <xsl:param name="excluded" select="()"/>
+    <!--
+      CDIF requires schema:termsOfService on every schema:WebAPI, so a service endpoint
+      can only be typed as one when the record says something about its terms. The
+      resource licence is that statement; with none, the endpoint stays a DataDownload
+      rather than becoming a WebAPI this formatter knows to be invalid.
+    -->
+    <xsl:variable name="licCitation"
+                  select="mdb:identificationInfo/*/mri:resourceConstraints/
+                            mco:MD_LegalConstraints/mco:reference/cit:CI_Citation[1]"/>
+    <xsl:variable name="termsOfService" as="xs:string"
+                  select="normalize-space(string((
+                            $licCitation/cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != ''],
+                            $licCitation/cit:title/gco:CharacterString[normalize-space() != ''],
+                            mdb:identificationInfo/*/mri:resourceConstraints/mco:MD_LegalConstraints/
+                              mco:otherConstraints/gco:CharacterString[normalize-space() != ''],
+                            '')[1]))"/>
+    <!--
+      ISO 19115-3 allows transfer options in two places: on MD_Distribution directly,
+      and on each MD_Distributor as distributorTransferOptions. Reading only the first
+      lost most of the links in this catalogue. Across the eleven collection records,
+      39 of the 53 online resources hang off the distributor and only 14 off
+      MD_Distribution, so three quarters of every distribution was being dropped,
+      including all three Thin Sections service endpoints.
+    -->
     <xsl:variable name="transferOpts"
-                  select="mdb:distributionInfo/*/mrd:transferOptions/mrd:MD_DigitalTransferOptions"/>
+                  select="mdb:distributionInfo/*/(mrd:transferOptions
+                            | mrd:distributor/mrd:MD_Distributor/mrd:distributorTransferOptions)
+                          /mrd:MD_DigitalTransferOptions"/>
     <xsl:variable name="distributors"
                   select="mdb:distributionInfo/*/mrd:distributor/mrd:MD_Distributor/
                           mrd:distributorContact/cit:CI_Responsibility/cit:party/
@@ -584,24 +748,67 @@
       primary there is nothing to attach them to. Excluding such an option therefore
       changes only the punctuation.
     -->
-    <xsl:variable name="distOpts" select="$transferOpts[mrd:onLine/cit:CI_OnlineResource[
+    <xsl:variable name="distOpts" select="$transferOpts[(mrd:onLine/cit:CI_OnlineResource[
                         not(contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil/OGC/0/inapplicable')
-                            and cit:function/*/@codeListValue = 'information')]]"/>
+                            and cit:function/*/@codeListValue = 'information')] except $excluded)]"/>
     <xsl:if test="$distOpts">
   "schema:distribution": [<xsl:for-each select="$distOpts">
       <!-- Primary resource: NOT an archive member (inapplicable nil URL with function=information) -->
       <xsl:variable name="primary"
                     select="mrd:onLine/cit:CI_OnlineResource[
                       not(contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil/OGC/0/inapplicable')
-                          and cit:function/*/@codeListValue = 'information')]"/>
+                          and cit:function/*/@codeListValue = 'information')] except $excluded"/>
       <xsl:variable name="archiveMembers"
                     select="mrd:onLine/cit:CI_OnlineResource[
                       contains(cit:linkage/gco:CharacterString, 'opengis.net/def/nil/OGC/0/inapplicable')
                       and cit:function/*/@codeListValue = 'information']"/>
       <!-- Collect encoding formats from distributionFormat (the canonical source) -->
+      <!--
+        Reached by ancestor rather than by ../.., which pointed at MD_Distribution only
+        for the transferOptions branch; from distributorTransferOptions the same two
+        steps land on MD_Distributor and found nothing.
+      -->
+      <!--
+        ISO 19115-1 allows a format in three places, and this catalogue uses all three:
+        on MD_DigitalTransferOptions itself, on MD_Distribution, and on MD_Distributor.
+        The reports collection declares pdf on the transfer options, so looking only at
+        MD_Distribution found nothing. Nearest wins.
+      -->
       <xsl:variable name="distFormats"
-                    select="../../mrd:distributionFormat/mrd:MD_Format/mrd:formatSpecificationCitation/cit:CI_Citation/cit:title/gco:CharacterString[normalize-space() != '']"/>
+                    select="(mrd:distributionFormat
+                             | ancestor::mrd:MD_Distribution[1]/mrd:distributionFormat
+                             | ancestor::mrd:MD_Distributor[1]/mrd:distributorFormat)
+                            /mrd:MD_Format/mrd:formatSpecificationCitation/cit:CI_Citation/
+                              cit:title/gco:CharacterString[normalize-space() != '']"/>
       <xsl:for-each select="$primary">
+        <xsl:choose>
+          <!--
+            A service endpoint is not a file, so schema:DataDownload with a contentUrl
+            misdescribes it. CDIF's WebAPI carries no url of its own: the endpoint goes
+            in schema:potentialAction/schema:target/schema:urlTemplate, and serviceType,
+            potentialAction and termsOfService are all required.
+          -->
+          <xsl:when test="dde-or:is-service(.) and $termsOfService != ''">
+    {
+      "@type": ["schema:WebAPI"],
+      "schema:serviceType": "<xsl:value-of select="util:escapeForJson(dde-or:service-type(.))"/>",
+      "schema:termsOfService": "<xsl:value-of select="util:escapeForJson($termsOfService)"/>",
+      "schema:potentialAction": [{
+        "@type": ["schema:FindAction"],
+        "schema:name": "<xsl:value-of select="util:escapeForJson(
+            normalize-space(string((cit:name/gco:CharacterString[normalize-space() != ''],
+                                    concat('Access ', dde-or:service-type(.)))[1])))"/>",
+        "schema:target": {
+          "@type": ["schema:EntryPoint"],
+          "schema:urlTemplate": "<xsl:value-of select="util:escapeForJson(cit:linkage/gco:CharacterString)"/>"
+        }
+      }]
+            <xsl:if test="cit:description/gco:CharacterString[normalize-space() != '']">
+      ,"schema:description": "<xsl:value-of select="util:escapeForJson(cit:description/gco:CharacterString)"/>"
+            </xsl:if>
+    }
+          </xsl:when>
+          <xsl:otherwise>
     {
       "@type": ["schema:DataDownload"],
       "schema:contentUrl": "<xsl:value-of select="util:escapeForJson(cit:linkage/gco:CharacterString)"/>"
@@ -651,7 +858,9 @@
         }<xsl:if test="position() != last()">,</xsl:if>
       </xsl:for-each>]
         </xsl:if>
-    }<xsl:if test="position() != last()">,</xsl:if>
+    }
+          </xsl:otherwise>
+        </xsl:choose><xsl:if test="position() != last()">,</xsl:if>
       </xsl:for-each>
       <xsl:if test="position() != last()">,</xsl:if>
   </xsl:for-each>],
@@ -969,7 +1178,7 @@
            carry a "DDE S01-2023: Geosciences Information Metadata" profile
            citation with a title and no onlineResource. -->
       <xsl:for-each select="$profiles[cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != '']]">
-      ,{"@id": "<xsl:value-of select="util:escapeForJson(cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != ''][1])"/>"}
+      ,{"@id": "<xsl:value-of select="util:escapeForJson((cit:onlineResource/*/cit:linkage/gco:CharacterString[normalize-space() != ''])[1])"/>"}
       </xsl:for-each>
     ]
     <xsl:if test="$maintainer">
