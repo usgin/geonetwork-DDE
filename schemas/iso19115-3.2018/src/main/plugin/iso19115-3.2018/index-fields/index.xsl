@@ -141,8 +141,32 @@
                               @codeListValue[normalize-space(.) != '']"/>
 
 
+    <!-- Locales that some element actually carries text for. A PT_Locale is a
+         declaration, not evidence of content: records routinely declare locales
+         they hold nothing in, and every such declaration costs a permanent set
+         of .lang<xxx> fields in the Elasticsearch mapping, because the indexer
+         emits the key whether or not there is a value behind it.
+
+         Measured on the deployed catalogue 2026-11-17: 1,787 of 3,163 field
+         entries were .lang variants across 16 languages, in a flat
+         116-per-language pattern covering Armenian, Azerbaijani, Georgian,
+         Danish and Romanian on an Australian bedrock corpus. No record held a
+         matchable value in any of them. That is over half the mapping spent on
+         declarations alone, against a total_fields limit that stops indexing
+         outright when reached.
+
+         This filters on content rather than on a language whitelist. Genuinely
+         multilingual records, common among European DCAT providers, keep
+         every language they actually publish in, which a whitelist would have
+         silently discarded. The default locale is always kept, since it is the
+         record's own main language. -->
+    <xsl:variable name="localesWithContent" as="xs:string*"
+                  select="distinct-values(
+                            .//lan:LocalisedCharacterString[normalize-space(.) != '']
+                              /substring-after(@locale, '#'))"/>
+
     <xsl:variable name="otherLanguages" as="attribute()*"
-                  select="mdb:otherLocale/lan:PT_Locale/
+                  select="mdb:otherLocale/lan:PT_Locale[@id = $localesWithContent]/
                             lan:language/lan:LanguageCode/
                               @codeListValue[normalize-space(.) != '']"/>
 
