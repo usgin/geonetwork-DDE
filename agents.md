@@ -344,7 +344,6 @@ XSLT files in `schemas/iso19115-3.2018/.../convert/`:
 |------|-----------|
 | `toDDE_20240204.xsl` | ISO 19115-3 → DDE |
 | `fromDDE-20240405.xsl` | DDE → ISO 19115-3 |
-| `ddeToISO19115-3_20240208.xsl` | DDE → ISO 19115-3 (alternate) |
 | `fromISO19139-DDE.xsl` | ISO 19139 → DDE |
 | `fromDDE-any.xsl` | DDE auto-detect entry point |
 | `utilityDDE/` | 12 shared XSLT utility files |
