@@ -141,16 +141,39 @@ rm -f web/target/wro4j-cache.mv.db && rm -rf web/target/wro4j-output
 
 `mvn clean` also does it, at the cost of a full rebuild.
 
+**Pass `-DschemasCopy=true` whenever anything under `schemas/` changed, or the war ships the
+previous version of it.** Without that property the `schemas-unpack` profile activates and the
+schema plugins come from installed Maven *artifacts*, not from the working tree, so an edited XSLT
+is simply absent from the war. Worse, that unpack sets `overWrite=false` against
+`web/src/main/webapp/WEB-INF/data/config/schema_plugins/`, so rebuilding the artifact does not
+refresh a directory that already exists — the stale copy wins twice over. Delete the plugin first
+and let the copy write it fresh:
+
+```bash
+rm -rf web/src/main/webapp/WEB-INF/data/config/schema_plugins/iso19115-3.2018
+```
+
+Then always check the war actually contains the change before building an image, naming a string
+only the new version has:
+
+```bash
+unzip -p web/target/geonetwork.war WEB-INF/data/config/schema_plugins/iso19115-3.2018/index-fields/index.xsl | grep -c dde-bg
+```
+
+This has the same shape as the wro4j cache above, and the same symptom: a deploy that succeeds,
+restarts cleanly, and serves the old behaviour. Both are silent, so verify the artifact rather than
+the exit code.
+
 The build is then two Maven invocations, not one, because `wro4j:run` holds the H2 cache file open
 for the life of the Maven JVM and `maven-war-plugin` then cannot copy it into the war. The first
 invocation builds the cache and fails at packaging; the second, in a fresh JVM, packages it:
 
 ```bash
-mvn -o package -pl web -am -DskipTests -Dprebuild-cache=true -Dwro.debug=false
+mvn -o package -pl web -am -DskipTests -DschemasCopy=true -Dprebuild-cache=true -Dwro.debug=false
 ```
 
 ```bash
-mvn -o war:war -pl web -Dprebuild-cache=true -Dwro.debug=false
+mvn -o war:war -pl web -DschemasCopy=true -Dprebuild-cache=true -Dwro.debug=false
 ```
 
 Then the image, from the repository root:
