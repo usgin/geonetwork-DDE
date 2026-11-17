@@ -19,29 +19,36 @@
 // Records with no thumbnail.
 //
 // infolist.html, grid.html, list.html, metadataCard.html, grid4maps.html and
-// featuredusersearchescards.html all set a class for this case:
+// featuredusersearchescards.html all mark this case up twice over:
 //
-//   <div class="gn-md-thumbnail" data-ng-class="{'gn-md-no-thumbnail': !md.overview[0]}">
-//     <div class="gn-img-thumbnail" style="background-image: url('{{md.overview[0].url|...}}')">
+//   <li data-ng-class="md.overview.length > 0 ? 'hasThumbnail' : 'noThumbnail'">
+//     <div class="gn-md-thumbnail" data-ng-class="{'gn-md-no-thumbnail': !md.overview[0]}">
+//       <div class="gn-img-thumbnail" style="background-image: url('{{md.overview[0].url|...}}')">
 //
-// but no stylesheet implemented either class, so the element was laid out as
-// though it held an image and rendered as an empty bordered box. On a catalogue
-// where few records carry a browse graphic the result is a page of them: here,
-// 150 records out of 7112 have one.
+// gn_card_default.less does style `.gn-md-no-thumbnail`: it hides the inner
+// `.gn-img-thumbnail` and draws a FontAwesome image glyph through `:after` at
+// `color: #eeeeee`. So the empty area is a deliberate placeholder, not an
+// unstyled gap. At that colour it reads as a blank box, and on a catalogue
+// where few records carry a browse graphic the home page is mostly blank
+// boxes: here, 150 records out of 7112 have an overview.
 //
-// The element is collapsed rather than given a placeholder image, so a card
-// without a thumbnail is simply a card of text. A placeholder would need an
-// asset, and a generic one says nothing a reader cannot already see.
-.gn-md-thumbnail.gn-md-no-thumbnail {
-  display: none;
-}
-
-// The card itself carries hasThumbnail / noThumbnail, set on the <li>. Give the
-// text the full width when there is no image beside it, rather than leaving the
-// gap the thumbnail would have occupied.
+// Collapse the element instead. A placeholder would need an asset, and a
+// generic icon says nothing a reader cannot already see.
+//
+// The selector has to out-specify gn_card_default.less's
+// `.gn-info-list li .gn-md-no-thumbnail { display: block; }` — (0,2,1) — or the
+// rule loses on the page it is meant to fix. Anchoring on `li.noThumbnail`,
+// which the same templates set, gives (0,4,1) and covers the blocks, large and
+// maps variants of the list.
 .gn-info-list > li.noThumbnail {
-  .gn-md-details,
-  .gn-md-contents {
+  .gn-md-thumbnail.gn-md-no-thumbnail {
+    display: none;
+  }
+
+  // `.gn-card .gn-card-body .gn-md-details` reserves `calc(100% - 140px - 15px)`
+  // for the text beside a 140px thumbnail. With no thumbnail, give it the width
+  // back. (The blocks variant hides the details outright; this is for `large`.)
+  .gn-md-details {
     width: 100%;
   }
 }

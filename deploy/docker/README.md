@@ -127,8 +127,22 @@ A warm `~/.m2` is then the only reachable copy of the dependency set, which make
 machine that has one the fallback, and `Dockerfile.prebuilt` the image recipe. See the comment at
 the top of that file.
 
-The build is two Maven invocations, not one, because `wro4j:run` holds the H2 cache file open for
-the life of the Maven JVM and `maven-war-plugin` then cannot copy it into the war. The first
+**Delete `web/target/wro4j-cache.mv.db` before building, or a change to any `.less` or `.js`
+file will not reach the war.** `wro4j:run` reuses an existing cache wholesale: it keys on group
+name, not on source content or mtime, so with a cache left over from an earlier build it recompiles
+nothing and silently emits the previous CSS. This cost a whole deploy cycle on 2026-11-16 — the
+image, the schema plugin and the formatter cache were all correctly refreshed, the XSLT changes were
+live, and the CSS change was absent because it had never been compiled. The served
+`gn_search_default.css` was byte-identical to the previous build, which is the tell:
+
+```bash
+rm -f web/target/wro4j-cache.mv.db && rm -rf web/target/wro4j-output
+```
+
+`mvn clean` also does it, at the cost of a full rebuild.
+
+The build is then two Maven invocations, not one, because `wro4j:run` holds the H2 cache file open
+for the life of the Maven JVM and `maven-war-plugin` then cannot copy it into the war. The first
 invocation builds the cache and fails at packaging; the second, in a fresh JVM, packages it:
 
 ```bash
