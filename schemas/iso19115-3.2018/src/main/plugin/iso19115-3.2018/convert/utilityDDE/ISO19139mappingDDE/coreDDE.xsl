@@ -304,10 +304,21 @@
             <xsl:call-template name="writeCharacterStringElement">
               <xsl:with-param name="elementName" select="'cit:title'"/>
               <xsl:with-param name="nodeWithStringToWrite" select="."/>
+              <xsl:with-param name="required" select="true()"/>
             </xsl:call-template>
+            <!--
+              A record may carry several metadataStandardName elements, each with its own
+              metadataStandardVersion sibling. Selecting ../gmd:metadataStandardVersion picks up
+              every one of them, so each cit:edition received one gco:CharacterString per standard
+              rather than its own; cit:edition permits at most one, so the result did not validate.
+              Pair them by position instead.
+            -->
+            <xsl:variable name="standardPosition"
+                          select="count(preceding-sibling::gmd:metadataStandardName) + 1"/>
             <xsl:call-template name="writeCharacterStringElement">
               <xsl:with-param name="elementName" select="'cit:edition'"/>
-              <xsl:with-param name="nodeWithStringToWrite" select="../gmd:metadataStandardVersion"/>
+              <xsl:with-param name="nodeWithStringToWrite"
+                              select="../gmd:metadataStandardVersion[$standardPosition]"/>
             </xsl:call-template>
           </xsl:otherwise>
         </xsl:choose>
@@ -359,6 +370,7 @@
           <xsl:call-template name="writeCharacterStringElement">
             <xsl:with-param name="elementName" select="'mri:abstract'"/>
             <xsl:with-param name="nodeWithStringToWrite" select="gmd:abstract"/>
+            <xsl:with-param name="required" select="true()"/>
           </xsl:call-template>
           <xsl:call-template name="writeCharacterStringElement">
             <xsl:with-param name="elementName" select="'mri:purpose'"/>

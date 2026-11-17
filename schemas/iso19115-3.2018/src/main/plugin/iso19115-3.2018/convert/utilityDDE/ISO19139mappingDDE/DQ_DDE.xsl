@@ -30,7 +30,12 @@
                 </xsl:when>
                 <xsl:otherwise>
                   <mcc:MD_Scope>
-                    <xsl:apply-templates select="gmd:DQ_DataQuality/gmd:scope/gmd:DQ_Scope/*" mode="from19139to19115-3.2018"/>
+                    <!--
+                      ISO 19139 names this element gmd:DQ_Scope, but producers also write the
+                      19115-1 name gmd:MD_Scope inside an otherwise 19139 record. Accept either,
+                      or the scope's content is silently dropped.
+                    -->
+                    <xsl:apply-templates select="gmd:DQ_DataQuality/gmd:scope/*[local-name() = ('DQ_Scope', 'MD_Scope')]/*" mode="from19139to19115-3.2018"/>
                   </mcc:MD_Scope>
                 </xsl:otherwise>
               </xsl:choose>
@@ -129,16 +134,25 @@
             <xsl:with-param name="elementName" select="'mrl:statement'"/>
             <xsl:with-param name="nodeWithStringToWrite" select="gmd:statement"/>
           </xsl:call-template>
-          <xsl:if test="../../../gmd:DQ_DataQuality/gmd:scope">
-            <xsl:variable name="dataQualityScopeObject" select="../../../gmd:DQ_DataQuality/gmd:scope/gmd:DQ_Scope"/>
+          <!--
+            Accept the 19115-1 name gmd:MD_Scope as well as 19139's gmd:DQ_Scope: selecting only
+            DQ_Scope matched nothing on records that use the other name, while the enclosing test
+            looked at gmd:scope alone, so an empty mcc:MD_Scope was emitted and the level and
+            level description were thrown away. mcc:level is mandatory in MD_Scope and MD_Scope
+            itself is optional here, so with no level write no scope at all.
+          -->
+          <xsl:variable name="dataQualityScopeObject"
+                        select="../../../gmd:DQ_DataQuality/gmd:scope/*[local-name() = ('DQ_Scope', 'MD_Scope')]"/>
+          <xsl:variable name="dataQualityScopeLevel"
+                        select="$dataQualityScopeObject//gmd:MD_ScopeCode/@codeListValue|
+                                $dataQualityScopeObject//gmx:MX_ScopeCode/@codeListValue"/>
+          <xsl:if test="normalize-space(string-join($dataQualityScopeLevel, '')) != ''">
             <mrl:scope>
               <mcc:MD_Scope>
                 <xsl:call-template name="writeCodelistElement">
                   <xsl:with-param name="elementName" select="'mcc:level'"/>
                   <xsl:with-param name="codeListName" select="'mcc:MD_ScopeCode'"/>
-                  <xsl:with-param name="codeListValue"
-                    select="$dataQualityScopeObject//gmd:MD_ScopeCode/@codeListValue|
-                                          $dataQualityScopeObject//gmx:MX_ScopeCode/@codeListValue"/>
+                  <xsl:with-param name="codeListValue" select="$dataQualityScopeLevel"/>
                 </xsl:call-template>
                 <xsl:for-each select="$dataQualityScopeObject//gmd:EX_Extent">
                   <mcc:extent>

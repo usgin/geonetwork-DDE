@@ -133,9 +133,18 @@
         <xsl:when test="starts-with(name(),'gmi:') and (ancestor-or-self::gmi:MI_CoverageDescription)">
           <xsl:text>mrc</xsl:text>
         </xsl:when>
-        <xsl:when test="ancestor-or-self::gmd:MD_Constraints
+        <!--
+          This choose is first match over ancestor-or-self tests, so an outer class wins over a
+          nearer one. A CI_Citation sits inside a constraints block (mco:reference), so every
+          citation child without a template of its own took the mco prefix and came out as
+          mco:alternateTitle or mco:edition instead of cit:*, which does not validate. cit:title
+          escaped it only because CI_CitationDDE.xsl handles title explicitly. Excluding citation
+          descendants here hands them to the cit clause further down.
+        -->
+        <xsl:when test="(ancestor-or-self::gmd:MD_Constraints
           or ancestor-or-self::gmd:MD_SecurityConstraints
-          or ancestor-or-self::gmd:MD_LegalConstraints
+          or ancestor-or-self::gmd:MD_LegalConstraints)
+          and not(ancestor-or-self::gmd:CI_Citation)
           ">
           <xsl:text>mco</xsl:text>
         </xsl:when>
@@ -246,6 +255,7 @@
           <xsl:call-template name="writeCharacterStringElement">
             <xsl:with-param name="elementName" select="'cit:title'"/>
             <xsl:with-param name="nodeWithStringToWrite" select="gmd:name"/>
+            <xsl:with-param name="required" select="true()"/>
           </xsl:call-template>
           <xsl:for-each select="gmd:specification[normalize-space(.) != '']">
             <xsl:call-template name="writeCharacterStringElement">
@@ -279,6 +289,7 @@
               <xsl:call-template name="writeCharacterStringElement">
                 <xsl:with-param name="elementName" select="'cit:title'"/>
                 <xsl:with-param name="nodeWithStringToWrite" select="."/>
+                <xsl:with-param name="required" select="true()"/>
               </xsl:call-template>
             </cit:CI_Citation>
           </mri:name>
@@ -291,4 +302,17 @@
       </mri:associatedResource>
     </xsl:for-each>
   </xsl:template>
+
+  <!--
+    A 19139 producer may publish an EX_GeographicBoundingBox whose four bounds are empty
+    gco:Decimal elements. All four bounds are mandatory and xs:decimal has no empty value, so
+    copying them through gives 19115-3 that cannot validate. gex:geographicElement is optional,
+    so drop the wrapper rather than emit a bounding box with no numbers in it.
+  -->
+  <xsl:template priority="5" mode="from19139to19115-3.2018"
+                match="gmd:geographicElement[gmd:EX_GeographicBoundingBox]
+                       [normalize-space(string-join(gmd:EX_GeographicBoundingBox/(
+                          gmd:westBoundLongitude | gmd:eastBoundLongitude |
+                          gmd:southBoundLatitude | gmd:northBoundLatitude)//text(), '')) = '']"/>
+
 </xsl:stylesheet>

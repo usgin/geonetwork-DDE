@@ -100,6 +100,7 @@
         <xsl:call-template name="writeCharacterStringElement">
             <xsl:with-param name="elementName" select="'cit:title'"/>
             <xsl:with-param name="nodeWithStringToWrite" select="."/>
+            <xsl:with-param name="required" select="true()"/>
         </xsl:call-template>
     </xsl:template>
 

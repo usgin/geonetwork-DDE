@@ -24,13 +24,31 @@
         -->
         <xsl:param name="elementName"/>
         <xsl:param name="nodeWithStringToWrite"/>
+        <!--
+            required = true when the target element is mandatory in ISO 19115-3. An empty source
+            then yields a nilReason sentinel instead of nothing, because omitting it would make
+            the parent invalid. Optional elements are simply left out when the source is empty.
+        -->
+        <xsl:param name="required" select="false()" as="xs:boolean"/>
         <xsl:variable name="isMultilingual" select="count($nodeWithStringToWrite/gmd:PT_FreeText) > 0"/>
         <!--
             The hasCharacterString variable was generalized to include situations where substitutions are
             being used for gco:CharacterString, e.g. gmx:FileName.
         -->
         <xsl:variable name="hasChildNode" select="count($nodeWithStringToWrite/*) > 0"/>
-        <xsl:if test="$nodeWithStringToWrite">
+        <!--
+            An ISO 19139 producer may ship a present but empty element, e.g.
+            <gmd:metadataStandardVersion><gco:CharacterString/></gmd:metadataStandardVersion>.
+            Copying that through produces 19115-3 that carries no information, so test for actual
+            content rather than for the node's existence. An Anchor with only an xlink:href, and a
+            source that already declares a nilReason, both count as content.
+        -->
+        <xsl:variable name="hasContent" as="xs:boolean"
+                      select="exists($nodeWithStringToWrite)
+                              and (normalize-space(string-join($nodeWithStringToWrite//text(), '')) != ''
+                                   or exists($nodeWithStringToWrite/*/@xlink:href)
+                                   or exists($nodeWithStringToWrite/@*[local-name() = 'nilReason']))"/>
+        <xsl:if test="$hasContent">
             <xsl:element name="{$elementName}">
                 <!-- Deal with attributes (may be in the old gco namespace -->
                 <xsl:apply-templates select="$nodeWithStringToWrite/@*[name() != 'xsi:type']"
@@ -59,6 +77,11 @@
                         mode="from19139to19115-3.2018"
                         select="$nodeWithStringToWrite/gmd:PT_FreeText"/>
                 </xsl:if>
+            </xsl:element>
+        </xsl:if>
+        <xsl:if test="not($hasContent) and $required">
+            <xsl:element name="{$elementName}">
+                <xsl:attribute name="gco:nilReason">missing</xsl:attribute>
             </xsl:element>
         </xsl:if>
     </xsl:template>
