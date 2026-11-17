@@ -88,6 +88,65 @@
         tabs: $scope.pageMenu.tabs
       };
 
+      /**
+       * Annotate each harvester with what is actually in the index for it.
+       *
+       * The harvest summary counts what the harvester did; it says nothing about
+       * what survived indexing, and the two can differ enormously. On 2026-11-17
+       * a run reported 32,044 harvested while only 22,097 records were in the
+       * index: 9,955 had been rejected by Elasticsearch and replaced with error
+       * stubs, and nothing anywhere in the UI said so. The catalogue looked
+       * healthy and a third of it was unsearchable.
+       *
+       * Counted live from the index rather than recorded at the end of a run,
+       * deliberately. A run that is interrupted, which is every run killed by a
+       * container restart, never writes its summary at all, so a figure stored on
+       * completion would be missing in exactly the cases that matter most.
+       *
+       * One aggregation covers every harvester, so this is a single request
+       * regardless of how many are configured.
+       */
+      function loadIndexedCounts() {
+        $http
+          .post("../api/search/records/_search", {
+            size: 0,
+            aggs: {
+              byHarvester: {
+                terms: { field: "harvesterUuid", size: 100 },
+                aggs: { failed: { filter: { term: { indexingError: true } } } }
+              }
+            }
+          })
+          .then(
+            function (response) {
+              var buckets =
+                (((response.data || {}).aggregations || {}).byHarvester || {}).buckets || [];
+              var byUuid = {};
+              angular.forEach(buckets, function (b) {
+                byUuid[b.key] = {
+                  documents: b.doc_count,
+                  failed: ((b.failed || {}).doc_count) || 0
+                };
+              });
+              angular.forEach($scope.harvesters, function (h) {
+                var counts = byUuid[h.site && h.site.uuid] || { documents: 0, failed: 0 };
+                h.info = h.info || {};
+                h.info.indexed = counts.documents - counts.failed;
+                h.info.indexingFailed = counts.failed;
+              });
+            },
+            function () {
+              // A catalogue with no index yet, or a search back end that is down,
+              // should not stop the harvester list from rendering.
+              angular.forEach($scope.harvesters, function (h) {
+                h.info = h.info || {};
+                h.info.indexed = undefined;
+                h.info.indexingFailed = undefined;
+              });
+            }
+          );
+      }
+
       $scope.loadHarvesters = function () {
         $scope.isLoadingHarvester = true;
         $scope.harvesters = null;
@@ -107,6 +166,7 @@
               });
 
               pollHarvesterStatus();
+              loadIndexedCounts();
             }
             $scope.isLoadingHarvester = false;
           },

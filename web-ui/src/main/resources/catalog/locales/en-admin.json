@@ -399,6 +399,8 @@
     "harvesterTotalRecords": "Total",
     "harvesterUpdatedRecords": "Updated",
     "harvesterUnchangedRecords": "Unchanged",
+    "harvesterIndexedRecords": "Indexed",
+    "harvesterIndexingFailures": "Failed to index",
     "harvesterType": "Node type",
     "harvesterUpdated": "Harvester updated",
     "harvesterUpdateError": "Error on updating harvester",

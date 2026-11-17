@@ -65,6 +65,12 @@
                     <th data-ng-if="h.info.result.unchanged">
                       {{ 'harvesterUnchangedRecords' | translate }}
                     </th>
+                    <th data-ng-if="h.info.indexed !== undefined">
+                      {{ 'harvesterIndexedRecords' | translate }}
+                    </th>
+                    <th data-ng-if="h.info.indexingFailed">
+                      {{ 'harvesterIndexingFailures' | translate }}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -75,6 +81,12 @@
                     <td data-ng-if="h.info.result.updated">{{h.info.result.updated}}</td>
                     <td data-ng-if="h.info.result.unchanged" `>
                       {{h.info.result.unchanged}}
+                    </td>
+                    <td data-ng-if="h.info.indexed !== undefined">
+                      {{h.info.indexed}}
+                    </td>
+                    <td data-ng-if="h.info.indexingFailed" class="text-danger">
+                      <strong>{{h.info.indexingFailed}}</strong>
                     </td>
                   </tr>
                 </tbody>

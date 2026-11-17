@@ -27,6 +27,8 @@
             <th data-translate="">harvesterType</th>
             <th data-translate="">lastRun</th>
             <th data-translate="">totalNonTemplateMetadata</th>
+            <th data-translate="">harvesterIndexedRecords</th>
+            <th data-translate="">harvesterIndexingFailures</th>
           </tr>
           <tr data-ng-repeat="h in $parent.harvesters">
             <td>{{h.site.name | translate}}</td>
@@ -38,6 +40,11 @@
               {{h.info.lastRun.length === 0 ? '' : (h.info.lastRun | date:'medium')}}
             </td>
             <td>{{h.info.result.total}}</td>
+            <td>{{h.info.indexed}}</td>
+            <td data-ng-class="{'text-danger': h.info.indexingFailed > 0}">
+              <strong data-ng-if="h.info.indexingFailed">{{h.info.indexingFailed}}</strong>
+              <span data-ng-if="!h.info.indexingFailed">{{h.info.indexingFailed}}</span>
+            </td>
           </tr>
         </table>
       </div>
