@@ -128,7 +128,27 @@ errors that look unrelated. The enforcer rule now catches that case too.
   - Schema catalog (GeoNetwork): `schemas/iso19115-3.2018/.../oasis-catalog.xml`
   - Schema catalog (Oxygen validation): `oxygen-catalog.xml` (repo root, machine-specific absolute paths)
 - **DDE SKOS vocabularies**: `web/src/main/webapp/WEB-INF/data/config/codelist/local/thesauri/theme/`
-- **Elasticsearch mappings**: `web/src/main/webapp/WEB-INF/data/config/index/records.json` and `features.json`
+- **Elasticsearch mappings**: `records.json` and `features.json` live in **different trees**, which
+  is easy to get wrong. `records.json` is tracked at
+  `web/src/main/webResources/WEB-INF/data/config/index/records.json`; the copy at
+  `web/src/main/webapp/.../records.json` is a build artifact, gitignored at `.gitignore:67`, so an
+  edit there is lost on the next clean build. `features.json` is the other way round: tracked at
+  `web/src/main/webapp/WEB-INF/data/config/index/features.json`, with no webResources copy.
+- **The index mapping grows with the data, and has a ceiling.** `records.json` declares 87
+  properties and 22 dynamic templates whose wildcards (`th_*`, `cl_*`, `*Object`, `conformTo_*`
+  and the rest) mint a new field per thesaurus, codelist and declared locale. Measured 2026-11-17
+  on the deployed catalogue at ~20,000 records: **3,163 field entries across 354 top-level names**,
+  of which 268 were created dynamically. `mapping.total_fields.limit` was raised 4000 -> **8000**
+  that day, both here and live on the server, because the harvest was at ~3,150 with 10,000
+  records still to come and exceeding the limit stops indexing outright.
+  **56% of those fields are language variants, and they are orphans.** 1,787 entries carry a
+  `.lang<xxx>` suffix across 16 languages, in a suspiciously regular 116-per-language pattern
+  (Armenian, Azerbaijani, Georgian, Danish, Romanian on an Australian bedrock catalogue). The
+  languages come from each record's own `mdb:defaultLocale`/`mdb:otherLocale`
+  (`index-fields/index.xsl:149`), not from a setting, and **no document currently uses them** -- an
+  `exists` query returns zero. Mappings are append-only, so records that declared locales they had
+  no content for left those fields behind permanently. A delete-and-reindex is what reclaims them;
+  a plain reindex does not.
 
 ## Key Technical Details
 

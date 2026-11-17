@@ -3,7 +3,7 @@
     "index": {
       "max_result_window": 15000,
       "query.default_field": "any.default",
-      "mapping.total_fields.limit": 4000,
+      "mapping.total_fields.limit": 8000,
       "analysis": {
         "normalizer": {
           "sorting": {
