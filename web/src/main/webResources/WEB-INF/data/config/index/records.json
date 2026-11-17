@@ -1922,6 +1922,9 @@
       "mainLanguage": {
         "type": "keyword"
       },
+      "unknownThesaurus": {
+        "type": "keyword"
+      },
       "otherLanguage": {
         "type": "keyword"
       },

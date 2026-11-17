@@ -742,6 +742,40 @@
           <xsl:with-param name="allKeywords" select="$allKeywords"/>
         </xsl:call-template>
 
+        <!-- Vocabularies this catalogue could not resolve.
+
+             $allKeywords records, per thesaurus, the id the record cited and, per
+             keyword, the uri the lookup returned. A thesaurus that was cited by id
+             but whose keywords resolved to nothing is one the catalogue does not
+             hold, or does not hold that term in. Either way it is worth knowing:
+             the catalogue cannot place those keywords in a hierarchy, so they are
+             searchable only as free text.
+
+             Emitted at the document root, as plain strings, deliberately. The
+             warning this replaces was nested inside $allKeywords and lost its
+             type="object" marker on the way out, which made Elasticsearch reject
+             the whole record; 31% of the catalogue was being discarded that way.
+             A flat keyword at the root cannot fail like that, and it is directly
+             aggregatable, which the warning never was:
+
+               POST gn-records/_search
+               {"size":0,"aggs":{"vocab":{"terms":{"field":"unknownThesaurus"},
+                 "aggs":{"by_harvester":{"terms":{"field":"harvesterUuid"}}}}}}
+
+             gives every unresolved vocabulary ranked by how many records cite it,
+             broken down by the harvester that brought them in, which is what says
+             whether a thesaurus is worth installing. `+unknownThesaurus:*` lists
+             the affected records. -->
+        <xsl:for-each select="distinct-values(
+                                $allKeywords/thesaurus[
+                                  normalize-space(info/@id) != ''
+                                  and keywords/keyword[normalize-space(@uri) = '']
+                                ]/info/@id)">
+          <unknownThesaurus>
+            <xsl:value-of select="."/>
+          </unknownThesaurus>
+        </xsl:for-each>
+
 
         <xsl:for-each select="mri:topicCategory/mri:MD_TopicCategoryCode[string(.)]">
           <xsl:variable name="value" as="node()">
