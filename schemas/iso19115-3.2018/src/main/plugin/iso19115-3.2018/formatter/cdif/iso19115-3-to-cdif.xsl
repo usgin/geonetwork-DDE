@@ -119,10 +119,22 @@
                   select="$distOnline[$isCollection
                                       and not(dde-or:is-service(.))
                                       and dde-or:is-persistent-id(.)]"/>
-    <xsl:variable name="landingLinks"
+    <!--
+      Only ONE of these is lifted out to schema:url. The rest stay in
+      schema:distribution, because CDIF models a single landing page and dropping the
+      others would lose them: the Earth Observation Archive lists four THREDDS catalogs
+      beside its website, and MH370 and the ground gravity collection each list a second
+      access point. A THREDDS catalog is a way to get the data, so it belongs in
+      schema:distribution rather than being discarded.
+    -->
+    <xsl:variable name="landingCandidates"
                   select="$distOnline[$isCollection
                                       and not(dde-or:is-service(.))
-                                      and not(dde-or:is-persistent-id(.))]"/>
+                                      and not(dde-or:is-persistent-id(.))
+                                      and cit:linkage/gco:CharacterString[normalize-space() != '']]"/>
+    <xsl:variable name="landingLink"
+                  select="($landingCandidates[cit:function/*/@codeListValue = 'information'],
+                           $landingCandidates)[1]"/>
     <!--
       schema:url is a single string in CDIF, so one landing page is all a record can
       carry. Prefer the one the source marked function=information, since that is the
@@ -131,9 +143,7 @@
     -->
     <xsl:variable name="landingUrl" as="xs:string"
                   select="normalize-space(string((
-                            $landingLinks[cit:function/*/@codeListValue = 'information']
-                              /cit:linkage/gco:CharacterString[normalize-space() != ''],
-                            $landingLinks/cit:linkage/gco:CharacterString[normalize-space() != ''],
+                            $landingLink/cit:linkage/gco:CharacterString[normalize-space() != ''],
                             $recordUrl)[1]))"/>
 
     <!--
@@ -159,7 +169,7 @@
       <xsl:call-template name="cdif-temporal"/>
 
       <xsl:call-template name="cdif-distribution">
-        <xsl:with-param name="excluded" select="$partLinks | $landingLinks"/>
+        <xsl:with-param name="excluded" select="$partLinks | $landingLink"/>
       </xsl:call-template>
 
       <xsl:call-template name="cdif-has-part">
