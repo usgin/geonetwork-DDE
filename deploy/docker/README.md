@@ -176,6 +176,32 @@ mvn -o package -pl web -am -DskipTests -DschemasCopy=true -Dprebuild-cache=true 
 mvn -o war:war -pl web -DschemasCopy=true -Dprebuild-cache=true -Dwro.debug=false
 ```
 
+**If any Java changed, `mvn install` the modules that own it first, or the war ships the previously
+installed jar.** The second invocation is `-pl web` alone, so there is no reactor sibling to take
+`gn-core` and the rest from, and offline resolution falls back to `~/.m2`. Schema and web-UI edits
+survive this because the war plugin copies those from the working tree -- the `webResources` lines
+in its log say so -- but a jar dependency does not. On 2026-11-18 a one-line fix in
+`EsSearchManager` was compiled correctly by the first invocation, at `core/target/gn-core-4.4.9-0.jar`,
+and the war still carried a copy five days old. Nothing failed; the war was simply built around the
+old jar.
+
+Find the modules and install them:
+
+```bash
+git log --since=<date of the installed jars> --name-only --pretty=format: | grep -E '\.java$' | sed 's#/src/.*##' | sort -u
+```
+
+```bash
+mvn -o install -pl core,harvesters -DskipTests
+```
+
+Then re-run `war:war`. Verify the jar rather than the build log, because this failure is silent too
+-- a method name from the change is in the class file's constant pool:
+
+```bash
+unzip -p web/target/geonetwork.war WEB-INF/lib/gn-core-4.4.9-0.jar > /tmp/c.jar && unzip -p /tmp/c.jar org/fao/geonet/kernel/search/EsSearchManager.class | grep -c hasIndexingError
+```
+
 Then the image, from the repository root:
 
 ```bash
