@@ -193,6 +193,10 @@
       $scope.formatter = gnGlobalSettings.gnCfg.mods.search.formatter;
       $scope.listOfResultTemplate = gnGlobalSettings.gnCfg.mods.search.resultViewTpls;
       $scope.resultTemplate = gnGlobalSettings.getDefaultResultTemplate();
+      // The home page renders the same result templates as the search page,
+      // and they read this to choose which contact to show.
+      $scope.searchResultContact =
+        gnGlobalSettings.gnCfg.mods.search.searchResultContact;
       $scope.advandedSearchTemplate = gnSearchSettings.advancedSearchTemplate;
       $scope.facetsSummaryType = gnSearchSettings.facetsSummaryType;
       $scope.facetConfig = gnSearchSettings.facetConfig;
