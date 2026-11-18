@@ -1,11 +1,15 @@
 <div class="gallery gn-mosaic">
-  <div data-ng-repeat="i in images">
+  <div data-ng-repeat="i in images" class="gn-mosaic-tile">
     <a data-ng-if="i.uuid" data-ng-href="#/metadata/{{i.uuid}}">
-      <img data-ng-src="{{i.data || (i.url | thumbnailUrlSize: imageSize)}}" />
+      <img
+        data-ng-src="{{i.data || (i.url | thumbnailUrlSize: imageSize)}}"
+        onerror="this.onerror=null; this.closest('.gn-mosaic-tile').style.display='none';"
+      />
     </a>
     <img
       data-ng-if="!i.uuid"
       data-ng-src="{{i.data || (i.url | thumbnailUrlSize: imageSize)}}"
+      onerror="this.onerror=null; this.closest('.gn-mosaic-tile').style.display='none';"
     />
     <span
       class="gn-mosaic-caption"

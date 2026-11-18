@@ -142,18 +142,17 @@
                   h.resourceTitleObject ||
                   (h._source && h._source.resourceTitleObject);
                 if (overview) {
-                  // Carry the record uuid and a caption on each image, so the
-                  // template can link the thumbnail to its record and label it.
-                  // The caption is the browse graphic's file description, and
-                  // the resource title when the graphic has none.
+                  // Carry the record uuid and its title on each image, so the
+                  // template can link the thumbnail to its record and caption
+                  // it. The browse graphic's own file description is not used:
+                  // in practice it is almost always a generic "Thumbnail" or
+                  // "large_thumbnail" rather than anything descriptive.
                   scope.images = scope.images.concat(
                     (angular.isArray(overview) ? overview : [overview]).map(
                       function (o) {
                         return angular.extend({}, o, {
                           uuid: uuid,
-                          caption:
-                            $filter("gnLocalized")(o.nameObject) ||
-                            $filter("gnLocalized")(title)
+                          caption: $filter("gnLocalized")(title)
                         });
                       }
                     )
