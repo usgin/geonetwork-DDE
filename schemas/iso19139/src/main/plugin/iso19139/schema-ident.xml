@@ -71,9 +71,23 @@ of data.]]>
                   http://www.isotc211.org/2005/srv http://schemas.opengis.net/iso/19139/20060504/srv/srv.xsd
   </schemaLocation>-->
   <autodetect xmlns:gmd="http://www.isotc211.org/2005/gmd"
+              xmlns:gmi="http://www.isotc211.org/2005/gmi"
               xmlns:gco="http://www.isotc211.org/2005/gco">
     <elements type="root">
       <gmd:MD_Metadata/>
+      <!--
+        ISO 19115-2 records are rooted in gmi:MI_Metadata. The gmi namespace extends gmd rather
+        than replacing it, so the body of such a record is ordinary ISO 19139 and this plugin
+        reads it.
+
+        Without this entry autodetectSchema raises NoSchemaMatchesException and the record is
+        rejected before anything can convert it. An xslfilter cannot rescue it either: the
+        WebDAV harvester calls autodetectSchema on the file exactly as downloaded, in
+        retrieveMetadata, and only applies the filter afterwards. That is what skipped all 80
+        records of the NOAA NGDC MGG Geology WAF on every run, logging "Skipping metadata with
+        unknown schema" for each one.
+      -->
+      <gmi:MI_Metadata/>
       <!-- Identify responsible party subtemplate as ISO19139 -->
       <gmd:CI_ResponsibleParty/>
       <gmd:DQ_DomainConsistency/>
