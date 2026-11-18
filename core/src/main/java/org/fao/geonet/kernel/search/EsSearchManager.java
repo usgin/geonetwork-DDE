@@ -449,7 +449,7 @@ public class EsSearchManager implements ISearchManager {
         }
 
         JsonNode errors = doc.get(INDEXING_ERROR_MSG);
-        if (errors != null) {
+        if (errors != null && hasIndexingError(errors)) {
             doc.put(INDEXING_ERROR_FIELD, "true");
         }
 
@@ -467,6 +467,27 @@ public class EsSearchManager implements ISearchManager {
                 sendDocumentsToIndex();
             }
         }
+    }
+
+    /**
+     * Whether any of the indexing messages reports an actual failure.
+     *
+     * The indexing stylesheets emit messages of several severities, and a warning
+     * does not mean indexing failed: a record whose temporal extent cannot be parsed
+     * is indexed correctly in every other respect. Marking it as failed hides it from
+     * search and counts it in the harvester report's indexing failures, so only a
+     * message that is not a warning sets the flag.
+     */
+    private static boolean hasIndexingError(JsonNode messages) {
+        Iterable<JsonNode> all = messages.isArray()
+            ? messages
+            : Collections.singletonList(messages);
+        for (JsonNode message : all) {
+            if (!"warning".equals(message.path("type").asText())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void sendDocumentsToIndex() {
