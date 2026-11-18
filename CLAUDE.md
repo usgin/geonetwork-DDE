@@ -111,6 +111,38 @@ Still true: the **Machine** scope sets `JAVA_HOME` to `C:\Program Files\OpenJDK\
 cleared or missing **User**-scope value silently selects JDK 25 and the build fails with compile
 errors that look unrelated. The enforcer rule now catches that case too.
 
+## Three ways a build silently ships the wrong thing
+
+All three were hit for real, and the first was hit **twice** -- recorded in
+`deploy/docker/README.md` on 2026-11-16 and repeated on 2026-11-18, because a
+file in `deploy/` is only read by someone who goes looking. Check these before
+concluding a change "did not work".
+
+1. **`web/target/wro4j-cache.mv.db` survives a non-clean build and is reused.**
+   `wro4j:run` keys on group name, not on source content, so a leftover cache
+   recompiles nothing and re-emits the previous `gn_search_default.js` and
+   `.css`. The war then carries correct raw sources and a stale bundle. On
+   2026-11-18 the deployed `CatController.js:734` read `list.html` while the
+   served bundle still read `grid.html`. Delete it (and `web/target/wro4j-output`)
+   whenever any `.js`, `.less` or `.html` under `web-ui/` changed.
+
+2. **The bundle URL is cache-busted with the git commit sha**
+   (`/static/gn_search_default.js?v=<sha>`). Rebuilding the *same* commit serves
+   browsers their cached copy from the identical URL, so a verified-correct war
+   can still look unchanged. Harmless in production, where every deploy is a new
+   commit; while iterating, force the cache
+   (`fetch(url, {cache:'reload'})` works when Ctrl+Shift+R does not).
+
+3. **The build formats web-ui sources with `printWidth 90`**
+   (`prettier-maven-plugin`, `web-ui/pom.xml:81`), which overrides the `80` in
+   `web-ui/.prettierrc.json`. Running bare `npx prettier` therefore reflows
+   unrelated code -- 178 lines of `CatController.js` on 2026-11-18. Let the build
+   format, then commit what it produced; a build leaves those files modified.
+
+The shared shape: the step reports success, the artifact is valid, and the
+change is absent. Verify the *artifact*, not the build log -- `unzip -p` the war
+and grep, or grep the cache file, before deploying.
+
 ## Repository Structure
 
 - **DDE customizations** are concentrated in `schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/`
