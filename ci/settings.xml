@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maven settings for building this fork.
+
+    mvn -s ci/settings.xml clean install -DskipTests -Dprebuild-cache=true
+
+  Two independent things live here.
+
+  1. The OSSRH mirrors, which everyone needs.
+
+     The root pom.xml declares two pluginRepository entries against
+     oss.sonatype.org (pom.xml:1400-1416). OSSRH is decaying rather than
+     cleanly retired: /content/groups/public/ answers 302 and
+     /content/repositories/github-releases/ answers 404, so Maven reports a
+     redirect or an authentication failure naming neither the repository nor
+     the artifact. Four plugin dependencies resolve through them --
+     org.webjars.npm wrappy, minimatch, once and inflight, all transitive
+     dependencies of glob:7.1.1 (web/pom.xml:1077-1082).
+
+     All four are on Central, so mirroring the dead repositories there fixes
+     it. deploy/docker/maven-settings.xml does the same for the Docker build,
+     but its mirrorOf list names ids this pom does not declare; both real ids
+     are listed below.
+
+  2. The Central mirror profile, which only some people need.
+
+     Maven Central is slow and intermittent from some networks, mainland China
+     in particular. The `cn-mirror` profile routes Central through Alibaba
+     Cloud's public proxy. It is OFF unless you ask for it:
+
+       mvn -s ci/settings.xml -P cn-mirror ...
+
+     or set MAVEN_CN_MIRROR=true in the environment, which is how CI turns it
+     on without editing anything.
+
+     Read the caveats in deploy/README.md, "Building from another network",
+     before using it. The short version: it is a third-party proxy, so your
+     dependencies come from Alibaba rather than Apache. That is a
+     supply-chain trust decision, not a technical one.
+
+     Huawei Cloud (https://repo.huaweicloud.com/repository/maven/) and Tencent
+     Cloud (https://mirrors.cloud.tencent.com/nexus/repository/maven-public/)
+     run equivalent mirrors; swap the url if you would rather not depend on
+     Alibaba.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <mirrors>
+    <!-- Always on. Note these are the ids pom.xml actually declares. -->
+    <mirror>
+      <id>central-for-ossrh</id>
+      <name>Central instead of the retired oss.sonatype.org repositories</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <mirrorOf>oss.sonatype.org-github-releases,sonatype-public-repository,sonatype-public-grid,oss.sonatype.org,sonatype-nexus-snapshots,sonatype-snapshots</mirrorOf>
+    </mirror>
+  </mirrors>
+
+  <profiles>
+    <profile>
+      <id>cn-mirror</id>
+      <activation>
+        <property>
+          <name>env.MAVEN_CN_MIRROR</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <repositories>
+        <repository>
+          <id>central</id>
+          <url>https://maven.aliyun.com/repository/public</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>central</id>
+          <url>https://maven.aliyun.com/repository/public</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+
+</settings>

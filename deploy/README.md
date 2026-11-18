@@ -79,8 +79,72 @@ mvn -version                          # must report Java version 11
 3. Build, skipping tests (expect 15 to 30 minutes the first time while Maven downloads dependencies):
 
 ```bash
-mvn clean install -DskipTests -Dprebuild-cache=true
+mvn -s ci/settings.xml clean install -DskipTests -Dprebuild-cache=true
 ```
+
+`-s ci/settings.xml` is not optional. The root pom declares two plugin
+repositories against the retired `oss.sonatype.org` (`pom.xml:1400-1416`), which
+now answers 302 and 404 rather than failing cleanly, so Maven reports a redirect
+or an authentication error naming neither the repository nor the artifact. The
+settings file mirrors those ids to Central, where the four artifacts in question
+all live.
+
+### Building from another network
+
+**Everything in this guide was measured in Tucson, Arizona, on a connection with
+good access to Maven Central.** Two things change elsewhere, and only one of them
+has a fix in this repository.
+
+Maven Central is slow and intermittent from some networks, mainland China in
+particular, where the first build's dependency download can take hours instead of
+minutes. `ci/settings.xml` carries a `cn-mirror` profile that routes Central
+through Alibaba Cloud's public proxy. It is off by default; turn it on per build:
+
+```bash
+mvn -s ci/settings.xml -P cn-mirror clean install -DskipTests -Dprebuild-cache=true
+```
+
+or, so CI and scripts need no extra argument:
+
+```bash
+export MAVEN_CN_MIRROR=true
+```
+
+**It costs nothing and needs no permission.** This is not *creating* a mirror --
+it points Maven at one that already exists. `https://maven.aliyun.com/repository/public`
+is a free, public, read-only proxy of Maven Central run by Alibaba Cloud: no
+account, no sign-up, no quota to request. A `<mirror>` entry is a client-side
+setting, so any developer can add it to their own `~/.m2/settings.xml` without
+touching any server. The only permission involved is the ordinary one for
+committing a settings file to the repository.
+
+Caveats worth stating plainly, because this changes where your builds fetch code
+from:
+
+* It is a **third-party proxy**. Everything built through it is fetched from
+  Alibaba rather than Apache. That is a supply-chain trust decision, not a
+  technical one. Checksums still verify, but the operator differs.
+* It can **lag Central** by minutes to hours on brand-new releases. Irrelevant
+  for a 4.4.9 build pinned to released versions.
+* It **mirrors Central only**. Any repository that is not Central still needs its
+  own entry.
+* Alibaba can rate-limit or change it; there is **no SLA**.
+
+Huawei Cloud (`https://repo.huaweicloud.com/repository/maven/`) and Tencent Cloud
+(`https://mirrors.cloud.tencent.com/nexus/repository/maven-public/`) run
+equivalent mirrors if you would rather not depend on Alibaba. Swap the `url` in
+the `cn-mirror` profile.
+
+The profile is scoped to Central and nothing else, so a build that does not
+activate it is unchanged, and an activated build still reaches every other
+repository directly.
+
+**What this does not solve.** GitLab's Maven package registry hosts packages you
+publish; it does **not** proxy upstream repositories the way Nexus or Artifactory
+do, so it cannot stand in for Central. And reaching
+`code.axiomearth.ai` to clone in the first place is a network question this
+repository cannot answer -- if the clone itself is the problem, a bundle file or
+a second remote is the remedy, not a Maven setting.
 
 **Web asset serving: measured on Tomcat, and the prebuild cache is what matters.**
 
