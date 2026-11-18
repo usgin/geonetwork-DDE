@@ -152,7 +152,27 @@ errors that look unrelated. The enforcer rule now catches that case too.
 
 ## Key Technical Details
 
-- **Metadata schema**: ISO 19115-3:2018 is the primary schema. Dublin Core and ISO 19110 are disabled in the build.
+- **Metadata schema**: ISO 19115-3:2018 is the primary schema. Dublin Core and ISO 19110 are
+  commented out in **three** places, not one -- the two `<module>` entries in `schemas/pom.xml`,
+  and both the `<dependency>` block and the unpack `<artifactItem>` in `web/pom.xml` (around
+  `:612` and `:1139`) -- so the war ships neither. Copies found in a *deployed* data directory are
+  leftovers from an earlier deployment that GeoNetwork still loads, because plugins are read from
+  the data directory rather than the war, and nothing rebuilds them. Re-enabling means
+  uncommenting all three. Two things that are easy to get wrong about why you might want them
+  (checked 2026-11-18):
+  - **CSW does not need `dublin-core`.** `csw-record` owns the `csw:Record` schema and *is* in the
+    build, and each ISO plugin emits `csw:Record` from its own
+    `present/csw/csw-{brief,summary,full}.xsl`. Neither ISO plugin's `schema-conversions.xml`
+    mentions `dublin-core`; they declare only `oai_dc`. In Java, `"dublin-core"` appears solely in
+    three test fixtures. The plugin is for *storing* native Dublin Core records.
+  - **`iso19110` is the wrong gfc for CDIF data description.** Its autodetect roots are
+    `gfc:FC_FeatureType` and `gfc:FC_FeatureCatalogue` in the ISO 19139-era namespace
+    `http://www.isotc211.org/2005/gfc`. The iso19115-3.2018 plugin already bundles the 2018-era
+    `gfc` 1.1 and `fcc` 1.0 under `schema/standards.iso.org/19110/` (`oasis-catalog.xml:89-93`),
+    but declares **no** gfc autodetect root -- so it validates feature-catalogue content inside a
+    record (`mdb:contentInfo`) while being unable to hold a standalone feature catalogue. Adding
+    `gfc:FC_FeatureCatalogue` to that plugin's roots is the closer fit than re-enabling a module
+    that introduces a second, older namespace for the same concept.
 - **XSLT version**: All stylesheets use XSLT 2.0 (Saxon processor).
 - **CDIF conversion (inbound)**: `fromJsonCdif.xsl` produces XSD-valid ISO 19115-3 output. The XSLT output includes `xsi:schemaLocation` with HTTP URLs for all concrete schemas (mdb, mco, mrc, mrd, mrl, mdq, gfc, fcc). GeoNetwork's `oasis-catalog.xml` resolves these to bundled local schemas at runtime.
 - **CDIF conversion (outbound)**: `iso19115-3-to-cdif.xsl` converts ISO 19115-3 back to CDIF JSON-LD. Accessible via `/srv/api/records/{uuid}/formatters/cdif`. Roundtrip validated: 120/121 ADA records pass.
@@ -163,6 +183,50 @@ errors that look unrelated. The enforcer rule now catches that case too.
 - **Geologic time**: The extent tab supports geologic age via `gml:TimeInstant` with `gml:timePosition frame="Ma before present"`.
 - **DDE codelists**: DDE-specific codelist URLs use `https://www.ddeworld.org/resource/codelist/...`.
 - **Build**: Maven multi-module project. Key modules: `core`, `harvesters`, `services`, `schemas`, `web`, `web-ui`.
+
+## Admin login, and how to reset it
+
+**Login checks only the salted hash.** `GeonetworkAuthenticationProvider.java:71` calls
+`encoder.matches`, and the encoder is a Spring `StandardPasswordEncoder` constructed with
+`${passwordSalt}` (`web/src/main/webapp/WEB-INF/config-security/config-security-core.xml:279`).
+That value is the literal `passwordSalt=secret-hash-salt=`, committed at
+`web/src/main/webapp/WEB-INF/config-security/config-security.properties:29`, so it is identical in
+every build and a salt mismatch is **never** the explanation for a failed login -- check it once
+to rule it out, then stop pursuing it. The legacy SHA-1 paths in `PasswordUtil`
+(`unsaltedScramble`, `oldScramble`) are reachable only through `matchesAnyHash`, whose own javadoc
+says it is not for logging in, so a hand-written SHA-1 hash in `users.password` will not
+authenticate.
+
+A `StandardPasswordEncoder` hash is exactly **80 hex characters** -- an 8-byte salt plus a 32-byte
+SHA-256 digest, hex-encoded. A `users.password` of any other length was not written by the
+encoder.
+
+**Diagnose before resetting.** `users.lastlogindate` updates only on a *successful* login, so a
+stale value means the password is being rejected outright rather than a session failing afterwards.
+`authtype` empty means local authentication, not LDAP or CAS. A `security` column containing
+`UPDATE_HASH_REQUIRED` changes how the stored hash is checked. Most useful of all: **one working
+account proves the database, salt, encoder and filter chain are all intact.** On 2026-11-18
+`srichard` authenticated while `admin` did not, which localised the fault to a single row and was
+the evidence against an intrusion -- an attacker changing the admin password has no reason to
+leave another account working, and no accounts had been added.
+
+**Resetting it on the deployed server.** The runtime image is `tomcat:9.0.85-jdk11-temurin`, a
+full JDK, and the war ships `spring-security-core`, so the container generates its own hash and
+the password never leaves that shell. Write a four-line `Pw.java` that reads the password from
+`$PW` and either prints `new StandardPasswordEncoder("secret-hash-salt=").encode(p)` or, given an
+argument, `matches(p, args[0])`; compile it with
+`javac -cp "/usr/local/tomcat/webapps/geonetwork/WEB-INF/lib/*"`; then one `read -rsp` feeding the
+same `$PW` into generate -> `update users set password=... where username='admin'` -> verify.
+
+Taking the password from an environment variable rather than from two separate hidden prompts is
+the whole point. The first attempt failed because `System.console().readPassword` echoes nothing,
+so a typo is invisible and still yields a well-formed 80-character hash -- for the wrong string.
+A `matches` check against the hash actually stored is what distinguishes that from an
+authentication-chain problem; a `401` from the API cannot.
+
+Two smaller traps: `java /tmp/Pw.java` single-file source mode does **not** work in that container
+(`Could not find or load main class .tmp.Pw.java`), so compile with `javac` and run the class. And
+`curl` against the API needs `-H "Accept: application/json"` -- see the API note under Build & Run.
 
 ## Conventions
 
@@ -240,8 +304,9 @@ deployed build, or checking what the old code did.
 |---|---|---|
 | The deployed war | archived at `C:\GithubC\geonetwork\war-archive\geonetwork-2024-04-10-deployed.war` | 285,820,217 bytes, 2024-04-10 — the binary that actually ran. Was the **only copy** (its git-LFS original died with the `opencode.deep-time.org` GitLab) until backed up 2026-11-14, verified byte-identical, sha256 `21c1ee57c2e5c0a5…`. **Do not publish it**: `WEB-INF/config.properties` holds a literal `es.password`, not a `${…}` placeholder, so it must never become a release asset or LFS object in a public repo. Rebuild from source instead where possible. |
 | Full deployed data directory | archived inside `C:\GithubC\geonetwork\war-archive\webapps-geonetwork-expanded-2024-04-10.tar.gz` | 272 MB from 383 MB, 6,951 entries, of which **1,616 are under `WEB-INF/data/`** — the deployed data directory, which had no other copy. Holds `config.properties` credentials and user records with emails and password hashes. **Never commit it, and private storage only.** `deploy/data-2024/` is the scrubbed subset. |
-| Both of the above, in place | moved to `C:\apache-tomcat-9.0.85\webapps-2024-aside\` on 2026-11-14 | Set aside so Tomcat would not auto-deploy the 2024 app (it reaches for the dead Alibaba hosts) during the wro4j measurement, and so the documented `/geonetwork` context was free. **Restore them to `webapps/` when the 4.4.9-0 test deployment is finished.** |
-| Harvester run logs | `C:\apache-tomcat-9.0.85\bin\harvester_*.log` | 30 files, 2024-02-09 → 2024-04-02; the source of the configuration below. |
+| Second copy of both archives | `E:\Toolkit\Backup\geonetwork-2024-deployment\` since 2026-11-18, with the archive's own `README.md` alongside | The 2024 war and data directory cannot be regenerated, and until this copy existed every copy was on `C:`. Checksums verified equal on both drives: war `21c1ee57c2e5c0a5...`, expanded tree `c6a2992737bbf8e8...`. **Private storage only** -- it holds a literal `es.password` and user password hashes. |
+| ~~Both of the above, under Tomcat~~ | **deleted 2026-11-18** from `C:\apache-tomcat-9.0.85\webapps-2024-aside\`, freeing 0.63 GB | They had been set aside on 2026-11-14 so Tomcat would not auto-deploy the 2024 app (it reaches for the dead Alibaba hosts) and so the documented `/geonetwork` context was free. **Do not put the 2024 app back under `webapps/`** -- this supersedes the earlier instruction to restore it once the 4.4.9-0 test deployment finished. Nothing was preserved by keeping it there: the war was byte-identical to the archive and the expanded tree is the `.tar.gz`, both checked before deleting. Restoring it would only make Tomcat auto-deploy an app that cannot reach its database on every start, take the `/geonetwork` context from the current build, and put `config.properties` credentials and user password hashes back under an HTTP server. Reproducing the 2024 build is archaeology: do it from the archive, outside `webapps/`. |
+| Harvester run logs | `C:\apache-tomcat-9.0.85\bin\harvester_*.log`, archived 2026-11-18 to `E:\Toolkit\Backup\geonetwork-2024-deployment\harvester-logs-2024.tar.gz` | 30 files, 2024-02-09 → 2024-04-02; the source of the configuration below. The archive holds all 30 entries in 38,762,542 bytes — about 18:1, since `harvester_default.log` alone is 715 MB — decompresses cleanly, sha256 `9744d0213e199782…`. |
 | Harvest source directory | `E:\Toolkit\Backup\EMERALD\c\tmp\forHarvest` (21 files) | **The authoritative copy.** The live `C:\tmp\forHarvest` is down to 11 files, having lost 10. `deploy/harvest-records-2024/` now mirrors all 21, so the repo is a complete copy — but that external drive is the only other one. |
 | The catalogue database | Alibaba Cloud PostgreSQL | No USGIN access. Records, users, permissions, settings and **harvester definitions** are all in it. |
 

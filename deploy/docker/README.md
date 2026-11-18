@@ -11,7 +11,7 @@ docker compose up -d --build
 Then `http://<host>:8080/geonetwork`. First start takes a few minutes: GeoNetwork creates the
 database tables, creates the Elasticsearch indices, and populates the data directory with the schema
 plugins, the DDE thesauri and the index configuration. About **65 s** measured on Tomcat 9.0.85 with
-an empty data directory, and \~35 s on later starts; the healthcheck allows 180 s.
+an empty data directory, and ~35 s on later starts; the healthcheck allows 180 s.
 
 
 
@@ -22,8 +22,8 @@ That one is upstream's, labelled "for development and debugging", and it cannot 
 * **Elasticsearch 7.6.2**, below this fork's stated 8.14.x minimum.
 * `mdillon/postgis`, abandoned years ago.
 * The obsolete `version:` key, which Compose v2 warns about.
-* Most importantly, **different environment variable names** — `POSTGRES\_DB\_HOST`, `DATA\_DIR`,
-`ES\_HOST` — which only the official `geonetwork` image understands, because its entrypoint
+* Most importantly, **different environment variable names** — `POSTGRES_DB_HOST`, `DATA_DIR`,
+`ES_HOST` — which only the official `geonetwork` image understands, because its entrypoint
 translates them. This image is built from this fork's war and takes the real names.
 
 Upstream points production users at `geonetwork/docker-geonetwork`. That builds from a released war,
@@ -43,13 +43,13 @@ failures you cannot miss, and two remain configuration you should understand.
 |-|-|-|
 |1|wro4j cache missing from the war|**build fails** — `unzip -l` must find `WEB-INF/prebuilt/wro4j-cache.mv.db`|
 |2|wro4j left in debug mode|**build fails** — `WEB-INF/wro.properties` must say `debug=false`|
-|3|`GEONETWORK\_DB\_PORT` unset|**container refuses to start** — entrypoint requires all five `GEONETWORK\_DB\_\*`|
+|3|`GEONETWORK_DB_PORT` unset|**container refuses to start** — entrypoint requires all five `GEONETWORK_DB_*`|
 |4|silent fallback to H2|entrypoint sets `-Dgeonetwork.db.type=postgres` and requires the five vars; **verify after first start**, below|
 |5|`wroSources` absolute build-machine path|entrypoint reads the path out of the deployed `wro.properties` and creates it|
 
 1. **The wro4j cache is not optional here.** Measured on Tomcat 9.0.85: the first ever request for
-`gn\_search\_default.css` takes **16.4 s** and for `gn\_search\_default.js` **429.5 s** without the
-cache, against \~5 ms with it. A container starts cold every time, so a war built without
+`gn_search_default.css` takes **16.4 s** and for `gn_search_default.js` **429.5 s** without the
+cache, against ~5 ms with it. A container starts cold every time, so a war built without
 `-Dprebuild-cache=true` would make every fresh container unusable for seven minutes. The build
 asserts the cache is inside the war rather than trusting the flag, because a war missing it is still
 valid and still deploys.
@@ -57,16 +57,16 @@ valid and still deploys.
 to be passed explicitly. It lands in `WEB-INF/wro.properties`, which is where the build checks it.
 3. &#x20;**and 4 are the same trap seen from two sides.** GeoNetwork reads its database settings from two
 mechanisms:
-* **Environment variables** — `GEONETWORK\_DB\_HOST`, `\_PORT`, `\_NAME`, `\_USERNAME`, `\_PASSWORD`.
-Spring resolves these with `#{systemEnvironment\['...']}`, so passing them as `-D` does *nothing*.
+* **Environment variables** — `GEONETWORK_DB_HOST`, `_PORT`, `_NAME`, `_USERNAME`, `_PASSWORD`.
+Spring resolves these with `#{systemEnvironment['...']}`, so passing them as `-D` does *nothing*.
 * **`-D` system properties** — `geonetwork.db.type`, `geonetwork.dir`, `file.encoding`.
 
 
 
-`GEONETWORK\_DB\_PORT` has **no baked default**. Unset, the URL comes out as
+`GEONETWORK_DB_PORT` has **no baked default**. Unset, the URL comes out as
 `jdbc:postgresql://localhost:/geonetwork?` and the error names `org.postgresql.Driver` — pointing at
 the driver rather than the missing port. And with the variables unset altogether the fallbacks are an
-**H2 file at `\~/gn`** with user and password `www-data`, while `config-node/srv.xml` imports
+**H2 file at `~/gn`** with user and password `www-data`, while `config-node/srv.xml` imports
 `config-db/${geonetwork.db.type:h2}.xml`. So a missing setting is a silent success on the wrong
 database, not an error. The entrypoint therefore refuses to start rather than letting that happen.
 
@@ -74,7 +74,7 @@ database, not an error. The entrypoint therefore refuses to start rather than le
 that works:
 
 ```bash
-docker compose exec postgres psql -U "$POSTGRES\_USER" -d "$POSTGRES\_DB" -c '\\dt' | head
+docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\dt' | head
 ```
 
 Tables such as `metadata`, `users`, `settings` mean GeoNetwork is using PostgreSQL. An empty list
@@ -104,7 +104,7 @@ RUN mvn --batch-mode war:war -pl web -Dprebuild-cache=true -Dwro.debug=false
 
 The `HEALTHCHECK` endpoint is also unproven. It POSTs to the search API with
 `Accept: application/json`, which matters: GeoNetwork's content negotiation **rejects
-`Accept: \*/\*`**, which is what curl sends by default, and returns HTTP 500 `ServiceNotFoundEx`
+`Accept: */*`**, which is what curl sends by default, and returns HTTP 500 `ServiceNotFoundEx`
 logged nowhere. If the container reports unhealthy while the catalogue answers in a browser, check
 that endpoint by hand first rather than assuming the catalogue is broken.
 
@@ -237,7 +237,7 @@ artifacts, which is the whole difficulty.
 ## Upgrading to a new image
 
 Nothing you configured is lost. Settings, users, the admin password, harvester definitions and
-records all live in PostgreSQL; attachments and `encryptor.properties` live in the `gn\_data`
+records all live in PostgreSQL; attachments and `encryptor.properties` live in the `gn_data`
 volume. Only the `geonetwork` container is replaced, so there is no reconfiguration to redo.
 
 **But a new image does not, by itself, update the schema plugin.** That is the step to get right,
@@ -248,7 +248,7 @@ Schemas are loaded from the data directory, not from the war:
 
 
 ```
-\[geonetwork.schemamanager] - Loading schema /var/lib/geonetwork\_data/config/schema\_plugins/iso19115-3.2018/...
+[geonetwork.schemamanager] - Loading schema /var/lib/geonetwork_data/config/schema_plugins/iso19115-3.2018/...
 ```
 
 
@@ -258,7 +258,7 @@ and `GeonetworkDataDirectory` copies them there only on a first start:
 
 
 ```java
-Path schemaCatFile = configDir.resolve(Geonet.File.SCHEMA\_PLUGINS\_CATALOG);
+Path schemaCatFile = configDir.resolve(Geonet.File.SCHEMA_PLUGINS_CATALOG);
 if (!Files.exists(schemaCatFile)) {          // only when the catalogue is ABSENT
     ...
     if (!Files.exists(destDir)) {            // and only plugins that are MISSING
@@ -275,23 +275,29 @@ fields — will appear not to have changed.
 So the upgrade is: load the image, remove the catalogue file and the plugin, start.
 
 ```bash
-cd /root/docker \&\& docker compose stop geonetwork
+cd /root/docker && docker compose stop geonetwork
 ```
 
 ```bash
-docker compose run --rm --entrypoint sh geonetwork -c 'rm -f /var/lib/geonetwork\_data/config/schemaplugin-uri-catalog.xml \&\& rm -rf /var/lib/geonetwork\_data/config/schema\_plugins/iso19115-3.2018'
+docker compose run --rm --entrypoint sh geonetwork -c 'rm -f /var/lib/geonetwork_data/config/schemaplugin-uri-catalog.xml && rm -rf /var/lib/geonetwork_data/config/schema_plugins/iso19115-3.2018 /var/lib/geonetwork_data/config/schema_plugins/iso19139'
 ```
 
 ```bash
-docker compose up -d \&\& docker compose logs -f geonetwork
+docker compose up -d && docker compose logs -f geonetwork
 ```
 
 **Check for `- Copying schema plugin catalogue ...` in the log.** That line is the confirmation the
 plugin was re-copied. Without it the new XSLTs are not live, whatever the image says.
 
-Only `iso19115-3.2018` is deleted, so the other schema plugins stay and GeoNetwork re-copies just
-the missing one. Nothing user-created lives in that directory: it is a build artifact, and the DDE
-thesauri are elsewhere, under `config/codelist/`.
+**Delete every plugin the release changed, not just `iso19115-3.2018`.** The 2026-11-18 upgrade
+also carried ISO 19115-2 support in `schemas/iso19139/` -- `schema-ident.xml` plus six entry-point
+stylesheets -- and leaving `iso19139` in the volume would have kept the old ones live while
+everything else looked correct. Plugins that are not deleted stay as they are, and GeoNetwork
+re-copies only the missing ones. Nothing user-created lives there: it is a build artifact, and the
+DDE thesauri are elsewhere, under `config/codelist/`.
+
+Note also that the catalogue file sits at `config/schemaplugin-uri-catalog.xml`, one level
+**above** `config/schema_plugins/`, not inside it.
 
 ### The full sequence
 
@@ -317,7 +323,7 @@ cd /root/docker && docker compose stop geonetwork
 ```
 
 ```bash
-cd /root/docker && docker compose run --rm --entrypoint sh geonetwork -c 'rm -f /var/lib/geonetwork_data/config/schemaplugin-uri-catalog.xml && rm -rf /var/lib/geonetwork_data/config/schema_plugins/iso19115-3.2018'
+cd /root/docker && docker compose run --rm --entrypoint sh geonetwork -c 'rm -f /var/lib/geonetwork_data/config/schemaplugin-uri-catalog.xml && rm -rf /var/lib/geonetwork_data/config/schema_plugins/iso19115-3.2018 /var/lib/geonetwork_data/config/schema_plugins/iso19139'
 ```
 
 ```bash
@@ -349,6 +355,35 @@ A full reindex is not needed for a formatter change, since `/formatters/cdif` re
 rather than the index. It *is* needed after a change to `index-fields/`, from Admin > Tools, and
 after changing the server host, because stored link fields embed the old base URL.
 
+**Trigger a long reindex through the API, not the admin console.** `PUT /srv/api/site/index` is
+synchronous by default (`SiteApi.java:638`), so the console holds one HTTP connection open for the
+whole rebuild. On 2026-11-18, at 32,046 records, that outlasted the host nginx's
+`proxy_read_timeout 300s` and the console showed `rebuildIndexError` with a `504 Gateway
+Time-out` -- while the reindex itself carried on and finished normally. The Angular console
+reports every failed admin call as `rebuildIndexError`, so the message does not even identify
+which call failed; a harvest run produced the same banner.
+
+```bash
+curl -s -X PUT -u admin -H "Accept: application/json" "http://localhost:8080/geonetwork/srv/api/site/index?reset=false&asynchronous=true"
+```
+
+`asynchronous=true` returns at once, and `localhost:8080` bypasses nginx entirely. **Pass
+`reset=false` explicitly**: the parameter defaults to **true**, which drops and recreates the
+index instead of updating documents in place. Progress is `GET /srv/api/site/indexing`, plus the
+Elasticsearch count compared against `select count(*) from metadata` -- but note that with
+`reset=false` the document count does *not* climb during the run, so it is not a progress signal.
+
+A bare `PUT` answers `403 Forbidden` from Tomcat: GeoNetwork's XSRF protection wants the token
+from the session cookie, so fetch one first.
+
+```bash
+curl -s -c /tmp/c.txt -u admin -H "Accept: application/json" http://localhost:8080/geonetwork/srv/api/me > /dev/null && T=$(awk '/XSRF-TOKEN/ {print $7}' /tmp/c.txt) && curl -s -X PUT -b /tmp/c.txt -H "X-XSRF-TOKEN: $T" -u admin -H "Accept: application/json" "http://localhost:8080/geonetwork/srv/api/site/index?reset=false&asynchronous=true"
+```
+
+The nginx that times out is **not** the `proxy` service in `docker-compose.yml`. On this server
+TLS is terminated by nginx 1.30.4 on the host, configured at `/etc/nginx/conf.d/geonetwork.conf`;
+editing `deploy/docker/nginx/geonetwork.conf` has no effect there.
+
 
 
 ## Host prerequisites
@@ -356,13 +391,13 @@ after changing the server host, because stored link fields embed the old base UR
 Elasticsearch 8 needs this on the **host**, not in the container:
 
 ```bash
-sudo sysctl -w vm.max\_map\_count=262144
-echo 'vm.max\_map\_count=262144' | sudo tee /etc/sysctl.d/99-elasticsearch.conf
+sudo sysctl -w vm.max_map_count=262144
+echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-elasticsearch.conf
 ```
 
-Memory: Elasticsearch wants ≥1 GB heap, GeoNetwork \~2 GB, plus PostgreSQL and the OS. **8 GB is
-comfortable**; on 4 GB set `GN\_HEAP=-Xms512m -Xmx1g` and `ES\_JAVA\_OPTS=-Xms512m -Xmx512m` in `.env`.
-Disk: the war is \~285 MB, the three images and the Maven build cache run to several GB.
+Memory: Elasticsearch wants ≥1 GB heap, GeoNetwork ~2 GB, plus PostgreSQL and the OS. **8 GB is
+comfortable**; on 4 GB set `GN_HEAP=-Xms512m -Xmx1g` and `ES_JAVA_OPTS=-Xms512m -Xmx512m` in `.env`.
+Disk: the war is ~285 MB, the three images and the Maven build cache run to several GB.
 
 
 
@@ -377,7 +412,7 @@ four `org.webjars.npm` artifacts through OSSRH, which 302-redirects, and Maven r
 authentication error naming neither the repository nor the artifacts.
 
 The builder image is `maven:3.9.9-eclipse-temurin-11`. `pom.xml`'s enforcer requires
-`\[11.0.25,12)`, so the build fails loudly if that image ever carries an older Java 11 or a newer
+`[11.0.25,12)`, so the build fails loudly if that image ever carries an older Java 11 or a newer
 major — which is why no patch version is pinned here.
 
 **Submodules must be checked out** before building, or the UI build fails on missing assets:
@@ -388,6 +423,15 @@ git submodule update --init --recursive
 
 `plugins/datahub-integration/geonetwork-ui` will warn that it cannot be accessed. That is expected
 and harmless unless you are building that plugin.
+
+**Every Maven invocation needs the identical `-D` flag set.** `web/pom.xml` re-filters
+`WEB-INF/wro.properties` from `web/src/main/webResources/` on each `process-resources`, using the
+*defaults* for anything not passed. On 2026-11-18 a second `mvn -o process-resources
+-DschemasCopy=true`, run only to re-copy schemas, put `debug=true` back into the already-built war;
+the Docker build's own assertion caught it with
+`FAIL: WEB-INF/wro.properties does not say debug=false`. Repeat the whole set --
+`-DskipTests -DschemasCopy=true -Dprebuild-cache=true -Dwro.debug=false` -- on every invocation,
+not just the first. This is the same silent-failure shape as the stale `gn-core` jar above.
 
 
 
@@ -450,7 +494,7 @@ block is an unconditional 301.
 * Elasticsearch and PostgreSQL ports are deliberately **not published**; they are reachable only on
 the compose network. If you publish 9200, turn `xpack.security.enabled` back on and set
 credentials.
-* Behind a reverse proxy, bind the catalogue to localhost: `GN\_PORT=127.0.0.1:8080` in `.env`.
+* Behind a reverse proxy, bind the catalogue to localhost: `GN_PORT=127.0.0.1:8080` in `.env`.
 * **Treat every credential from the 2024 Alibaba deployment as compromised.** Two July 2024
 deployment notes in the public `usgin/dde-metadata` repository contain Elasticsearch passwords in
 plain text. Generate new ones: `openssl rand -base64 24`.
@@ -459,11 +503,11 @@ plain text. Generate new ones: `openssl rand -base64 24`.
 
 ## Restoring the 2024 catalogue
 
-A `pg\_dump -Fc` dump carries records, users, groups, permissions and settings together:
+A `pg_dump -Fc` dump carries records, users, groups, permissions and settings together:
 
 ```bash
 docker compose cp dump.pgc postgres:/tmp/dump.pgc
-docker compose exec postgres pg\_restore -U "$POSTGRES\_USER" -d "$POSTGRES\_DB" --clean /tmp/dump.pgc
+docker compose exec postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean /tmp/dump.pgc
 docker compose restart geonetwork
 ```
 
@@ -471,7 +515,7 @@ The Elasticsearch index is **derived** — GeoNetwork 4 rebuilds it, so no snaps
 from Admin > Tools after restoring.
 
 Attachments and browse graphics are *files*, not rows, so a database dump alone loses them; they
-belong in the `gn\_data` volume. `deploy/data-2024/` holds the scrubbed subset that survives.
+belong in the `gn_data` volume. `deploy/data-2024/` holds the scrubbed subset that survives.
 
 
 
