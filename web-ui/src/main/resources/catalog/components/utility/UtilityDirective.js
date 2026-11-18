@@ -139,8 +139,7 @@
                   (h.fields && h.fields.overview);
                 var uuid = h.uuid || (h._source && h._source.uuid) || h._id;
                 var title =
-                  h.resourceTitleObject ||
-                  (h._source && h._source.resourceTitleObject);
+                  h.resourceTitleObject || (h._source && h._source.resourceTitleObject);
                 if (overview) {
                   // Carry the record uuid and its title on each image, so the
                   // template can link the thumbnail to its record and caption
@@ -148,14 +147,12 @@
                   // in practice it is almost always a generic "Thumbnail" or
                   // "large_thumbnail" rather than anything descriptive.
                   scope.images = scope.images.concat(
-                    (angular.isArray(overview) ? overview : [overview]).map(
-                      function (o) {
-                        return angular.extend({}, o, {
-                          uuid: uuid,
-                          caption: $filter("gnLocalized")(title)
-                        });
-                      }
-                    )
+                    (angular.isArray(overview) ? overview : [overview]).map(function (o) {
+                      return angular.extend({}, o, {
+                        uuid: uuid,
+                        caption: $filter("gnLocalized")(title)
+                      });
+                    })
                   );
                 }
               });
