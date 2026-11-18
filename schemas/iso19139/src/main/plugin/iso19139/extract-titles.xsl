@@ -25,27 +25,28 @@
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:gco="http://www.isotc211.org/2005/gco"
                 xmlns:gmd="http://www.isotc211.org/2005/gmd"
+                xmlns:gmi="http://www.isotc211.org/2005/gmi"
                 version="1.0">
 
   <xsl:include href="../iso19139/convert/functions.xsl"/>
 
   <xsl:variable name="mainLanguage">
     <xsl:call-template name="langId_from_gmdlanguage19139">
-      <xsl:with-param name="gmdlanguage" select="/*[@gco:isoType='gmd:MD_Metadata' or name()='gmd:MD_Metadata']/gmd:language"/>
+      <xsl:with-param name="gmdlanguage" select="/*[@gco:isoType='gmd:MD_Metadata' or name()='gmd:MD_Metadata' or name()='gmi:MI_Metadata']/gmd:language"/>
     </xsl:call-template>
   </xsl:variable>
 
   <xsl:variable name="locales"
                 select="/*/gmd:locale/gmd:PT_Locale"/>
 
-  <xsl:template match="gmd:MD_Metadata">
+  <xsl:template match="gmd:MD_Metadata|gmi:MI_Metadata">
     <titles>
       <xsl:apply-templates/>
     </titles>
   </xsl:template>
 
 
-  <xsl:template match="/gmd:MD_Metadata/gmd:identificationInfo/*/gmd:citation/*/gmd:title">
+  <xsl:template match="/gmd:MD_Metadata/gmd:identificationInfo/*/gmd:citation/*/gmd:title|/gmi:MI_Metadata/gmd:identificationInfo/*/gmd:citation/*/gmd:title">
       <title>
         <xsl:attribute name="lang"><xsl:value-of select="$mainLanguage"/></xsl:attribute>
         <xsl:value-of select="gco:CharacterString"/>

@@ -29,6 +29,7 @@
                 xmlns:gmx="http://www.isotc211.org/2005/gmx"
                 xmlns:gco="http://www.isotc211.org/2005/gco"
                 xmlns:gmd="http://www.isotc211.org/2005/gmd"
+                xmlns:gmi="http://www.isotc211.org/2005/gmi"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                 xmlns:xlink="http://www.w3.org/1999/xlink"
                 xmlns:gn-fn-iso19139="http://geonetwork-opensource.org/xsl/functions/profiles/iso19139"
@@ -104,7 +105,8 @@
 
 
   <xsl:template match="/root">
-    <xsl:apply-templates select="*:MD_Metadata"/>
+    <!-- MI_Metadata is the ISO 19115-2 root; its body is ordinary ISO 19139. -->
+    <xsl:apply-templates select="*:MD_Metadata|*:MI_Metadata"/>
   </xsl:template>
 
 
@@ -129,7 +131,7 @@
   </xsl:template>
 
 
-  <xsl:template match="gmd:MD_Metadata">
+  <xsl:template match="gmd:MD_Metadata|gmi:MI_Metadata">
     <xsl:copy copy-namespaces="no">
       <xsl:call-template name="add-namespaces"/>
 
