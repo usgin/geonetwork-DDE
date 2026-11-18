@@ -729,9 +729,11 @@
               }
             ],
             // Optional. If not set, the first resultViewTpls is used.
+            // List rather than grid: few records here carry a browse graphic,
+            // so the grid is mostly empty thumbnail boxes.
             resultTemplate:
               "../../catalog/components/" +
-              "search/resultsview/partials/viewtemplates/grid.html",
+              "search/resultsview/partials/viewtemplates/list.html",
             searchResultContact: "OrgForResource",
             formatter: {
               list: [
