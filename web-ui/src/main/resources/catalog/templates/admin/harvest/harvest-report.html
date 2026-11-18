@@ -42,7 +42,9 @@
             <td>{{h.info.result.total}}</td>
             <td>{{h.info.indexed}}</td>
             <td data-ng-class="{'text-danger': h.info.indexingFailed > 0}">
-              <strong data-ng-if="h.info.indexingFailed">{{h.info.indexingFailed}}</strong>
+              <strong data-ng-if="h.info.indexingFailed"
+                >{{h.info.indexingFailed}}</strong
+              >
               <span data-ng-if="!h.info.indexingFailed">{{h.info.indexingFailed}}</span>
             </td>
           </tr>

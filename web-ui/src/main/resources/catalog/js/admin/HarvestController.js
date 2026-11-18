@@ -120,12 +120,13 @@
           .then(
             function (response) {
               var buckets =
-                (((response.data || {}).aggregations || {}).byHarvester || {}).buckets || [];
+                (((response.data || {}).aggregations || {}).byHarvester || {}).buckets ||
+                [];
               var byUuid = {};
               angular.forEach(buckets, function (b) {
                 byUuid[b.key] = {
                   documents: b.doc_count,
-                  failed: ((b.failed || {}).doc_count) || 0
+                  failed: (b.failed || {}).doc_count || 0
                 };
               });
               angular.forEach($scope.harvesters, function (h) {
