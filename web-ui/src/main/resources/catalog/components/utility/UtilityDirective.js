@@ -112,7 +112,8 @@
 
   module.directive("gnRecordMosaic", [
     "$http",
-    function ($http) {
+    "$filter",
+    function ($http, $filter) {
       return {
         restrict: "A",
         replace: true,
@@ -136,8 +137,27 @@
                   h.overview ||
                   (h._source && h._source.overview) ||
                   (h.fields && h.fields.overview);
+                var uuid = h.uuid || (h._source && h._source.uuid) || h._id;
+                var title =
+                  h.resourceTitleObject ||
+                  (h._source && h._source.resourceTitleObject);
                 if (overview) {
-                  scope.images = scope.images.concat(overview);
+                  // Carry the record uuid and a caption on each image, so the
+                  // template can link the thumbnail to its record and label it.
+                  // The caption is the browse graphic's file description, and
+                  // the resource title when the graphic has none.
+                  scope.images = scope.images.concat(
+                    (angular.isArray(overview) ? overview : [overview]).map(
+                      function (o) {
+                        return angular.extend({}, o, {
+                          uuid: uuid,
+                          caption:
+                            $filter("gnLocalized")(o.nameObject) ||
+                            $filter("gnLocalized")(title)
+                        });
+                      }
+                    )
+                  );
                 }
               });
             if (scope.size) {
@@ -151,7 +171,9 @@
 
           if (scope.query) {
             var query = {
-              _source: { includes: ["overview"] },
+              _source: {
+                includes: ["overview", "uuid", "resourceTitleObject"]
+              },
               from: 0,
               size: scope.size || 10,
               query: {

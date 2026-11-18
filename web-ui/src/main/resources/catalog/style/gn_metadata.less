@@ -785,4 +785,31 @@ ul.container-list {
     width: 100%;
     height: 100%;
   }
+
+  // The mosaic puts a caption under each thumbnail, so its tiles lay out as a
+  // column: the linked image takes the remaining height, the caption sits
+  // beneath it. Scoped to .gn-mosaic, because the metadata view's gallery
+  // shares the .gallery class and has no captions.
+  .gn-mosaic > div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gn-mosaic > div > a,
+  .gn-mosaic > div > img {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gn-mosaic .gn-mosaic-caption {
+    display: block;
+    flex: 0 0 auto;
+    font-size: 11px;
+    line-height: 1.2em;
+    max-height: 2.4em;
+    overflow: hidden;
+    padding-top: 2px;
+  }
 }

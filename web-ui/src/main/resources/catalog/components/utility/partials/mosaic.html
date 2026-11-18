@@ -1,5 +1,16 @@
-<div class="gallery">
+<div class="gallery gn-mosaic">
   <div data-ng-repeat="i in images">
-    <img data-ng-src="{{i.data || (i.url | thumbnailUrlSize: imageSize)}}" />
+    <a data-ng-if="i.uuid" data-ng-href="#/metadata/{{i.uuid}}">
+      <img data-ng-src="{{i.data || (i.url | thumbnailUrlSize: imageSize)}}" />
+    </a>
+    <img
+      data-ng-if="!i.uuid"
+      data-ng-src="{{i.data || (i.url | thumbnailUrlSize: imageSize)}}"
+    />
+    <span
+      class="gn-mosaic-caption"
+      data-ng-if="i.caption"
+      data-ng-bind="i.caption"
+    ></span>
   </div>
 </div>
