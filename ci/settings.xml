@@ -13,7 +13,7 @@
      cleanly retired: /content/groups/public/ answers 302 and
      /content/repositories/github-releases/ answers 404, so Maven reports a
      redirect or an authentication failure naming neither the repository nor
-     the artifact. Four plugin dependencies resolve through them --
+     the artifact. Four plugin dependencies resolve through them:
      org.webjars.npm wrappy, minimatch, once and inflight, all transitive
      dependencies of glob:7.1.1 (web/pom.xml:1077-1082).
 
