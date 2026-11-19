@@ -91,7 +91,12 @@ parses, `docker build --check` reports no warnings, and the entrypoint passes `s
 build-time assertions and the entrypoint's refusal to start are mechanical, so they either hold or
 the build and the container stop.
 
-**Not yet verified: the image has never been built or run.** The full build needs the submodules and
+**`Dockerfile.prebuilt` is proven; the multi-stage `Dockerfile` is not.** The two are easy to
+conflate, and only the first has ever been built. `Dockerfile.prebuilt` has driven every deployment
+of this stack, most recently on 2026-11-19, and both its assertions have fired in anger. The
+self-contained `Dockerfile`, which runs Maven *inside* the image, **has never been built or run**.
+
+That full build needs the submodules and
 a long Maven run, and the wro4j prebuild has only ever been exercised on Windows, where it needs two
 Maven invocations because `wro4j:run` holds the cache file open and `maven-war-plugin` then cannot
 copy it. On Linux a single `package` is expected to work; if ASSERT 1 fails with the war present,
