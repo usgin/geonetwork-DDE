@@ -308,17 +308,40 @@
         padding: 0px
       }
       .gn-md-abstract {
-        margin-top: 15px;
+        margin-top: 8px;
+        margin-bottom: 8px;
         line-height: 1.5em;
       }
+      // The abstract and the contact share the width evenly. They used to be
+      // 9/3 (and 8/4 once the thumbnail column went), which left the contact
+      // column about 170px wide: an organisation name wrapped over six lines,
+      // set the height of the whole card, and left the abstract sitting above
+      // empty space. Even columns let both wrap about as much as each other.
       .gn-md-contact {
-        margin-top: 15px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+      .gn-md-contact-col {
+        border-left: 1px solid @gn-resultcard-title-border-color;
       }
       .gn-md-thumbnail {
         margin-top: 15px;
         margin-bottom: 15px;
       }
     }
+    // The footer holds a status badge and a few small buttons, so it does not
+    // need the fixed @gn-card-footer-height the grid card reserves for a wider
+    // toolbar. On the home page that was 50px of a 161px card, most of it empty
+    // above one icon. Centre its contents now that it is only as tall as they
+    // are.
+    .gn-card-footer {
+      height: auto;
+      min-height: 0;
+      padding-top: 3px;
+      padding-bottom: 3px;
+      align-items: center;
+    }
+
     // recalculate the height for list items
     .gn-card-body {
       height: auto;

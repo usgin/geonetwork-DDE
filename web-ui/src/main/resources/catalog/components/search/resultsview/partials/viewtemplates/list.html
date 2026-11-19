@@ -43,8 +43,14 @@
     </div>
     <!-- /.gn-card-heading -->
     <div class="panel-body gn-card-body">
-      <div class="row">
-        <div class="col-lg-8 col-md-9 col-sm-9">
+      <div class="row" data-ng-init="mdContacts = contactsFor(md)">
+        <div
+          data-ng-class="
+            mdContacts.length
+              ? 'col-lg-6 col-md-6 col-sm-6'
+              : 'col-lg-12 col-md-12 col-sm-12'
+          "
+        >
           <div class="gn-md-abstract text-muted">
             <p title="{{md.resourceAbstract}}">
               {{::abstractBriefMaker(md.resourceAbstract) | striptags}}
@@ -58,38 +64,12 @@
             ></div>
           </div>
         </div>
-        <div class="col-lg-4 col-md-3 col-sm-3">
+        <div
+          class="col-lg-6 col-md-6 col-sm-6 gn-md-contact-col"
+          data-ng-if="mdContacts.length"
+        >
           <div class="gn-md-contact">
-            <p
-              data-ng-repeat="c in ::md.getAllContacts().resource | limitTo: 4 track by $index"
-              data-ng-if="searchResultContact == 'OrgForResource'"
-            >
-              <img
-                data-ng-if="::c.logo"
-                data-ng-src="{{::c.logo}}"
-                class="gn-source-logo"
-                title="{{::c.organisation}} ({{::c.role}})"
-              />
-              {{::c.organisation}} ({{::c.role | translate}})
-            </p>
-
-            <p
-              data-ng-repeat="c in ::md.getAllContacts().distribution | limitTo: 4 track by $index"
-              data-ng-if="searchResultContact == 'OrgForDistribution'"
-            >
-              <img
-                data-ng-if="::c.logo"
-                data-ng-src="{{::c.logo}}"
-                class="gn-source-logo"
-                title="{{::c.organisation}} ({{::c.role}})"
-              />
-              {{::c.organisation}} ({{::c.role | translate}})
-            </p>
-
-            <p
-              data-ng-repeat="c in ::md.getAllContacts().metadata | limitTo: 4 track by $index"
-              data-ng-if="searchResultContact == 'Org'"
-            >
+            <p data-ng-repeat="c in ::mdContacts | limitTo: 4 track by $index">
               <img
                 data-ng-if="::c.logo"
                 data-ng-src="{{::c.logo}}"

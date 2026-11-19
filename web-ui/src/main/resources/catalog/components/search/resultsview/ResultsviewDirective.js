@@ -217,6 +217,25 @@
             }
           };
 
+          /**
+           * The contacts a result template should show for this record, under
+           * the configured searchResultContact. Returns an empty array when the
+           * search did not ask for contact fields at all: the home page uses
+           * configId 'home', whose _source includes (EsFacet.addSourceConfiguration)
+           * carry no contact or Org fields, so a template that reserves space
+           * for them leaves half the card blank.
+           */
+          scope.contactsFor = function (md) {
+            var all = (md && md.getAllContacts && md.getAllContacts()) || {};
+            var key =
+              scope.searchResultContact === "OrgForDistribution"
+                ? "distribution"
+                : scope.searchResultContact === "Org"
+                ? "metadata"
+                : "resource";
+            return all[key] || [];
+          };
+
           scope.abstractBriefMaker = function (resourceAbstract) {
             if (resourceAbstract) {
               var abstractParagraphs = resourceAbstract.split("\n");
