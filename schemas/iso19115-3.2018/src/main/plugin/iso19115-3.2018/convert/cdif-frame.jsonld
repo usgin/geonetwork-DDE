@@ -12,7 +12,13 @@
         "csvw": "http://www.w3.org/ns/csvw#",
         "ada": "https://ada.astromat.org/metadata/",
         "xas": "https://ada.astromat.org/metadata/xas/",
-        "nxs": "https://manual.nexusformat.org/classes/"
+        "nxs": "https://manual.nexusformat.org/classes/",
+
+        "cdif": "https://w3id.org/cdif/",
+        "cdifq": "http://crossdomaininteroperability.org/cdifq/",
+        "dcat": "http://www.w3.org/ns/dcat#",
+        "skos": "http://www.w3.org/2004/02/skos/core#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#"
     },
 
     "@type": "schema:Dataset",

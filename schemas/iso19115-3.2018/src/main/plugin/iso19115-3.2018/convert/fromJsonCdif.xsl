@@ -998,11 +998,17 @@
                                 </gco:UomIdentifier>
                               </gfc:valueMeasurementUnit>
                             </xsl:if>
-                            <xsl:if test="cdi_intendedDataType != ''">
+                            <!-- CDIF renamed this property to cdif:hasIntendedDataType.
+                                 Records in the wild carry either spelling, sometimes both
+                                 spellings of different properties in one document, so read
+                                 the newer name first and fall back to the older one. -->
+                            <xsl:variable name="intendedDataType"
+                                          select="(cdif_hasIntendedDataType, cdi_intendedDataType)[. != ''][1]"/>
+                            <xsl:if test="$intendedDataType != ''">
                               <gfc:valueType>
                                 <gco:TypeName>
                                   <gco:aName>
-                                    <gco:CharacterString><xsl:value-of select="cdi_intendedDataType"/></gco:CharacterString>
+                                    <gco:CharacterString><xsl:value-of select="$intendedDataType"/></gco:CharacterString>
                                   </gco:aName>
                                 </gco:TypeName>
                               </gfc:valueType>
@@ -1048,15 +1054,21 @@
               <xsl:for-each select="schema_distribution">
                 <xsl:if test="schema_contentUrl != ''">
                   <xsl:variable name="archiveUrl" select="schema_contentUrl"/>
+                  <!-- CDIF moved these two to the cdif: prefix. Read the newer spelling
+                       first and fall back to the older one; current CDIF examples use
+                       only cdif:fileSize, so reading cdi: alone yielded no transferSize. -->
+                  <xsl:variable name="fileSize"
+                                select="(cdif_fileSize, cdi_fileSize)[. != ''][1]"/>
+                  <xsl:variable name="fileSizeUofM"
+                                select="(cdif_fileSizeUofM, cdi_fileSizeUofM)[. != ''][1]"/>
                   <mrd:transferOptions>
                     <mrd:MD_DigitalTransferOptions>
-                      <!-- Transfer size from cdi_fileSize -->
-                      <xsl:if test="cdi_fileSize != ''">
+                      <xsl:if test="$fileSize != ''">
                         <mrd:transferSize>
                           <gco:Real>
                             <xsl:call-template name="convertToMegabytes">
-                              <xsl:with-param name="size" select="cdi_fileSize"/>
-                              <xsl:with-param name="unit" select="cdi_fileSizeUofM"/>
+                              <xsl:with-param name="size" select="$fileSize"/>
+                              <xsl:with-param name="unit" select="$fileSizeUofM"/>
                             </xsl:call-template>
                           </gco:Real>
                         </mrd:transferSize>
