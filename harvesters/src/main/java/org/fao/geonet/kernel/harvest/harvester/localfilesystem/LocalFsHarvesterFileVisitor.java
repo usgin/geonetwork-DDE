@@ -128,9 +128,10 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
             return FileVisitResult.CONTINUE;
         }
 
-        boolean isMef = MEFLib.isValidArchiveExtensionForMEF(file.getFileName().toString());
-        boolean isXml = file.getFileName().toString().endsWith(".xml");
-        boolean isJson = file.getFileName().toString().endsWith(".json");
+        String fileName = file.getFileName().toString();
+        boolean isMef = MEFLib.isValidArchiveExtensionForMEF(fileName);
+        boolean isXml = fileName.toLowerCase().endsWith(".xml");
+        boolean isJson = isJsonExtension(fileName);
 
         if (!isMef && !isXml && !isJson) {
             return FileVisitResult.CONTINUE;
@@ -161,6 +162,24 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
         return FileVisitResult.CONTINUE;
     }
 
+
+    /**
+     * Whether a file name carries an extension this harvester reads as JSON.
+     *
+     * <p>{@code .jsonld} counts because that is how JSON-LD -- and therefore CDIF -- is
+     * normally served and stored. Matching only {@code .json} skipped those files in
+     * {@link #visitFile}, before anything counted or logged them, so a folder of
+     * {@code .jsonld} records harvested as zero files with no error to explain it.
+     *
+     * <p>Case is ignored, as {@link MEFLib#isValidExtensionForMEF} already does for the
+     * extensions it recognises: the case of an extension carries no meaning, and the
+     * CDIF examples themselves are stored as {@code .jsonLD}.
+     */
+    static boolean isJsonExtension(String fileName) {
+        String lowerCasedFileName = fileName.toLowerCase();
+        return lowerCasedFileName.endsWith(".json")
+            || lowerCasedFileName.endsWith(".jsonld");
+    }
 
     /**
      * The CDIF preparer for this visit, created on first use and kept so the JSON-LD
