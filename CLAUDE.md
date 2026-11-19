@@ -226,7 +226,37 @@ and grep, or grep the cache file, before deploying.
 - **XSLT version**: All stylesheets use XSLT 2.0 (Saxon processor).
 - **CDIF conversion (inbound)**: `fromJsonCdif.xsl` produces XSD-valid ISO 19115-3 output. The XSLT output includes `xsi:schemaLocation` with HTTP URLs for all concrete schemas (mdb, mco, mrc, mrd, mrl, mdq, gfc, fcc). GeoNetwork's `oasis-catalog.xml` resolves these to bundled local schemas at runtime.
 - **CDIF conversion (outbound)**: `iso19115-3-to-cdif.xsl` converts ISO 19115-3 back to CDIF JSON-LD. Accessible via `/srv/api/records/{uuid}/formatters/cdif`. Roundtrip validated: 120/121 ADA records pass.
-- **JSON-LD framing caveat**: Java `jsonld-java` drops complex fields (`schema:creator` with `@list`, `schema:distribution`, `schema:funding`, `schema:contributor`) during framing. `recoverDroppedFields()` in Harvester.java merges them back from the original input.
+- **JSON-LD framing caveat**: Java `jsonld-java` drops complex fields (`schema:creator` with `@list`,
+  `schema:distribution`, `schema:funding`, `schema:contributor`) during framing.
+  `recoverDroppedFields()` merges them back from the original input. It lives in
+  `simpleurl/CdifJsonPreparer.java`, not in `Harvester.java`, since 5b560019c1 — both the SimpleUrl
+  and the Directory harvester call it.
+- **CDIF JSON can only be ingested by a harvester, never by Contribute > Import.** Established
+  2026-11-19 by reading the code, after the deployed catalogue was thought ready for a one-off CDIF
+  import. `MetadataInsertDeleteApi.java:677` parses every non-MEF upload with `Xml.loadStream`, and
+  `loadRecord` takes the resulting JDOM `Element`; `transformWith` is then applied by
+  `Xml.transform(xmlElement, xslFile)` at `:917`. So the upload is parsed as XML **before** the
+  transform is reachable, and a `.json` file dies at the parse with `fromJsonCdif.xsl` never
+  consulted. This is **not** the Windows `InvalidPathException` bug recorded under the 2024 seed
+  records — that one concerns the `transformWith` identifier for DDE *XML* files, which import
+  fine on Linux. Two unrelated obstacles.
+
+  Getting from CDIF to ISO is five steps and the XSLT is only the last, which is why
+  the stylesheet cannot be made to cover it: frame against `cdif-frame.jsonld`, strip the nulls
+  framing introduces, recover the dropped fields (all three in `CdifJsonPreparer`), synthesise XML
+  with `org.json.XML.toString(json, "record")` plus `@`-stripping, colon-to-underscore and an
+  injected `<uuid>` (in each harvester), and only then `fromJsonCdif.xsl`. Framing is the step that
+  is easy to underrate: JSON-LD has several equivalent serialisations, each of which becomes
+  different XML at the synthesis step, and the stylesheet is written against the framed shape alone.
+
+  There is therefore no single-record CDIF import — even one file goes through a harvester. Making
+  Import accept CDIF would mean detecting JSON on upload and running the preparer before parsing,
+  which is a feature rather than a fix.
+- **A containerised Directory harvester can only see the data volume.** `docker-compose.yml` mounts
+  exactly one volume into the catalogue, `gn_data:/var/lib/geonetwork_data`, so a directory under
+  `/root` harvests **zero files and reports no error** — the path simply is not there. Put records
+  inside the volume (`docker compose cp <src> geonetwork:/var/lib/geonetwork_data/<dir>/`) rather
+  than adding a bind mount.
 - **Dev healthcheck**: `DashboardAppHealthCheck` in `config-service-monitoring.xml` is disabled — it blocks the admin UI when Kibana isn't running.
 - **Schema validation**: For local validation in Oxygen XML Editor, use `oxygen-catalog.xml` (repo root) which has absolute `file:///` paths. The GeoNetwork `oasis-catalog.xml` uses relative paths that work in Java but not in standalone Oxygen on Windows.
 - **Editor views**: The `ddeview` in config-editor.xml uses GeoNetwork's XML-based view definition system with tabs, sections, fields, actions, and thesaurus pickers.
