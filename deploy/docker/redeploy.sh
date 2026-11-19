@@ -154,6 +154,24 @@ docker compose up -d
 
 # ---------------------------------------------------------------- verify
 
+step "Checking the container really runs $IMAGE_TAG"
+# `up -d` recreates a container when the tag resolves to a new image id, and
+# normally does. When it reuses one instead, nothing below notices: the old
+# image re-copies the plugins from its own war, so they are present and the
+# directory checks pass, the catalogue answers 200, and the previous build
+# serves. Compare the ids rather than trust the recreate.
+want_image="$(docker image inspect --format '{{.Id}}' "$IMAGE_TAG")" \
+  || die "cannot inspect $IMAGE_TAG"
+container="$(docker compose ps -q geonetwork)"
+[ -n "$container" ] || die "no geonetwork container after 'docker compose up -d'"
+got_image="$(docker inspect --format '{{.Image}}' "$container")"
+if [ "$want_image" != "$got_image" ]; then
+  printf '  tag       %s\n  container %s\n' "$want_image" "$got_image" >&2
+  die "the container is running a different image than $IMAGE_TAG --
+       'docker compose up -d --force-recreate geonetwork' replaces it"
+fi
+echo "container $(printf '%.12s' "$container") runs $got_image"
+
 step "Waiting for the catalogue to answer"
 ready="no"
 for _ in $(seq 1 60); do
