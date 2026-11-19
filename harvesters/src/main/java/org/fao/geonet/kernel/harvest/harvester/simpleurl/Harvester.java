@@ -25,9 +25,6 @@ package org.fao.geonet.kernel.harvest.harvester.simpleurl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.jsonldjava.core.JsonLdOptions;
-import com.github.jsonldjava.core.JsonLdProcessor;
-import com.github.jsonldjava.utils.JsonUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.CharStreams;
 import jeeves.server.context.ServiceContext;
@@ -62,7 +59,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -96,10 +92,11 @@ class Harvester implements IHarvester<HarvestResult> {
     private final List<HarvestError> errors;
 
     /**
-     * Cached JSON-LD frame for CDIF record normalization.
-     * Loaded on first use from the schema plugin's convert directory.
+     * Prepares CDIF JSON-LD records for the conversion. Created on first use so it
+     * carries the logger {@link #harvest(Logger)} installs, and held for the run so
+     * the JSON-LD frame is read from disk once.
      */
-    private volatile Object cdifFrame = null;
+    private CdifJsonPreparer cdifPreparer;
 
     public Harvester(AtomicBoolean cancelMonitor, Logger log, ServiceContext context, SimpleUrlParams params, List<HarvestError> errors) {
         this.cancelMonitor = cancelMonitor;
@@ -430,8 +427,8 @@ class Harvester implements IHarvester<HarvestResult> {
             String conversion = selectConversion(jsonRecord, uuid);
 
             // Apply JSON-LD framing for CDIF records to normalize structure
-            if (isCdifConversion(conversion) && jsonRecord.has("@context")) {
-                jsonRecord = frameJsonLd(jsonRecord, uuid);
+            if (CdifJsonPreparer.isCdifConversion(conversion) && CdifJsonPreparer.isJsonLd(jsonRecord)) {
+                jsonRecord = cdifPreparer().prepare(jsonRecord, uuid);
             }
 
             String recordAsXml = XML.toString(
@@ -594,234 +591,15 @@ class Harvester implements IHarvester<HarvestResult> {
     }
 
     /**
-     * Check whether a conversion is the CDIF JSON-LD one, which is what decides if JSON-LD
-     * framing runs.
-     *
-     * <p>Takes the conversion rather than reading {@code params.toISOConversion}: once a
-     * record can be dispatched to a different conversion than the configured one, testing
-     * the configured value would frame -- or fail to frame -- on the wrong basis.
+     * The CDIF preparer for this run, created on first use so it carries the logger
+     * installed by {@link #harvest(Logger)} and keeps the parsed frame for the rest
+     * of the harvest.
      */
-    private boolean isCdifConversion(String conversion) {
-        return StringUtils.isNotEmpty(conversion)
-            && conversion.contains("fromJsonCdif");
-    }
-
-    /**
-     * Apply JSON-LD framing to normalize a CDIF JSON-LD document.
-     * Framing resolves @list wrappers, embeds referenced objects inline,
-     * and ensures a consistent structure regardless of the input JSON-LD form
-     * (compact, expanded, flattened). This makes the downstream org.json.XML
-     * conversion produce predictable XML for the fromJsonCdif.xsl XSLT.
-     *
-     * @param jsonRecord the JSON-LD document as a Jackson JsonNode
-     * @param uuid       the record identifier (for logging)
-     * @return the framed document, or the original if framing fails
-     */
-    @SuppressWarnings("unchecked")
-    private JsonNode frameJsonLd(JsonNode jsonRecord, String uuid) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            Object frame = loadCdifFrame();
-            if (frame == null) {
-                return jsonRecord;
-            }
-
-            String jsonString = objectMapper.writeValueAsString(jsonRecord);
-            Object input = JsonUtils.fromString(jsonString);
-
-            JsonLdOptions options = new JsonLdOptions();
-            Map<String, Object> framed = JsonLdProcessor.frame(input, frame, options);
-
-            // The framing API wraps results in @graph. Extract the main dataset
-            // object — not the schema:subjectOf catalog record, which also has
-            // @type schema:Dataset and may appear first in the @graph array.
-            Object graph = framed.get("@graph");
-            if (graph instanceof List) {
-                List<?> graphList = (List<?>) graph;
-                if (graphList.isEmpty()) {
-                    log.warning(String.format(
-                        "JSON-LD framing produced empty @graph for record %s — "
-                        + "document may not match frame @type. Using unframed document.", uuid));
-                    return jsonRecord;
-                }
-
-                // Pick the object that has schema:name (the real dataset),
-                // not the subjectOf metadata record which lacks it.
-                Map<String, Object> mainMap = null;
-                for (Object item : graphList) {
-                    if (item instanceof Map) {
-                        Map<String, Object> candidate = (Map<String, Object>) item;
-                        Object name = candidate.get("schema:name");
-                        if (name != null && !"".equals(name)) {
-                            mainMap = candidate;
-                            break;
-                        }
-                    }
-                }
-                // Fallback: take the last entry (dataset is typically after subjectOf)
-                if (mainMap == null) {
-                    Object last = graphList.get(graphList.size() - 1);
-                    if (last instanceof Map) {
-                        mainMap = (Map<String, Object>) last;
-                    }
-                }
-
-                if (mainMap != null) {
-                    // Preserve @context from the framed output for downstream processing
-                    if (framed.containsKey("@context")) {
-                        mainMap.put("@context", framed.get("@context"));
-                    }
-                    // Remove null-valued properties that framing introduces for
-                    // properties in the frame but absent in the source data.
-                    // org.json.XML serializes null as the string "null", which
-                    // causes downstream failures (e.g. ISODate parsing).
-                    removeNulls(mainMap);
-
-                    // The jsonld-java framing library drops some complex fields
-                    // (creator with @list, distribution, funding, contributor)
-                    // that the source document contains. Recover them from the
-                    // original unframed input.
-                    recoverDroppedFields(mainMap, input, uuid);
-
-                    String result = JsonUtils.toString(mainMap);
-                    log.debug("JSON-LD framing applied for CDIF record: " + uuid);
-                    return objectMapper.readTree(result);
-                }
-            }
-
-            // No @graph — properties at top level (single match, older API behavior)
-            String result = JsonUtils.toString(framed);
-            log.debug("JSON-LD framing applied for CDIF record: " + uuid);
-            return objectMapper.readTree(result);
-        } catch (Exception e) {
-            log.warning(String.format(
-                "JSON-LD framing failed for record %s, proceeding with unframed document: %s",
-                uuid, e.getMessage()));
-            return jsonRecord;
+    private CdifJsonPreparer cdifPreparer() {
+        if (cdifPreparer == null) {
+            cdifPreparer = new CdifJsonPreparer(log);
         }
-    }
-
-    /**
-     * Recursively remove null-valued entries from a Map (and nested Maps/Lists).
-     * JSON-LD framing introduces null values for properties declared in the frame
-     * but absent in the source data.  org.json.XML.toString() serializes these as
-     * the literal string "null", which causes downstream failures such as ISODate
-     * parsing errors.
-     */
-    @SuppressWarnings("unchecked")
-    private void removeNulls(Map<String, Object> map) {
-        Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Object> entry = it.next();
-            Object value = entry.getValue();
-            if (value == null) {
-                it.remove();
-            } else if (value instanceof Map) {
-                removeNulls((Map<String, Object>) value);
-                if (((Map<String, Object>) value).isEmpty()) {
-                    it.remove();
-                }
-            } else if (value instanceof List) {
-                removeNullsFromList((List<Object>) value);
-                if (((List<Object>) value).isEmpty()) {
-                    it.remove();
-                }
-            }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void removeNullsFromList(List<Object> list) {
-        Iterator<Object> it = list.iterator();
-        while (it.hasNext()) {
-            Object item = it.next();
-            if (item == null) {
-                it.remove();
-            } else if (item instanceof Map) {
-                removeNulls((Map<String, Object>) item);
-                if (((Map<String, Object>) item).isEmpty()) {
-                    it.remove();
-                }
-            } else if (item instanceof List) {
-                removeNullsFromList((List<Object>) item);
-                if (((List<Object>) item).isEmpty()) {
-                    it.remove();
-                }
-            }
-        }
-    }
-
-    /**
-     * Recover fields that jsonld-java framing drops from the source document.
-     * The jsonld-java library sometimes fails to preserve complex properties
-     * like schema:creator (which uses @list), schema:distribution, schema:funding,
-     * and schema:contributor, even though the frame defines them.
-     * This method copies those fields from the original unframed input when
-     * they are missing from the framed result.
-     */
-    @SuppressWarnings("unchecked")
-    private void recoverDroppedFields(Map<String, Object> framed, Object originalInput, String uuid) {
-        // The originalInput is the parsed JSON-LD — it may be a Map (single object)
-        // or a Map with nested structure. Extract the source properties.
-        Map<String, Object> source = null;
-        if (originalInput instanceof Map) {
-            source = (Map<String, Object>) originalInput;
-        } else {
-            return;
-        }
-
-        // Fields that framing commonly drops due to @list, type mismatches, etc.
-        String[] fieldsToRecover = {
-            "schema:creator", "schema:contributor", "schema:publisher",
-            "schema:provider", "schema:funding", "schema:distribution",
-            "schema:variableMeasured", "schema:dateModified"
-        };
-
-        for (String field : fieldsToRecover) {
-            if (!framed.containsKey(field) || framed.get(field) == null) {
-                Object sourceValue = source.get(field);
-                if (sourceValue != null) {
-                    framed.put(field, sourceValue);
-                    log.debug(String.format(
-                        "Recovered field '%s' from unframed source for record %s", field, uuid));
-                }
-            }
-        }
-    }
-
-    /**
-     * Load the CDIF JSON-LD frame document from the schema plugin's convert directory.
-     * The frame is cached after first load.
-     */
-    private Object loadCdifFrame() throws Exception {
-        if (cdifFrame != null) {
-            return cdifFrame;
-        }
-        synchronized (this) {
-            if (cdifFrame != null) {
-                return cdifFrame;
-            }
-            // Resolve frame file from the schema plugin directory
-            Path schemaPluginsDir = ApplicationContextHolder.get()
-                .getBean(GeonetworkDataDirectory.class)
-                .getSchemaPluginsDir();
-            Path framePath = schemaPluginsDir
-                .resolve("iso19115-3.2018")
-                .resolve("convert")
-                .resolve("cdif-frame.jsonld");
-
-            if (!Files.exists(framePath)) {
-                log.warning("CDIF frame file not found at " + framePath
-                    + " — JSON-LD framing will be skipped.");
-                return null;
-            }
-
-            try (InputStream is = Files.newInputStream(framePath)) {
-                cdifFrame = JsonUtils.fromInputStream(is);
-                log.info("Loaded CDIF JSON-LD frame from " + framePath);
-            }
-            return cdifFrame;
-        }
+        return cdifPreparer;
     }
 
     private Element applyConversion(Element input, String uuid) {

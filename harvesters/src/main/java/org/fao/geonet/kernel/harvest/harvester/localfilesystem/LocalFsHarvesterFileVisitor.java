@@ -24,6 +24,7 @@
 package org.fao.geonet.kernel.harvest.harvester.localfilesystem;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -41,6 +42,7 @@ import org.fao.geonet.kernel.GeonetworkDataDirectory;
 import org.fao.geonet.kernel.datamanager.IMetadataUtils;
 import org.fao.geonet.kernel.harvest.BaseAligner;
 import org.fao.geonet.kernel.harvest.harvester.CategoryMapper;
+import org.fao.geonet.kernel.harvest.harvester.simpleurl.CdifJsonPreparer;
 import org.fao.geonet.kernel.harvest.harvester.GroupMapper;
 import org.fao.geonet.kernel.harvest.harvester.HarvestResult;
 import org.fao.geonet.kernel.harvest.harvester.csw.Aligner;
@@ -88,6 +90,12 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
     private final Set<Integer> listOfRecordsToIndex = Sets.newHashSet();
     private boolean transformIt = false;
     private Path thisXslt;
+
+    /**
+     * Prepares CDIF JSON-LD before it becomes XML. Only used when the configured import
+     * conversion is the CDIF one; it holds the parsed JSON-LD frame for the whole visit.
+     */
+    private CdifJsonPreparer cdifPreparer;
     private long startTime;
 
     public LocalFsHarvesterFileVisitor(AtomicBoolean cancelMonitor, ServiceContext context, LocalFilesystemParams params, LocalFilesystemHarvester harvester) throws Exception {
@@ -154,6 +162,17 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
     }
 
 
+    /**
+     * The CDIF preparer for this visit, created on first use and kept so the JSON-LD
+     * frame is read from disk once rather than per file.
+     */
+    private CdifJsonPreparer cdifPreparer() {
+        if (cdifPreparer == null) {
+            cdifPreparer = new CdifJsonPreparer(harvester.getLogger());
+        }
+        return cdifPreparer;
+    }
+
     // Reads a JSON file, transform it to XML and use the same workflow as for XML files
     // inspired by:
     // https://github.com/geonetwork/core-geonetwork/blob/c57f5de06e5e456af1ee55178eca437235b1d499/harvesters/src/main/java/org/fao/geonet/kernel/harvest/harvester/simpleUrl/Harvester.java#L239
@@ -165,7 +184,16 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
         try {
             harvester.getLogger().debug("reading file: {}", filePath);
             String uuid = com.google.common.io.Files.getNameWithoutExtension(file.getFileName().toString());
-            String recordAsJson = objectMapper.readTree(filePath.toFile()).toString();
+            JsonNode record = objectMapper.readTree(filePath.toFile());
+            // A CDIF record is JSON-LD, which has several equivalent serialisations.
+            // Frame it before it becomes XML, exactly as the SimpleUrl harvester does,
+            // or the stylesheet sees a shape it was not written for and complex fields
+            // such as schema:creator and schema:distribution are lost.
+            if (CdifJsonPreparer.isCdifConversion(params.getImportXslt())
+                && CdifJsonPreparer.isJsonLd(record)) {
+                record = cdifPreparer().prepare(record, uuid);
+            }
+            String recordAsJson = record.toString();
             JSONObject sanitizedJson = sanitize(new JSONObject(recordAsJson));
             String recordAsXml = XML.toString(sanitizedJson,"record")
                 .replace("<@", "<")
