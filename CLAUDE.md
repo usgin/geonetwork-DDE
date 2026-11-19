@@ -57,8 +57,26 @@ then had never been measured:
 | after that cold compile, warm | 0.0067 s | 0.0153 s |
 
 So `-Dprebuild-cache=true` earns its keep: it turns a 16 s + 430 s first-request cliff into
-milliseconds. Build with it. The 19 MB `WEB-INF/prebuilt/wro4j-cache.mv.db` is adopted on first
-start and copied to `<geonetwork.dir>/data/resources/htmlcache/wro4j-cache.mv.db`.
+milliseconds. Build with it. The 19 MB `WEB-INF/prebuilt/wro4j-cache.mv.db` is adopted and copied
+to `<geonetwork.dir>/data/resources/htmlcache/wro4j-cache.mv.db`.
+
+**The adoption is lazy, and neither the file's size, its hash nor its timestamp means what it
+looks like.** Established 2026-11-19 by reading `GeonetworkWrojManagerFactory` after a deploy was
+wrongly declared broken on all three. Three traps, in the order they mislead:
+
+- **It is copied on the first wro4j request, not at startup.** `newCacheStrategy()` runs when
+  wro4j first builds its manager. Read the data directory before anything has asked for a bundle
+  and you are looking at the file the *previous* container left at shutdown.
+- **It cannot be fingerprinted by hash.** `DiskbackedCache.java:87,103` opens that same path as an
+  H2 database (`jdbc:h2:<htmlCacheDir>/wro4j-cache`), so it is written the moment the catalogue
+  serves anything. Comparing its md5 against the war's pristine copy always differs and proves
+  nothing. Compare **sizes** instead, before and after the first bundle request: a jump to within
+  one 8 KB H2 page of the war's prebuilt file is the copy happening.
+- **The data directory's `git.properties` never names the running build.**
+  `GeonetworkWrojManagerFactory.java:112-121` writes it only when it is *absent*, so it is frozen
+  at whatever revision first created it. It is therefore useless as a deployment marker, and
+  `gitVersionMatch` is false on every start after the first — meaning the prebuilt cache is
+  re-copied on every start, discarding anything compiled since. Fixed here, and worth upstreaming.
 
 **Three earlier conclusions recorded here were wrong**, all from measuring `mvn jetty:run` rather
 than a war on Tomcat:
