@@ -107,11 +107,21 @@ RUN mvn --batch-mode package -pl web -am -DskipTests -Dprebuild-cache=true -Dwro
 RUN mvn --batch-mode war:war -pl web -Dprebuild-cache=true -Dwro.debug=false
 ```
 
-The `HEALTHCHECK` endpoint is also unproven. It POSTs to the search API with
-`Accept: application/json`, which matters: GeoNetwork's content negotiation **rejects
-`Accept: */*`**, which is what curl sends by default, and returns HTTP 500 `ServiceNotFoundEx`
-logged nowhere. If the container reports unhealthy while the catalogue answers in a browser, check
-that endpoint by hand first rather than assuming the catalogue is broken.
+**The `HEALTHCHECK` works -- all three containers report `healthy`.** Confirmed 2026-11-19 on the
+deployed stack: `docker inspect` gives `healthy` for geonetwork, elasticsearch and postgres alike.
+The geonetwork one POSTs to the search API with `Accept: application/json`, and that header is the
+reason it works rather than an incidental detail: GeoNetwork's content negotiation **rejects
+`Accept: */*`**, which is what curl sends by default, and answers it with HTTP 500
+`ServiceNotFoundEx` logged nowhere. So an edit that drops the header would report unhealthy against
+a perfectly working catalogue. Probe the endpoint by hand before concluding the catalogue is broken:
+
+```bash
+docker compose exec geonetwork curl -fsS -H 'Accept: application/json' \
+  -X POST -H 'Content-Type: application/json' -d '{"size":0}' \
+  'http://localhost:8080/geonetwork/srv/api/search/records/_search?bucket=bucket'
+```
+
+`Dockerfile` carries the identical `HEALTHCHECK`, but it has never been built -- see above.
 
 
 
