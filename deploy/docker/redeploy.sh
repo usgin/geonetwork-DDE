@@ -105,11 +105,19 @@ fi
 case "$ARTIFACT" in
   *.war)
     [ -f Dockerfile.prebuilt ] || die "Dockerfile.prebuilt is not in $COMPOSE_DIR"
+    [ -f entrypoint.sh ] || die "entrypoint.sh is not in $COMPOSE_DIR"
     step "Building $IMAGE_TAG from $(basename "$ARTIFACT")"
     BUILD_CTX="$(mktemp -d)"
     trap 'rm -rf "$BUILD_CTX"' EXIT
-    cp "$ARTIFACT" "$BUILD_CTX/geonetwork.war"
-    cp Dockerfile.prebuilt entrypoint.sh "$BUILD_CTX/"
+    # Dockerfile.prebuilt COPYs web/target/geonetwork.war and
+    # deploy/docker/entrypoint.sh, both resolved against the context root, so the
+    # context has to reproduce those paths. Laying the two files out flat fails the
+    # build with "failed to calculate checksum ... not found" -- which is what this
+    # branch did until it was first exercised on 2026-11-20.
+    mkdir -p "$BUILD_CTX/web/target" "$BUILD_CTX/deploy/docker"
+    cp "$ARTIFACT" "$BUILD_CTX/web/target/geonetwork.war"
+    cp entrypoint.sh "$BUILD_CTX/deploy/docker/entrypoint.sh"
+    cp Dockerfile.prebuilt "$BUILD_CTX/"
     docker build -f "$BUILD_CTX/Dockerfile.prebuilt" -t "$IMAGE_TAG" "$BUILD_CTX" \
       || die "image build failed -- its own assertions cover the wro4j cache and wro.debug"
     ;;
