@@ -64,8 +64,12 @@
 
             <xsl:namespace name="xlink" select="'http://www.w3.org/1999/xlink'"/>
             <xsl:namespace name="xsi" select="'http://www.w3.org/2001/XMLSchema-instance'"/>
+            <!-- An absolute location, because the downloaded file is read somewhere
+                 else: a bare DDEMetadataXSD_20240103.xsd resolves only when the schema
+                 happens to sit beside the instance document, which it never does for a
+                 record pulled from /formatters/dde. -->
             <xsl:attribute name="xsi:schemaLocation"
-                select="string('https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0 DDEMetadataXSD_20240103.xsd')"/>
+                select="string('https://www.ddeworld.org/resource/standards/dde/ds01/metadata/1.0 https://raw.githubusercontent.com/usgin/dde-metadata/refs/heads/main/DDEMetadataXSD_20240103.xsd')"/>
 
             <dde:metadataIdentifier>
                 <xsl:apply-templates select="mdb:metadataIdentifier/mcc:MD_Identifier"/>
