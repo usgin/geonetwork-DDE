@@ -231,6 +231,24 @@ and grep, or grep the cache file, before deploying.
   `recoverDroppedFields()` merges them back from the original input. It lives in
   `simpleurl/CdifJsonPreparer.java`, not in `Harvester.java`, since 5b560019c1 — both the SimpleUrl
   and the Directory harvester call it.
+
+  **The list was incomplete, and the gap was invisible.** `schema:spatialCoverage` and
+  `schema:temporalCoverage` were missing until d2965fb3e6, so a `schema:Place` carrying nothing but
+  its geometry was dropped and the record produced **no `gex:EX_GeographicBoundingBox`**. Three of
+  four example records lost their extent that way, and on the deployed catalogue only **1 of 19**
+  CDIF records had a bounding box; after the fix and a re-harvest, 7 of 19 do — exactly the 7 whose
+  source declares one. Nothing reported an error: the record imports, validates and looks complete.
+
+  So when a property is absent from a converted record, check `FIELDS_TO_RECOVER` **before**
+  suspecting the stylesheet. `fromJsonCdif.xsl` maps `schema:box` correctly and always did; it was
+  never handed one. The general shape: framing silently discards a property whose shape the frame
+  does not anticipate, and adding the name to that array is the fix.
+
+  Verify such a change by running it, not by grepping. A name appearing in the stylesheet proves
+  nothing — `schema:spatialCoverage` occurs 19 times in `fromJsonCdif.xsl` and still produced no
+  output. `CdifJsonPreparerTest` shows how to drive the real preparer offline: stub
+  `ApplicationContextHolder` with a mocked `GeonetworkDataDirectory` whose `getSchemaPluginsDir()`
+  points at `schemas/iso19115-3.2018/src/main/plugin`, and the real `cdif-frame.jsonld` loads.
 - **CDIF JSON can only be ingested by a harvester, never by Contribute > Import.** Established
   2026-11-19 by reading the code, after the deployed catalogue was thought ready for a one-off CDIF
   import. `MetadataInsertDeleteApi.java:677` parses every non-MEF upload with `Xml.loadStream`, and
@@ -257,6 +275,21 @@ and grep, or grep the cache file, before deploying.
   `/root` harvests **zero files and reports no error** — the path simply is not there. Put records
   inside the volume (`docker compose cp <src> geonetwork:/var/lib/geonetwork_data/<dir>/`) rather
   than adding a bind mount.
+- **A re-harvest of unchanged files updates nothing, by default.** The Directory harvester's
+  `checkFileLastModifiedForUpdate` (`LocalFsHarvesterFileVisitor.java:361`) compares each file's
+  mtime against the record's change date and counts it `unchanged` when the file is not newer. So
+  after fixing a *converter* — where the files are identical and only the output should differ — a
+  re-harvest reports "19 total, 19 unchanged" and changes nothing. Untick **"Update catalog record
+  only if file was updated"** in the harvester first (or `touch` the files in the volume). The
+  successful run reads **19 total, 19 updated**.
+- **`Dockerfile.prebuilt` needs a repo-shaped build context, not the two files flat.** It copies
+  `web/target/geonetwork.war` (via the `WAR` build-arg) and `deploy/docker/entrypoint.sh`, both
+  resolved against the context root, so a context must reproduce those paths or the build fails
+  with `failed to calculate checksum of ref ... not found`. `redeploy.sh`'s `*.war` branch laid them
+  flat and could not have worked; fixed in 87ec0a2fc7, found the first time that branch was ever
+  run. The `*.tar.gz` branch is the one every deployment has used, so the war branch stayed broken
+  unnoticed. Building by hand needs the same layout:
+  `mkdir -p $CTX/web/target $CTX/deploy/docker` before copying.
 - **Dev healthcheck**: `DashboardAppHealthCheck` in `config-service-monitoring.xml` is disabled — it blocks the admin UI when Kibana isn't running.
 - **Schema validation**: For local validation in Oxygen XML Editor, use `oxygen-catalog.xml` (repo root) which has absolute `file:///` paths. The GeoNetwork `oasis-catalog.xml` uses relative paths that work in Java but not in standalone Oxygen on Windows.
 - **Editor views**: The `ddeview` in config-editor.xml uses GeoNetwork's XML-based view definition system with tabs, sections, fields, actions, and thesaurus pickers.
