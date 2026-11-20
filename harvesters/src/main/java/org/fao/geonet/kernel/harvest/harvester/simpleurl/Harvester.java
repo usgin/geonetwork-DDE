@@ -37,6 +37,7 @@ import org.fao.geonet.exceptions.BadParameterEx;
 import org.fao.geonet.kernel.GeonetworkDataDirectory;
 import org.fao.geonet.kernel.harvest.harvester.HarvestError;
 import org.fao.geonet.kernel.harvest.harvester.HarvestResult;
+import org.fao.geonet.kernel.harvest.harvester.JsonRecordToXml;
 import org.fao.geonet.kernel.harvest.harvester.IHarvester;
 import org.fao.geonet.lib.Lib;
 import org.fao.geonet.util.Sha1Encoder;
@@ -47,8 +48,6 @@ import org.jdom.Attribute;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Text;
-import org.json.JSONObject;
-import org.json.XML;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.ClientHttpResponse;
@@ -420,7 +419,6 @@ class Harvester implements IHarvester<HarvestResult> {
     }
 
     private Element convertJsonRecordToXml(JsonNode jsonRecord, String uuid, String apiUrl, String nodeUrl) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
             // Pick the conversion from what the record declares, before framing: framing
             // rewrites structure, and the framing decision below depends on the answer.
@@ -431,15 +429,7 @@ class Harvester implements IHarvester<HarvestResult> {
                 jsonRecord = cdifPreparer().prepare(jsonRecord, uuid);
             }
 
-            String recordAsXml = XML.toString(
-                new JSONObject(
-                    objectMapper.writeValueAsString(jsonRecord)), "record");
-            recordAsXml = Xml.stripNonValidXMLCharacters(recordAsXml)
-                .replace("<@", "<")
-                .replace("</@", "</")
-                .replaceAll("(:|%)(?![^<>]*<)", "_"); // this removes colon and % from property names
-            Element recordAsElement = Xml.loadString(recordAsXml, false);
-            recordAsElement.addContent(new Element("uuid").setText(uuid));
+            Element recordAsElement = JsonRecordToXml.toElement(jsonRecord, uuid);
             recordAsElement.addContent(new Element("apiUrl").setText(apiUrl));
             recordAsElement.addContent(new Element("nodeUrl").setText(nodeUrl));
             return applyConversion(recordAsElement, uuid, conversion);

@@ -45,6 +45,7 @@ import org.fao.geonet.kernel.harvest.harvester.CategoryMapper;
 import org.fao.geonet.kernel.harvest.harvester.simpleurl.CdifJsonPreparer;
 import org.fao.geonet.kernel.harvest.harvester.GroupMapper;
 import org.fao.geonet.kernel.harvest.harvester.HarvestResult;
+import org.fao.geonet.kernel.harvest.harvester.JsonRecordToXml;
 import org.fao.geonet.kernel.harvest.harvester.csw.Aligner;
 import org.fao.geonet.kernel.mef.MEFLib;
 import org.fao.geonet.repository.MetadataRepository;
@@ -52,10 +53,6 @@ import org.fao.geonet.repository.Updater;
 import org.fao.geonet.utils.Xml;
 import org.jdom.Element;
 import org.jdom.JDOMException;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.XML;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -212,15 +209,7 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
                 && CdifJsonPreparer.isJsonLd(record)) {
                 record = cdifPreparer().prepare(record, uuid);
             }
-            String recordAsJson = record.toString();
-            JSONObject sanitizedJson = sanitize(new JSONObject(recordAsJson));
-            String recordAsXml = XML.toString(sanitizedJson,"record")
-                .replace("<@", "<")
-                .replace("</@", "</")
-                .replaceAll("(:)(?![^<>]*<)", "_"); // this removes colon from property names
-            recordAsXml = Xml.stripNonValidXMLCharacters(recordAsXml);
-            recordAsElement = Xml.loadString(recordAsXml, false);
-            recordAsElement.addContent(new Element("uuid").setText(uuid));
+            recordAsElement = JsonRecordToXml.toElement(record, uuid);
         } catch (JsonProcessingException e) {
             harvester.getLogger().error("Error processing JSON from file {}, ignoring", filePath);
             harvester.getLogger().error("full stack", e);
@@ -239,43 +228,6 @@ class LocalFsHarvesterFileVisitor extends SimpleFileVisitor<Path> {
         }
 
         processXmlData(file, recordAsElement);
-    }
-
-    /**
-     * Replace whitespace in keys to underscore (mutates object)
-     */
-    public static JSONObject sanitize(JSONObject json) throws JSONException {
-        JSONArray names = json.names();
-        if (names != null) {
-            for (int i = 0; i < names.length(); i++) {
-                String key = names.getString(i);
-                if (key.contains(" ")) {
-                    String oldKey = key;
-                    key = key.replace(" ", "_");
-                    json.put(key, json.get(oldKey));
-                    json.remove(oldKey);
-                }
-                Object value = json.opt(key);
-                if (value instanceof JSONObject) {
-                    sanitize((JSONObject) value);
-                } else if (value instanceof JSONArray) {
-                    sanitize((JSONArray) value);
-                }
-            }
-        }
-        return json;
-    }
-
-    public static JSONArray sanitize(JSONArray array) throws JSONException {
-        for (int i = 0; i < array.length(); i++) {
-            Object value = array.get(i);
-            if (value instanceof JSONObject) {
-                sanitize((JSONObject) value);
-            } else if (value instanceof JSONArray) {
-                sanitize((JSONArray) value);
-            }
-        }
-        return array;
     }
 
     private void processXml(Path file) throws Exception {
