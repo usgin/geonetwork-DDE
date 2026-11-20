@@ -73,7 +73,8 @@ public class CdifJsonPreparer {
     private static final String[] FIELDS_TO_RECOVER = {
         "schema:creator", "schema:contributor", "schema:publisher",
         "schema:provider", "schema:funding", "schema:distribution",
-        "schema:variableMeasured", "schema:dateModified"
+        "schema:variableMeasured", "schema:dateModified",
+        "schema:spatialCoverage", "schema:temporalCoverage"
     };
 
     private final Logger log;

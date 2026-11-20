@@ -22,9 +22,22 @@
  */
 package org.fao.geonet.kernel.harvest.harvester.simpleurl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
 
+import org.fao.geonet.ApplicationContextHolder;
+import org.fao.geonet.Logger;
+import org.fao.geonet.kernel.GeonetworkDataDirectory;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.context.support.GenericApplicationContext;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -35,7 +48,29 @@ import static org.junit.Assert.assertTrue;
  */
 public class CdifJsonPreparerTest {
 
+    /** Where the preparer looks for cdif-frame.jsonld; surefire runs from the module. */
+    private static final Path PLUGIN_DIR =
+        Paths.get("..", "schemas", "iso19115-3.2018", "src", "main", "plugin");
+
     private final ObjectMapper mapper = new ObjectMapper();
+
+    private Logger log;
+
+    @Before
+    public void setUpApplicationContext() {
+        GeonetworkDataDirectory dataDirectory = Mockito.mock(GeonetworkDataDirectory.class);
+        Mockito.when(dataDirectory.getSchemaPluginsDir()).thenReturn(PLUGIN_DIR);
+        GenericApplicationContext context = new GenericApplicationContext();
+        context.refresh();
+        context.getBeanFactory().registerSingleton("gnDataDirectory", dataDirectory);
+        ApplicationContextHolder.set(context);
+        log = Mockito.mock(Logger.class);
+    }
+
+    @After
+    public void clearApplicationContext() {
+        ApplicationContextHolder.clear();
+    }
 
     @Test
     public void recognisesTheFullConversionIdentifier() {
@@ -84,5 +119,55 @@ public class CdifJsonPreparerTest {
     @Test
     public void treatsNullAsNotJsonLd() {
         assertFalse(CdifJsonPreparer.isJsonLd(null));
+    }
+
+    /**
+     * Framing is lossy in a way that is invisible: jsonld-java drops a property whose
+     * shape the frame does not anticipate, the record still imports, and the field is
+     * simply absent. A Place carrying nothing but its geometry is such a shape, and it
+     * cost every record using it its bounding box -- the stylesheet maps schema:box
+     * correctly, it was never given one.
+     */
+    @Test
+    public void recoversSpatialCoverageThatFramingDrops() throws Exception {
+        JsonNode prepared = prepare("{"
+            + "\"@context\": {\"schema\": \"http://schema.org/\"},"
+            + "\"@type\": [\"schema:Dataset\"],"
+            + "\"schema:name\": \"Test\","
+            + "\"schema:spatialCoverage\": [{"
+            + "  \"@type\": [\"schema:Place\"],"
+            + "  \"schema:geo\": {\"@type\": [\"schema:GeoShape\"],"
+            + "                   \"schema:box\": \"18.1609 73.499 53.5585 135.08\"}}]"
+            + "}");
+
+        assertTrue("spatialCoverage was dropped by framing and not recovered",
+            prepared.has("schema:spatialCoverage"));
+        assertEquals("18.1609 73.499 53.5585 135.08",
+            prepared.at("/schema:spatialCoverage/0/schema:geo/schema:box").asText());
+    }
+
+    /**
+     * The OWL-Time interval the DDE profiles use, dropped for the same reason.
+     */
+    @Test
+    public void recoversTemporalCoverageThatFramingDrops() throws Exception {
+        JsonNode prepared = prepare("{"
+            + "\"@context\": {\"schema\": \"http://schema.org/\","
+            + "               \"time\": \"http://www.w3.org/2006/time#\"},"
+            + "\"@type\": [\"schema:Dataset\"],"
+            + "\"schema:name\": \"Test\","
+            + "\"schema:temporalCoverage\": [{"
+            + "  \"@type\": [\"time:ProperInterval\"],"
+            + "  \"time:hasBeginning\": {\"@type\": [\"time:Instant\"],"
+            + "    \"time:inTimePosition\": {\"@type\": [\"time:TimePosition\"],"
+            + "      \"time:numericPosition\": 2015}}}]"
+            + "}");
+
+        assertTrue("temporalCoverage was dropped by framing and not recovered",
+            prepared.has("schema:temporalCoverage"));
+    }
+
+    private JsonNode prepare(String json) throws Exception {
+        return new CdifJsonPreparer(log).prepare(mapper.readTree(json), "test-record");
     }
 }
