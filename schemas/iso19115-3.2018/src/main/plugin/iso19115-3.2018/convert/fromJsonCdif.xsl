@@ -44,6 +44,12 @@
                 xmlns:xd="http://www.oxygenxml.com/ns/doc/xsl"
                 exclude-result-prefixes="xsl xs gmd gcoold gmi gmx gsr gss gts srvold gml30 xd">
 
+    <!-- Last change to this stylesheet, reported in a record's provenance so that
+         output can be traced to the transformation that produced it. Bump it in the
+         same commit that changes this file: StylesheetVersionTest fails when it
+         falls behind the file's last commit date. -->
+    <xsl:variable name="stylesheetUpdated" select="'2026-11-22'"/>
+
     <xsl:output method="xml" indent="yes"/>
 
     <xsl:strip-space elements="*"/>

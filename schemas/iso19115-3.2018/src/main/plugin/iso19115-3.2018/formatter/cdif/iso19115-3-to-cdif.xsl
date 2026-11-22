@@ -25,6 +25,12 @@
                 xmlns:dde-bg="https://www.ddeworld.org/xslt/browse-graphic"
                 xmlns:dde-or="https://www.ddeworld.org/xslt/online-resource"
                 exclude-result-prefixes="#all">
+
+  <!-- Last change to this stylesheet, reported in a record's provenance so that
+       output can be traced to the transformation that produced it. Bump it in the
+       same commit that changes this file: StylesheetVersionTest fails when it
+       falls behind the file's last commit date. -->
+  <xsl:variable name="stylesheetUpdated" select="'2026-11-22'"/>
   <!--
     Convert ISO 19115-3:2018 metadata to CDIF-compliant JSON-LD.
 
@@ -1154,7 +1160,7 @@
          would be erased by the next run of the harvester it describes. Empty for a
          record created in the catalogue rather than harvested. -->
     <xsl:variable name="provenance"
-                  select="util:getHarvestProvenance(string(mdb:metadataIdentifier[1]/*/mcc:code/gco:CharacterString))"/>
+                  select="util:getHarvestProvenance(string(mdb:metadataIdentifier[1]/*/mcc:code/gco:CharacterString), $stylesheetUpdated)"/>
     <xsl:if test="normalize-space($provenance) != ''">
     ,"schema:description": "<xsl:value-of select="util:escapeForJson($provenance)"/>"
     </xsl:if>

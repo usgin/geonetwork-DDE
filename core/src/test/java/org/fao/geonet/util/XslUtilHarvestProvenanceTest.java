@@ -50,6 +50,9 @@ import static org.junit.Assert.assertTrue;
  */
 public class XslUtilHarvestProvenanceTest {
 
+    /** What the formatter passes in from its own stylesheetUpdated variable. */
+    private static final String FORMATTER_VERSION = "2026-11-22";
+
     private IMetadataUtils metadataUtils;
     private HarvestHistoryRepository historyRepository;
 
@@ -98,16 +101,16 @@ public class XslUtilHarvestProvenanceTest {
         record.getHarvestInfo().setHarvested(false);
         Mockito.when(metadataUtils.findOneByUuid("r-1")).thenReturn(record);
 
-        assertEquals("", XslUtil.getHarvestProvenance("r-1"));
+        assertEquals("", XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION));
     }
 
     @Test
     public void saysNothingForAnUnknownRecord() {
         Mockito.when(metadataUtils.findOneByUuid("missing")).thenReturn(null);
 
-        assertEquals("", XslUtil.getHarvestProvenance("missing"));
-        assertEquals("", XslUtil.getHarvestProvenance(null));
-        assertEquals("", XslUtil.getHarvestProvenance(""));
+        assertEquals("", XslUtil.getHarvestProvenance("missing", FORMATTER_VERSION));
+        assertEquals("", XslUtil.getHarvestProvenance(null, FORMATTER_VERSION));
+        assertEquals("", XslUtil.getHarvestProvenance("", FORMATTER_VERSION));
     }
 
     @Test
@@ -118,7 +121,7 @@ public class XslUtilHarvestProvenanceTest {
             Collections.singletonList(run("GA catalogue", "filesystem",
                 "importxslt", "schema:iso19115-3.2018:convert/fromDDE-any")));
 
-        String note = XslUtil.getHarvestProvenance("r-1");
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
         assertTrue(note, note.contains("https://example.org/sitemap.xml"));
         assertTrue(note, note.contains("GA catalogue"));
         assertTrue(note, note.contains("type filesystem"));
@@ -126,6 +129,7 @@ public class XslUtilHarvestProvenanceTest {
         // That this test does not care about; that the harvest date is reported, it does.
         assertTrue(note, note.contains("2026-11-20T"));
         assertTrue(note, note.contains("convert/fromDDE-any"));
+        assertTrue(note, note.contains("iso19115-3-to-cdif.xsl (last updated 2026-11-22)"));
         assertTrue(note, note.contains("Catalogue build abc1234"));
     }
 
@@ -140,7 +144,7 @@ public class XslUtilHarvestProvenanceTest {
             Collections.singletonList(run("CDIF sitemap", "simpleurl",
                 "toISOConversion", "schema:iso19115-3.2018:convert/fromJsonCdif")));
 
-        String note = XslUtil.getHarvestProvenance("r-1");
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
         assertTrue(note, note.contains("convert/fromJsonCdif"));
         assertTrue(note, note.contains("JSON-LD framed"));
         assertTrue(note, note.contains("restored from the source"));
@@ -153,7 +157,7 @@ public class XslUtilHarvestProvenanceTest {
         Mockito.when(historyRepository.findAllByHarvesterUuid("h-1")).thenReturn(
             Collections.singletonList(run("Some CSW", "csw", "importxslt", "none")));
 
-        String note = XslUtil.getHarvestProvenance("r-1");
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
         assertTrue(note, note.contains("no conversion applied"));
     }
 
@@ -171,7 +175,7 @@ public class XslUtilHarvestProvenanceTest {
         Mockito.when(historyRepository.findAllByHarvesterUuid("h-1"))
             .thenReturn(Arrays.asList(newer, older));
 
-        String note = XslUtil.getHarvestProvenance("r-1");
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
         assertTrue(note, note.contains("New name"));
         assertTrue(note, note.contains("convert/new"));
     }
@@ -186,7 +190,7 @@ public class XslUtilHarvestProvenanceTest {
         Mockito.when(historyRepository.findAllByHarvesterUuid("h-1"))
             .thenReturn(Collections.emptyList());
 
-        String note = XslUtil.getHarvestProvenance("r-1");
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
         assertTrue(note, note.contains("https://example.org/only"));
     }
 }

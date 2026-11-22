@@ -357,7 +357,7 @@ public final class XslUtil {
      *         whose provenance cannot be read. Never throws: a formatter must still
      *         produce a record when this is unavailable.
      */
-    public static String getHarvestProvenance(Object metadataUuid) {
+    public static String getHarvestProvenance(Object metadataUuid, Object formatterVersion) {
         String uuid = metadataUuid == null ? "" : metadataUuid.toString().trim();
         if (uuid.isEmpty()) {
             return "";
@@ -391,6 +391,11 @@ public final class XslUtil {
                 }
             }
             note.append(". ").append(conversionDescription(run));
+            String rendered = formatterVersion == null ? "" : formatterVersion.toString().trim();
+            if (!rendered.isEmpty()) {
+                note.append(" Rendered as CDIF by iso19115-3-to-cdif.xsl (last updated ")
+                    .append(rendered).append(").");
+            }
             String build = nullToEmpty(getBuildNumber());
             if (!build.isEmpty()) {
                 note.append(" Catalogue build ").append(build).append(".");
@@ -455,7 +460,12 @@ public final class XslUtil {
             return "Stored as harvested, with no conversion applied.";
         }
         StringBuilder text = new StringBuilder("Converted to ISO 19115-3 by ");
-        text.append(conversion).append(".");
+        text.append(conversion);
+        String updated = stylesheetUpdated(conversion);
+        if (!updated.isEmpty()) {
+            text.append(" (stylesheet last updated ").append(updated).append(")");
+        }
+        text.append(".");
         if (conversion.contains(CDIF_CONVERSION)) {
             text.append(" As a CDIF record it was first JSON-LD framed against"
                 + " cdif-frame.jsonld, null values removed, fields dropped by framing"
@@ -463,6 +473,41 @@ public final class XslUtil {
                 + " XML names before the stylesheet ran.");
         }
         return text.toString();
+    }
+
+    /**
+     * The date a conversion's stylesheet was last updated, as it declares it, or an
+     * empty string when it declares nothing or cannot be read.
+     *
+     * <p>The variable is called stylesheetUpdated rather than stylesheetVersion: two
+     * upstream converters already declare the latter as '0.1', nothing reads it, and a
+     * semver-looking value and a date should not share one name.
+     *
+     * <p>Read from the stylesheet that actually ran, resolved through the same
+     * getXsltConversion the harvester used, so the version reported is the one that
+     * produced the record rather than whatever this catalogue would use today.
+     */
+    private static String stylesheetUpdated(String conversionId) {
+        try {
+            Path sheetPath = ApplicationContextHolder.get()
+                .getBean(org.fao.geonet.kernel.GeonetworkDataDirectory.class)
+                .getXsltConversion(conversionId);
+            if (sheetPath == null || !java.nio.file.Files.exists(sheetPath)) {
+                return "";
+            }
+            Element sheet = Xml.loadFile(sheetPath);
+            for (Object child : sheet.getChildren("variable", sheet.getNamespace())) {
+                Element variable = (Element) child;
+                if ("stylesheetUpdated".equals(variable.getAttributeValue("name"))) {
+                    String declared = variable.getAttributeValue("select");
+                    return declared == null ? "" : declared.replace("'", "").trim();
+                }
+            }
+        } catch (Exception e) {
+            Log.debug(Geonet.GEONETWORK,
+                "no stylesheet date for " + conversionId + ": " + e.getMessage());
+        }
+        return "";
     }
 
     /**
