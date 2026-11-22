@@ -161,6 +161,28 @@ The shared shape: the step reports success, the artifact is valid, and the
 change is absent. Verify the *artifact*, not the build log -- `unzip -p` the war
 and grep, or grep the cache file, before deploying.
 
+## Git fails inside `schemas/iso19115-3.2018`, in this clone only
+
+`schemas/iso19115-3.2018/.git` is a **file**, not a directory: a 51-byte submodule
+pointer dated **2024-02-19** reading `gitdir: ../../.git/modules/schemas/iso19115-3.2018`,
+a path that does not exist. Any git command whose working directory is inside that
+module therefore dies with `fatal: not a git repository`, while the identical command
+run from the repository root works. The module is otherwise an ordinary tracked
+directory -- files inside it commit and push normally -- so nothing else hints at it.
+
+It is **untracked and ignored** (`.gitignore:12`, `*/*/.*`), so it exists only here. A
+fresh clone and CI do not have it. That is the dangerous part: tooling that shells out
+to git works everywhere except this working copy, or is written to work here and is
+never exercised elsewhere.
+
+Found 2026-11-22 when `StylesheetUpdatedTest` reported "0 of 3 versioned stylesheets
+checked against git" and passed anyway -- a check that was verifying nothing while
+reporting success, the same shape as the three traps above. Anything running git from a
+module directory should walk up to the nearest `.git` **directory** and run from there,
+which is what that test now does.
+
+The file is inert and safe to delete; doing so fixes it at the root for this clone.
+
 ## Repository Structure
 
 - **DDE customizations** are concentrated in `schemas/iso19115-3.2018/src/main/plugin/iso19115-3.2018/`
