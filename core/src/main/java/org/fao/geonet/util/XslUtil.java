@@ -136,6 +136,12 @@ import static org.fao.geonet.utils.Xml.getXmlFromJSON;
  * @author jesse
  */
 public final class XslUtil {
+
+    /**
+     * Names the CDIF conversion. CdifJsonPreparer holds the same marker, but it lives
+     * in the harvesters module, which core cannot depend on.
+     */
+    private static final String CDIF_CONVERSION = "fromJsonCdif";
     public static MultiPolygon parseGml(Parser parser, String gml) throws IOException, SAXException,
         ParserConfigurationException {
         Object value = parser.parse(new StringReader(gml));
@@ -332,6 +338,148 @@ public final class XslUtil {
 
     public static String getBuildNumber() {
         return ApplicationContextHolder.get().getBean(SystemInfo.class).getScmRevision();
+    }
+
+    /**
+     * Where a harvested record came from and how it reached its present form, as a
+     * sentence a catalogue record can carry as its description.
+     *
+     * <p>This is composed on every request rather than stored. Harvest provenance
+     * lives in the harvest database -- {@code harvestUri} and {@code harvestUuid} on
+     * the metadata row, and the harvester's own name, type and configuration in
+     * HarvestHistory -- and writing it into the record instead would be
+     * self-defeating: a harvest replaces the record's XML, so a stored note is erased
+     * by the next run of the very harvester it describes. Generated here it cannot go
+     * stale, and it costs no storage and no schema change.
+     *
+     * @param metadataUuid uuid of the record
+     * @return the sentence, or an empty string for a record that was not harvested or
+     *         whose provenance cannot be read. Never throws: a formatter must still
+     *         produce a record when this is unavailable.
+     */
+    public static String getHarvestProvenance(Object metadataUuid) {
+        String uuid = metadataUuid == null ? "" : metadataUuid.toString().trim();
+        if (uuid.isEmpty()) {
+            return "";
+        }
+        try {
+            ApplicationContext context = ApplicationContextHolder.get();
+            AbstractMetadata record = context.getBean(
+                org.fao.geonet.kernel.datamanager.IMetadataUtils.class).findOneByUuid(uuid);
+            if (record == null || record.getHarvestInfo() == null
+                || !record.getHarvestInfo().isHarvested()) {
+                return "";
+            }
+
+            String source = nullToEmpty(record.getHarvestInfo().getUri());
+            String harvesterUuid = nullToEmpty(record.getHarvestInfo().getUuid());
+            HarvestHistory run = latestHarvestRun(context, harvesterUuid);
+
+            StringBuilder note = new StringBuilder("Harvested");
+            if (!source.isEmpty()) {
+                note.append(" from ").append(source);
+            }
+            if (run != null) {
+                if (!nullToEmpty(run.getHarvesterName()).isEmpty()) {
+                    note.append(" by the '").append(run.getHarvesterName()).append("' harvester");
+                }
+                if (!nullToEmpty(run.getHarvesterType()).isEmpty()) {
+                    note.append(" (type ").append(run.getHarvesterType()).append(")");
+                }
+                if (run.getHarvestDate() != null) {
+                    note.append(" on ").append(run.getHarvestDate().getDateAndTime());
+                }
+            }
+            note.append(". ").append(conversionDescription(run));
+            String build = nullToEmpty(getBuildNumber());
+            if (!build.isEmpty()) {
+                note.append(" Catalogue build ").append(build).append(".");
+            }
+            return note.toString();
+        } catch (Exception e) {
+            // A missing or unreadable harvest row must not cost the whole record.
+            Log.debug(Geonet.GEONETWORK,
+                "getHarvestProvenance failed for " + uuid + ": " + e.getMessage());
+            return "";
+        }
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    /**
+     * The most recent run of the named harvester, or null when it has none recorded.
+     * A harvester keeps one history row per run, and only the latest describes the
+     * configuration the record was last processed with.
+     */
+    private static HarvestHistory latestHarvestRun(ApplicationContext context, String harvesterUuid) {
+        if (harvesterUuid.isEmpty()) {
+            return null;
+        }
+        List<HarvestHistory> runs = context.getBean(
+            org.fao.geonet.repository.HarvestHistoryRepository.class)
+            .findAllByHarvesterUuid(harvesterUuid);
+        HarvestHistory latest = null;
+        for (HarvestHistory run : runs) {
+            if (run.getHarvestDate() == null) {
+                continue;
+            }
+            if (latest == null || run.getHarvestDate().compareTo(latest.getHarvestDate()) > 0) {
+                latest = run;
+            }
+        }
+        return latest;
+    }
+
+    /**
+     * What the harvester did to the record after fetching it. The conversion is read
+     * from the harvester's own stored configuration, so it reports what actually ran
+     * rather than what this catalogue happens to support.
+     */
+    private static String conversionDescription(HarvestHistory run) {
+        String conversion = "";
+        if (run != null) {
+            try {
+                Element params = run.getParamsAsXml();
+                if (params != null) {
+                    // "importxslt" is the generic name; the SimpleUrl harvester calls
+                    // the same thing "toISOConversion".
+                    conversion = firstValue(params, "importxslt", "toISOConversion");
+                }
+            } catch (Exception e) {
+                conversion = "";
+            }
+        }
+        if (conversion.isEmpty() || "none".equalsIgnoreCase(conversion)) {
+            return "Stored as harvested, with no conversion applied.";
+        }
+        StringBuilder text = new StringBuilder("Converted to ISO 19115-3 by ");
+        text.append(conversion).append(".");
+        if (conversion.contains(CDIF_CONVERSION)) {
+            text.append(" As a CDIF record it was first JSON-LD framed against"
+                + " cdif-frame.jsonld, null values removed, fields dropped by framing"
+                + " restored from the source, and property names rewritten to be legal"
+                + " XML names before the stylesheet ran.");
+        }
+        return text.toString();
+    }
+
+    /**
+     * Value of the first of the named descendants that carries one.
+     */
+    private static String firstValue(Element root, String... names) {
+        for (String name : names) {
+            // JDOM 1 hands back an Iterator, not an Iterable.
+            Iterator<?> found = root.getDescendants(new org.jdom.filter.ElementFilter(name));
+            while (found.hasNext()) {
+                String value = ((Element) found.next()).getTextNormalize();
+                if (value != null && !value.isEmpty()) {
+                    return value;
+                }
+            }
+        }
+        return "";
     }
 
     /**

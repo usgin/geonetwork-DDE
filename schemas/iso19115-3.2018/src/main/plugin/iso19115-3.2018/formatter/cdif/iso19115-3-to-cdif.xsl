@@ -1148,6 +1148,16 @@
     "@id": "<xsl:value-of select="util:escapeForJson(concat($recordUrl, '/metadata'))"/>",
     "schema:additionalType": ["dcat:CatalogRecord"],
     "schema:about": {"@id": "<xsl:value-of select="util:escapeForJson($recordUrl)"/>"}
+    <!-- Where this record came from and what was done to it. Composed by
+         XslUtil.getHarvestProvenance from the harvest database rather than stored in
+         the record: a harvest replaces the record's XML, so a note written into it
+         would be erased by the next run of the harvester it describes. Empty for a
+         record created in the catalogue rather than harvested. -->
+    <xsl:variable name="provenance"
+                  select="util:getHarvestProvenance(string(mdb:metadataIdentifier[1]/*/mcc:code/gco:CharacterString))"/>
+    <xsl:if test="normalize-space($provenance) != ''">
+    ,"schema:description": "<xsl:value-of select="util:escapeForJson($provenance)"/>"
+    </xsl:if>
     <xsl:if test="$creationDate[normalize-space() != '']">
     ,"schema:sdDatePublished": "<xsl:value-of select="$creationDate"/>"
     </xsl:if>
