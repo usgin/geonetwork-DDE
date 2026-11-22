@@ -371,9 +371,16 @@ public final class XslUtil {
                 return "";
             }
 
-            String source = nullToEmpty(record.getHarvestInfo().getUri());
             String harvesterUuid = nullToEmpty(record.getHarvestInfo().getUuid());
             HarvestHistory run = latestHarvestRun(context, harvesterUuid);
+            String source = nullToEmpty(record.getHarvestInfo().getUri());
+            if (source.isEmpty()) {
+                // Only the fragment, ogcwxs, thredds and webdav harvesters record a uri
+                // on the record itself. For every other kind -- csw, filesystem and
+                // simpleurl among them -- the source is known only to the harvester, so
+                // fall back to where it was configured to read from.
+                source = harvesterSource(run);
+            }
 
             StringBuilder note = new StringBuilder("Harvested");
             if (!source.isEmpty()) {
@@ -435,6 +442,22 @@ public final class XslUtil {
             }
         }
         return latest;
+    }
+
+    /**
+     * Where the harvester was configured to read from: a url for the network harvesters,
+     * a directory for the filesystem one. Used when the record itself carries no uri.
+     */
+    private static String harvesterSource(HarvestHistory run) {
+        if (run == null) {
+            return "";
+        }
+        try {
+            Element params = run.getParamsAsXml();
+            return params == null ? "" : firstValue(params, "url", "directory");
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /**

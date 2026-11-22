@@ -95,6 +95,68 @@ public class XslUtilHarvestProvenanceTest {
             .setParams(params);
     }
 
+    /** A record whose own harvestInfo carries no uri, which is the common case. */
+    private Metadata harvestedRecordWithoutUri(String harvesterUuid) {
+        Metadata record = new Metadata();
+        record.getHarvestInfo().setHarvested(true).setUuid(harvesterUuid);
+        return record;
+    }
+
+    private HarvestHistory withSource(HarvestHistory run, String element, String value)
+        throws Exception {
+        Element params = run.getParamsAsXml();
+        Element site = new Element("site");
+        site.addContent(new Element(element).setText(value));
+        params.addContent(site);
+        return run.setParams(params);
+    }
+
+    /**
+     * Only four harvesters record a uri on the record itself; csw, filesystem and
+     * simpleurl do not, so without this the sentence never says where anything came
+     * from -- which is most of the point of it.
+     */
+    @Test
+    public void fallsBackToTheHarvesterUrlWhenTheRecordCarriesNoUri() throws Exception {
+        Mockito.when(metadataUtils.findOneByUuid("r-1"))
+            .thenReturn(harvestedRecordWithoutUri("h-1"));
+        Mockito.when(historyRepository.findAllByHarvesterUuid("h-1")).thenReturn(
+            Collections.singletonList(withSource(
+                run("Some CSW", "csw", "importxslt", "none"),
+                "url", "https://example.org/geonetwork/srv/eng/csw")));
+
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
+        assertTrue(note, note.contains("from https://example.org/geonetwork/srv/eng/csw"));
+    }
+
+    @Test
+    public void fallsBackToTheHarvesterDirectoryForAFilesystemHarvest() throws Exception {
+        Mockito.when(metadataUtils.findOneByUuid("r-1"))
+            .thenReturn(harvestedRecordWithoutUri("h-1"));
+        Mockito.when(historyRepository.findAllByHarvesterUuid("h-1")).thenReturn(
+            Collections.singletonList(withSource(
+                run("local cdif upload", "filesystem", "importxslt",
+                    "schema:iso19115-3.2018:convert/fromJsonCdif"),
+                "directory", "/var/lib/geonetwork_data/cdif-examples")));
+
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
+        assertTrue(note, note.contains("from /var/lib/geonetwork_data/cdif-examples"));
+    }
+
+    /** The record's own uri wins when it has one. */
+    @Test
+    public void prefersTheRecordsOwnUri() throws Exception {
+        Mockito.when(metadataUtils.findOneByUuid("r-1"))
+            .thenReturn(harvestedRecord("https://example.org/the-record", "h-1"));
+        Mockito.when(historyRepository.findAllByHarvesterUuid("h-1")).thenReturn(
+            Collections.singletonList(withSource(
+                run("Some CSW", "csw", "importxslt", "none"),
+                "url", "https://example.org/the-harvester")));
+
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
+        assertTrue(note, note.contains("from https://example.org/the-record"));
+    }
+
     @Test
     public void saysNothingForARecordThatWasNotHarvested() {
         Metadata record = new Metadata();
