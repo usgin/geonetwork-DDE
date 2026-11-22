@@ -1222,10 +1222,16 @@
 
     <xsl:variable name="party" select="$resp/cit:party"/>
     <xsl:variable name="org" select="$party/cit:CI_Organisation"/>
-    <xsl:variable name="individual" select="$org/cit:individual/cit:CI_Individual"/>
+    <!-- CI_Party is abstract, so a person may be the party in their own right and
+         not only an individual nested inside an organisation. Reading the nested
+         form alone left every such agent unnamed: neither $individual nor $org
+         bound, so the organisation branch below emitted "schema:name": "". That is
+         the common ISO shape for an author, and it was losing the author. -->
+    <xsl:variable name="individual"
+                  select="($party/cit:CI_Individual | $org/cit:individual/cit:CI_Individual)"/>
     <xsl:variable name="orgName" select="$org/cit:name/gco:CharacterString"/>
     <xsl:variable name="indivName" select="$individual/cit:name/gco:CharacterString"/>
-    <xsl:variable name="email" select="($org/cit:contactInfo/*/cit:address/*/cit:electronicMailAddress/gco:CharacterString)[1]"/>
+    <xsl:variable name="email" select="(($org | $individual)/cit:contactInfo/*/cit:address/*/cit:electronicMailAddress/gco:CharacterString)[1]"/>
     <xsl:variable name="indivId" select="$individual/cit:partyIdentifier/mcc:MD_Identifier/mcc:code/gco:CharacterString"/>
     <xsl:variable name="orgId" select="$org/cit:partyIdentifier/mcc:MD_Identifier/mcc:code/gco:CharacterString"/>
 
