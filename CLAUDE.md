@@ -304,6 +304,23 @@ The file is inert and safe to delete; doing so fixes it at the root for this clo
   re-harvest reports "19 total, 19 unchanged" and changes nothing. Untick **"Update catalog record
   only if file was updated"** in the harvester first (or `touch` the files in the volume). The
   successful run reads **19 total, 19 updated**.
+- **Every harvester is scheduled nightly unless you clear the field.** `AbstractParams.java:194`
+  defaults `every` to the Quartz expression `0 0 0 * * ?`, and the admin console writes the
+  equivalent `0 0 0 ? * *` (Quartz insists one of day-of-month / day-of-week be `?`), so a
+  harvester created for a one-off load keeps running every midnight in the JVM's timezone —
+  `HarvestManagerImpl.java:725` uses `TimeZone.getDefault()`, which is UTC in the container.
+  Checked 2026-11-23 on the deployed catalogue: all three harvesters (`ngdc-mgg-geology`/webdav,
+  `Geoscience Australia Bedrock`/csw, `local cdif upload`/filesystem) were `active` on that
+  schedule and had last run within 1 ms of each other at `2026-11-23T00:00:00.058Z`. Nobody had
+  scheduled them; the default had. The filesystem one was disabled that day, since it reads a
+  directory inside the data volume that only changes when someone puts files there — and with
+  `checkFileLastModifiedForUpdate` unticked (see above, which testing leaves unticked) a nightly
+  run re-imports every record, bumping change dates and re-indexing for nothing.
+  Harvester definitions are database rows, so reading the schedules means a SQL query against the
+  `HarvesterSettings` tree: a node row is `name='node'` with the type in `value`, its `site`,
+  `options`, `info` and `content` children hold `name`, `every`/`status`/`oneRunOnly`, `lastRun`
+  and `importxslt` respectively, and `checkFileLastModifiedForUpdate` sits under **`site`**, not
+  `options` (`LocalFilesystemHarvester.java:74`).
 - **`Dockerfile.prebuilt` needs a repo-shaped build context, not the two files flat.** It copies
   `web/target/geonetwork.war` (via the `WAR` build-arg) and `deploy/docker/entrypoint.sh`, both
   resolved against the context root, so a context must reproduce those paths or the build fails
