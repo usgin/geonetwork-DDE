@@ -169,6 +169,13 @@
     </ows:Parameter>
     <ows:Constraint name="IsoProfiles">
       <ows:Value>http://www.isotc211.org/2005/gmd</ows:Value>
+      <!--
+        ISO 19115-3:2018, the primary schema here. The value is the mdb 2.0 namespace
+        because that is the string this server accepts as outputSchema and advertises
+        under it, so a client that reads IsoProfiles and asks for what it names gets an
+        answer. Listing gmd alone said the catalogue was ISO 19139 only.
+      -->
+      <ows:Value>http://standards.iso.org/iso/19115/-3/mdb/2.0</ows:Value>
     </ows:Constraint>
     <ows:Constraint name="PostEncoding">
       <ows:Value>SOAP</ows:Value>
