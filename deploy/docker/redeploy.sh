@@ -31,6 +31,7 @@ COMPOSE_DIR="$(pwd)"
 PLUGINS="iso19115-3.2018 iso19139"
 GN_PORT="8080"
 SKIP_BACKUP="no"
+KEEP_DUMPS="3"
 ARTIFACT=""
 
 DATA_DIR="/var/lib/geonetwork_data"
@@ -98,6 +99,17 @@ else
     pg_restore -l "/backup/$(basename "$DUMP")" > /dev/null \
     || die "pg_restore cannot read the dump -- it is not a backup"
   echo "verified: $(du -h "$DUMP" | cut -f1), table of contents reads cleanly"
+
+  # Rotate AFTER the new dump has been verified, and only when one was made.
+  # A failed verification exits above, so nothing is ever deleted on the
+  # strength of a file that turned out not to be a backup, and --skip-backup
+  # leaves the existing dumps alone rather than pruning without replacing.
+  # Half a gigabyte of deploy artifacts accumulated here before this existed.
+  OLD_DUMPS="$(ls -1t gn-db-*.dump | tail -n +$((KEEP_DUMPS + 1)))"
+  if [ -n "$OLD_DUMPS" ]; then
+    step "Removing dumps older than the last $KEEP_DUMPS"
+    printf '%s\n' "$OLD_DUMPS" | xargs rm -v --
+  fi
 fi
 
 # ---------------------------------------------------------------- image
