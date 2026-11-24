@@ -30,7 +30,7 @@
        output can be traced to the transformation that produced it. Bump it in the
        same commit that changes this file: StylesheetVersionTest fails when it
        falls behind the file's last commit date. -->
-  <xsl:variable name="stylesheetUpdated" select="'2026-11-22'"/>
+  <xsl:variable name="stylesheetUpdated" select="'2026-11-24'"/>
   <!--
     Convert ISO 19115-3:2018 metadata to CDIF-compliant JSON-LD.
 
@@ -1159,8 +1159,22 @@
          the record: a harvest replaces the record's XML, so a note written into it
          would be erased by the next run of the harvester it describes. Empty for a
          record created in the catalogue rather than harvested. -->
+    <!--
+      Look the record up by its CATALOGUE uuid, which is not always the identifier the
+      record declares. A harvester may derive or prefix it: the NGDC WebDAV records
+      declare 'G02889' while the catalogue knows them as
+      'gov.noaa.ngdc.mgg.geology:G02889', and looking up the declared one found nothing,
+      so those records carried no provenance at all. /root/info/record/uuid is what the
+      formatter framework supplies (XsltFormatter.java:175, and GeoNetwork's own
+      render-html.xsl:74 reads it the same way); outside a formatter that path is absent,
+      hence the fallback to the declared identifier.
+    -->
+    <xsl:variable name="lookupUuid"
+                  select="if (normalize-space(/root/info/record/uuid) != '')
+                          then normalize-space(/root/info/record/uuid)
+                          else string(mdb:metadataIdentifier[1]/*/mcc:code/gco:CharacterString)"/>
     <xsl:variable name="provenance"
-                  select="util:getHarvestProvenance(string(mdb:metadataIdentifier[1]/*/mcc:code/gco:CharacterString), $stylesheetUpdated)"/>
+                  select="util:getHarvestProvenance($lookupUuid, $stylesheetUpdated)"/>
     <xsl:if test="normalize-space($provenance) != ''">
     ,"schema:description": "<xsl:value-of select="util:escapeForJson($provenance)"/>"
     </xsl:if>

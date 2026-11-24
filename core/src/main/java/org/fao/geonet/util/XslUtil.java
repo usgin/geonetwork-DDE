@@ -454,7 +454,15 @@ public final class XslUtil {
         }
         try {
             Element params = run.getParamsAsXml();
-            return params == null ? "" : firstValue(params, "url", "directory");
+            // Each harvester type names its source element differently, and the names
+            // are not guessable: url covers webdav, simpleurl, oaipmh, thredds, ogcwxs
+            // and wfsfeatures, but csw stores capabilitiesUrl (CswParams.java:88),
+            // geoPREST baseUrl and a GeoNetwork-to-GeoNetwork harvest host. Listing
+            // only url and directory left every CSW record without a source while the
+            // unit tests passed, because the tests built the element they expected
+            // instead of the one the harvester writes.
+            return params == null ? ""
+                : firstValue(params, "url", "directory", "capabilitiesUrl", "baseUrl", "host");
         } catch (Exception e) {
             return "";
         }

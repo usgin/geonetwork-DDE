@@ -143,6 +143,39 @@ public class XslUtilHarvestProvenanceTest {
         assertTrue(note, note.contains("from /var/lib/geonetwork_data/cdif-examples"));
     }
 
+    /**
+     * The element names are per-harvester and not guessable. CSW stores
+     * capabilitiesUrl (CswParams.java:88), and listing only url and directory left
+     * every CSW record on the deployed catalogue without a source while this suite
+     * passed -- because the fixture built the element the code expected rather than
+     * the one the harvester writes. These two use the real names.
+     */
+    @Test
+    public void fallsBackToTheCswCapabilitiesUrl() throws Exception {
+        Mockito.when(metadataUtils.findOneByUuid("r-1"))
+            .thenReturn(harvestedRecordWithoutUri("h-1"));
+        Mockito.when(historyRepository.findAllByHarvesterUuid("h-1")).thenReturn(
+            Collections.singletonList(withSource(
+                run("Geoscience Australia Bedrock", "csw", "importxslt", "none"),
+                "capabilitiesUrl", "https://ecat.ga.gov.au/geonetwork/srv/eng/csw")));
+
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
+        assertTrue(note, note.contains("from https://ecat.ga.gov.au/geonetwork/srv/eng/csw"));
+    }
+
+    @Test
+    public void fallsBackToTheHostOfAGeonetworkToGeonetworkHarvest() throws Exception {
+        Mockito.when(metadataUtils.findOneByUuid("r-1"))
+            .thenReturn(harvestedRecordWithoutUri("h-1"));
+        Mockito.when(historyRepository.findAllByHarvesterUuid("h-1")).thenReturn(
+            Collections.singletonList(withSource(
+                run("Some peer catalogue", "geonetwork", "importxslt", "none"),
+                "host", "https://peer.example.org/geonetwork")));
+
+        String note = XslUtil.getHarvestProvenance("r-1", FORMATTER_VERSION);
+        assertTrue(note, note.contains("from https://peer.example.org/geonetwork"));
+    }
+
     /** The record's own uri wins when it has one. */
     @Test
     public void prefersTheRecordsOwnUri() throws Exception {
