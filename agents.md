@@ -304,6 +304,43 @@ The Simple URL Harvester supports several presets beyond CDIF:
 | **Page from param** (`pageFromParam`) | Query parameter name for page offset. Not used for sitemap mode. |
 | **Conversion** (`toISOConversion`) | XSLT to convert intermediate XML to ISO metadata. Format: `schema:<schema>:convert/<xslt-name>`. |
 
+### WAF harvesting is the WebDAV harvester, not this one
+
+A WAF (Web Accessible Folder — a plain HTTP directory listing of metadata files) is **not** a
+Simple URL mode. It is handled by the **WebDAV** harvester, whose `WAFRetriever` walks the listing
+and descends into subdirectories. This is in production use: the deployed catalogue harvests
+`https://data.noaa.gov/waf/NOAA/NESDIS/NGDC/MGG/Geology/iso/xml/` as the `ngdc-mgg-geology`
+harvester.
+
+**It cannot ingest CDIF as it stands**, and the reason is one method —
+`WAFRetriever.getFileType` in
+`harvesters/src/main/java/org/fao/geonet/kernel/harvest/harvester/webdav/WAFRetriever.java:72-82`:
+
+| link in the listing | classified as |
+|---|---|
+| contains `REQUEST=GETCAPABILITIES` | `type_GetCapabilities` |
+| ends `.XML` (case-insensitive) | `type_xml` |
+| ends `/` | `type_dir` — descend into it |
+| anything else, `.json` included | `null` |
+
+`retrieveFiles` then does `if (fileType == null) continue;` with **no log statement of any kind**,
+not even at debug level. So pointing the WebDAV harvester at a WAF of CDIF `.json` files yields
+zero records and reports no error — it looks like an empty folder.
+
+Supporting it would take two changes, and the second is the substantial one:
+
+1. Teach `getFileType` to recognise `.json` (and return a new type for it).
+2. Run the CDIF preparation pipeline on what is fetched. `WAFRemoteFile.getMetadata`
+   (`WAFRemoteFile.java:75`) is `return Xml.loadFile(new URL(path))` — it parses the fetched
+   resource straight into a JDOM `Element`, so a `.json` file dies at the parse, exactly as a
+   CDIF upload does in Contribute > Import. A JSON branch has to go through `CdifJsonPreparer`
+   (frame → `removeNulls` → `recoverDroppedFields`) and the `JsonRecordToXml` synthesis step
+   before `fromJsonCdif.xsl` can run. That machinery already exists and is shared by the
+   SimpleUrl and Directory harvesters; it is not wired into WebDAV.
+
+Until then, the two CDIF ingest routes that work are the **sitemap** (above) and a **single
+record by URL**, both through the Simple URL harvester and both needing no code.
+
 ## DDE Editor Customizations
 
 The iso19115-3.2018 schema plugin includes a custom editor view (`ddeview`) and supporting infrastructure ported from the earlier DDEcore GeoNetwork deployment (~4.4.4).
