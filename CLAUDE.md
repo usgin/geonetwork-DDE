@@ -292,6 +292,20 @@ The file is inert and safe to delete; doing so fixes it at the root for this clo
   There is therefore no single-record CDIF import — even one file goes through a harvester. Making
   Import accept CDIF would mean detecting JSON on upload and running the preparer before parsing,
   which is a feature rather than a fix.
+- **A WAF is the WebDAV harvester's job, and it cannot carry CDIF.** Worth knowing before designing
+  WAF support from scratch: the deployed catalogue **already harvests a WAF**, as
+  `ngdc-mgg-geology` over `https://data.noaa.gov/waf/NOAA/NESDIS/NGDC/MGG/Geology/iso/xml/` — found
+  2026-11-24 in a provenance sentence, not from any configuration note. So the harvester that walks
+  a directory listing is **webdav**, not SimpleUrl.
+  What stops it carrying CDIF is one method. `WAFRetriever.getFileType`
+  (`harvesters/.../webdav/WAFRetriever.java:72-82`) recognises exactly three kinds of link: a
+  `REQUEST=GETCAPABILITIES` query, a path ending `.XML`, and a path ending `/` to descend into.
+  Everything else returns `null`, and `retrieveFiles` then does `if (fileType == null) continue;`
+  with **no log line at all** — not even at debug. A WAF of `.json` files therefore harvests zero
+  records and reports no error, the same silent shape as the two bullets below.
+  Extending CDIF to a WAF means teaching that retriever about `.json` and running the
+  `CdifJsonPreparer` pipeline on what it fetches — a feature, not a setting. Sitemap and
+  single-URL CDIF harvesting already work and need no code.
 - **A containerised Directory harvester can only see the data volume.** `docker-compose.yml` mounts
   exactly one volume into the catalogue, `gn_data:/var/lib/geonetwork_data`, so a directory under
   `/root` harvests **zero files and reports no error** — the path simply is not there. Put records

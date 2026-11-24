@@ -187,6 +187,23 @@ The sitemap must follow the [sitemaps.org protocol](https://www.sitemaps.org/pro
 </urlset>
 ```
 
+### Harvesting from a WAF
+
+A WAF (Web Accessible Folder — a plain directory listing of metadata files) is harvested by the
+**WebDAV** harvester, not the Simple URL harvester. The deployed catalogue does this today: the
+`ngdc-mgg-geology` harvester reads `https://data.noaa.gov/waf/NOAA/NESDIS/NGDC/MGG/Geology/iso/xml/`.
+
+**It cannot harvest CDIF from a WAF.** `WAFRetriever.getFileType`
+(`harvesters/.../webdav/WAFRetriever.java:72-82`) classifies each link in the listing and
+recognises only three things: a `REQUEST=GETCAPABILITIES` query, a path ending `.XML`, and a path
+ending `/` (a subdirectory to descend into). Anything else returns `null`, and the caller does
+`if (fileType == null) continue;` with no log line of any kind — so a WAF of `.json` files
+harvests zero records and reports no error at all.
+
+Extending CDIF ingest to a WAF therefore means teaching that retriever about `.json`, plus running
+the CDIF preparer pipeline on what it fetches. Sitemap and single-URL CDIF harvesting both work
+today and need no code.
+
 ### Serving local files for testing
 
 To test with local JSON-LD files, serve them via a simple HTTP server:
