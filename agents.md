@@ -67,12 +67,20 @@ fetches every `loc` in a sitemap and parses it as JSON (`Harvester.java`, the
 sitemap is one serialisation.
 
 **`cdif` and `dde` list only the records that can actually be rendered.**
-`dropRecordsWithoutFormatter` (`SitemapApi.java`) omits the rest. This matters
-because the catalogue is mixed: iso19115-3.2018 provides `cdif` and `dde`,
-**iso19139 provides neither** (its plugin ships `iso19115-3.2018`, `dcat`, `jsonld`
-and the rest, but no `cdif`), and the `ngdc-mgg-geology` WAF harvest brings 19139
-records in. Without the filter a CDIF sitemap would advertise URLs that answer with
-an error, which a harvester cannot distinguish from a genuine fetch failure.
+`dropRecordsWithoutFormatter` (`SitemapApi.java`) omits the rest, because a URL the
+formatter cannot render answers with an error that a harvester cannot distinguish
+from a genuine fetch failure.
+
+Only iso19115-3.2018 provides `cdif` and `dde`. **iso19139 provides neither** — its
+plugin ships `iso19115-3.2018`, `dcat`, `jsonld` and the EU DCAT family, but no
+`cdif` — so a 19139 record cannot appear in a CDIF sitemap as the fork ships.
+
+On the deployed catalogue this currently drops nothing: measured 2026-11-25, a
+`documentStandard` aggregation over all **32,149** records returns a single bucket,
+`iso19115-3.2018`. Every harvest in place, the `ngdc-mgg-geology` WAF included, ends
+up as 19115-3. The filter is therefore insurance against a future mixed harvest
+rather than something the catalogue needs today — worth knowing before concluding
+from an incomplete CDIF sitemap that the filter is at fault.
 
 The check mirrors `AbstractFormatService.getAndVerifyFormatDir`, which resolves a
 formatter in **two** steps, not one:
