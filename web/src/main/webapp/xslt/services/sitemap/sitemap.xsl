@@ -116,8 +116,13 @@
         <url>
           <loc>
             <xsl:choose>
-              <xsl:when test="$format='xml'">
-                <xsl:value-of select="concat($nodeUrl, 'api/records/', $uuid, '/formatters/xml')"/>
+              <!-- Every format the API accepts other than html is a formatter
+                   name, so the path is the same shape for all of them: xml for
+                   the record as stored, cdif for CDIF JSON-LD, dde for DDE XML.
+                   The API rejects anything else before the transform. -->
+              <xsl:when test="$format = ('xml', 'cdif', 'dde')">
+                <xsl:value-of
+                  select="concat($nodeUrl, 'api/records/', $uuid, '/formatters/', $format)"/>
               </xsl:when>
               <xsl:otherwise>
                 <xsl:value-of select="util:getPermalink($uuid, $lang)"/>

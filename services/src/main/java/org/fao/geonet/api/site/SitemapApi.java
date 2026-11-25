@@ -32,6 +32,7 @@ import org.fao.geonet.api.ApiParams;
 import org.fao.geonet.domain.*;
 import org.fao.geonet.exceptions.SitemapDocumentNotFoundEx;
 import org.fao.geonet.kernel.GeonetworkDataDirectory;
+import org.fao.geonet.kernel.SchemaManager;
 import org.fao.geonet.kernel.setting.SettingManager;
 import org.fao.geonet.repository.MetadataRepository;
 import org.fao.geonet.repository.OperationAllowedRepository;
@@ -55,10 +56,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.fao.geonet.api.ApiParams.API_CLASS_CATALOG_TAG;
+import static org.fao.geonet.api.records.formatters.FormatterConstants.SCHEMA_PLUGIN_FORMATTER_DIR;
 
 @RequestMapping(value = {
     "/{portal}/api"
@@ -69,6 +79,25 @@ import static org.fao.geonet.api.ApiParams.API_CLASS_CATALOG_TAG;
 public class SitemapApi {
     private static final String FORMAT_XML = "xml";
     private static final String FORMAT_HTML = "html";
+    private static final String FORMAT_CDIF = "cdif";
+    private static final String FORMAT_DDE = "dde";
+
+    // One sitemap is one serialisation. The sitemaps.org 0.9 schema allows only
+    // loc, lastmod, changefreq and priority inside <url>, with no element for
+    // the format of what loc points at, so a catalogue offering several
+    // serialisations publishes one sitemap per format rather than annotating a
+    // single one. Every value here other than html names a formatter, and the
+    // stylesheet builds .../formatters/<format> from it.
+    private static final Set<String> SUPPORTED_FORMATS =
+        Collections.unmodifiableSet(new LinkedHashSet<>(
+            Arrays.asList(FORMAT_HTML, FORMAT_XML, FORMAT_CDIF, FORMAT_DDE)));
+
+    // Of those, the ones served by a schema plugin's formatter directory, so
+    // they exist only for the schemas that provide them. xml is not one: it is
+    // served by the records API itself and works for every schema.
+    private static final Set<String> SCHEMA_FORMATTER_FORMATS =
+        Collections.unmodifiableSet(new LinkedHashSet<>(
+            Arrays.asList(FORMAT_CDIF, FORMAT_DDE)));
 
     // Max. items in page defined in spec
     private static final int MAX_ITEMS_PER_PAGE = 2500;
@@ -87,6 +116,9 @@ public class SitemapApi {
 
     @Autowired
     GeonetworkDataDirectory dataDirectory;
+
+    @Autowired
+    SchemaManager schemaManager;
 
 
     @io.swagger.v3.oas.annotations.Operation(
@@ -143,10 +175,7 @@ public class SitemapApi {
         @Parameter(hidden = true)
         HttpServletResponse response
     ) throws Exception {
-        if (!(format.equalsIgnoreCase(FORMAT_HTML) ||
-            format.equalsIgnoreCase(FORMAT_XML))) {
-            format = FORMAT_HTML;
-        }
+        format = normalizeFormat(format);
 
         int allGroup = 1;
 
@@ -201,6 +230,10 @@ public class SitemapApi {
                 result.addContent(changeDate);
             }
         }
+        if (SCHEMA_FORMATTER_FORMATS.contains(format)) {
+            dropRecordsWithoutFormatter(result, format);
+        }
+
         Path xslt = dataDirectory.getWebappDir()
             .resolve("xslt/services/sitemap/sitemap.xsl");
         Element root = new Element("root");
@@ -211,5 +244,60 @@ public class SitemapApi {
 
         response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML_VALUE);
         Xml.transform(root, xslt, response.getOutputStream());
+    }
+
+    /**
+     * Drops the records whose schema has no formatter of this name. A
+     * catalogue normally holds a mixture -- iso19115-3.2018 provides cdif and
+     * dde, iso19139 provides neither -- and a URL the formatter cannot render
+     * answers with an error that a harvester walking the sitemap cannot tell
+     * from a real failure. Omitting the record says truthfully that it is not
+     * available in that serialisation.
+     *
+     * <p>Paging happens before this, so a page can come back shorter than
+     * MAX_ITEMS_PER_PAGE and the index's page count is of unfiltered records.
+     * The index stays an upper bound, which a sitemap index is allowed to be.
+     */
+    private void dropRecordsWithoutFormatter(Element records, String format) {
+        Map<String, Boolean> schemaHasFormatter = new HashMap<>();
+        List<Element> unavailable = new ArrayList<>();
+
+        for (Object child : records.getChildren("record")) {
+            Element record = (Element) child;
+            String schema = record.getChildText("schemaid");
+            if (!schemaHasFormatter.computeIfAbsent(
+                schema, s -> hasFormatter(s, format))) {
+                unavailable.add(record);
+            }
+        }
+
+        unavailable.forEach(records::removeContent);
+    }
+
+    private boolean hasFormatter(String schema, String format) {
+        if (schema == null) {
+            return false;
+        }
+        try {
+            return Files.isDirectory(schemaManager.getSchemaDir(schema)
+                .resolve(SCHEMA_PLUGIN_FORMATTER_DIR)
+                .resolve(format));
+        } catch (IllegalArgumentException schemaNotRegistered) {
+            // A record whose schema plugin is no longer installed.
+            return false;
+        }
+    }
+
+    /**
+     * An unsupported or absent format falls back to html, as it always has.
+     * Lower-cased because the stylesheet compares the value literally, so an
+     * uppercase request would otherwise silently fall through to html.
+     */
+    static String normalizeFormat(String format) {
+        if (format == null) {
+            return FORMAT_HTML;
+        }
+        String requested = format.toLowerCase();
+        return SUPPORTED_FORMATS.contains(requested) ? requested : FORMAT_HTML;
     }
 }

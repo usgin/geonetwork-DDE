@@ -42,6 +42,49 @@ Sitemap XML          JSON-LD files         Intermediate XML       ISO 19115-3 XM
 1. A CDIF formatter (`iso19115-3-to-cdif.xsl`) converts ISO 19115-3 back to CDIF JSON-LD
 2. Accessible via the GeoNetwork API: `/srv/api/records/{uuid}/formatters/cdif`
 3. Supports roundtrip: CDIF JSON-LD → ISO 19115-3 → CDIF JSON-LD with high fidelity
+4. Discoverable in bulk through the sitemap — see below
+
+### Publishing a sitemap per serialisation
+
+`GET /srv/api/sitemap?format=<format>` lists the catalogue's published records for a
+crawler or another CDIF harvester. The format decides what the URLs point at:
+
+| format | each `loc` is | available for |
+|---|---|---|
+| `html` (default) | `getPermalink()` — `api/records/{uuid}?language=all` | every record |
+| `xml` | `api/records/{uuid}/formatters/xml` | every record |
+| `cdif` | `api/records/{uuid}/formatters/cdif` | schemas providing the formatter |
+| `dde` | `api/records/{uuid}/formatters/dde` | schemas providing the formatter |
+
+**Three formats means three sitemaps, and that is forced rather than chosen.** The
+sitemaps.org 0.9 schema allows only `loc`, `lastmod`, `changefreq` and `priority`
+inside `<url>` — there is no element for the format of what `loc` points at, so one
+sitemap cannot be a mixed list that labels each entry. Upstream evidently tried: a
+`dct:format` element sits commented out in `sitemap.xsl`, with the `dct` namespace
+still declared on the `urlset`. Independently, the SimpleUrl harvester in this fork
+fetches every `loc` in a sitemap and parses it as JSON (`Harvester.java`, the
+`isSitemap` branch), so a mixed sitemap would fail on each non-CDIF entry. One
+sitemap is one serialisation.
+
+**`cdif` and `dde` list only the records whose schema can render them.**
+`dropRecordsWithoutFormatter` (`SitemapApi.java`) checks
+`<schemaDir>/formatter/<format>` per schema and omits the rest. This matters because
+the catalogue is mixed: iso19115-3.2018 provides `cdif` and `dde`, **iso19139
+provides neither**, and the `ngdc-mgg-geology` WAF harvest brings in 19139. Without
+the filter a CDIF sitemap would advertise URLs that answer with an error, which a
+harvester cannot distinguish from a genuine failure. `xml` is not filtered — it is
+served by the records API itself, not by a schema plugin.
+
+Paging is unchanged: above 2500 records the API answers with a `<sitemapindex>` whose
+entries carry the format through (`?format=cdif&doc=2`), which is the path that
+actually runs on a catalogue of this size. Filtering happens after paging, so a page
+may hold fewer than 2500 entries and the index's page count is an upper bound.
+
+Two things this does **not** do. `api/robots.txt` still advertises only the default
+and a `format=rdf` sitemap; `rdf` has never been implemented in the controller and
+coerces to `html`, as it did before. And nothing here embeds JSON-LD in a landing
+page — the `xsl-view` formatter already does that for schema.org consumers, which is
+a separate discovery route from a sitemap of formatter URLs.
 
 ## Building and Running
 
