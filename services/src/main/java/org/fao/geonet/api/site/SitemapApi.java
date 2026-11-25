@@ -69,6 +69,7 @@ import java.util.Set;
 
 import static org.fao.geonet.api.ApiParams.API_CLASS_CATALOG_TAG;
 import static org.fao.geonet.api.records.formatters.FormatterConstants.SCHEMA_PLUGIN_FORMATTER_DIR;
+import static org.fao.geonet.api.records.formatters.FormatterConstants.VIEW_XSL_FILENAME;
 
 @RequestMapping(value = {
     "/{portal}/api"
@@ -274,18 +275,33 @@ public class SitemapApi {
         unavailable.forEach(records::removeContent);
     }
 
+    /**
+     * Mirrors how AbstractFormatService.getAndVerifyFormatDir resolves a
+     * formatter: the schema plugin's own formatter directory first, then the
+     * catalogue-wide one in the data directory, which applies to every schema.
+     * A directory counts only when it holds view.xsl, which is what makes it a
+     * format bundle rather than an empty or half-removed folder.
+     */
     private boolean hasFormatter(String schema, String format) {
-        if (schema == null) {
-            return false;
+        if (schema != null) {
+            try {
+                Path schemaFormatter = schemaManager.getSchemaDir(schema)
+                    .resolve(SCHEMA_PLUGIN_FORMATTER_DIR)
+                    .resolve(format);
+                if (isFormatBundle(schemaFormatter)) {
+                    return true;
+                }
+            } catch (IllegalArgumentException schemaNotRegistered) {
+                // A record whose schema plugin is no longer installed. The
+                // shared formatter below may still render it.
+            }
         }
-        try {
-            return Files.isDirectory(schemaManager.getSchemaDir(schema)
-                .resolve(SCHEMA_PLUGIN_FORMATTER_DIR)
-                .resolve(format));
-        } catch (IllegalArgumentException schemaNotRegistered) {
-            // A record whose schema plugin is no longer installed.
-            return false;
-        }
+        return isFormatBundle(dataDirectory.getFormatterDir().resolve(format));
+    }
+
+    private boolean isFormatBundle(Path candidate) {
+        return Files.isDirectory(candidate)
+            && Files.exists(candidate.resolve(VIEW_XSL_FILENAME));
     }
 
     /**

@@ -66,14 +66,26 @@ fetches every `loc` in a sitemap and parses it as JSON (`Harvester.java`, the
 `isSitemap` branch), so a mixed sitemap would fail on each non-CDIF entry. One
 sitemap is one serialisation.
 
-**`cdif` and `dde` list only the records whose schema can render them.**
-`dropRecordsWithoutFormatter` (`SitemapApi.java`) checks
-`<schemaDir>/formatter/<format>` per schema and omits the rest. This matters because
-the catalogue is mixed: iso19115-3.2018 provides `cdif` and `dde`, **iso19139
-provides neither**, and the `ngdc-mgg-geology` WAF harvest brings in 19139. Without
-the filter a CDIF sitemap would advertise URLs that answer with an error, which a
-harvester cannot distinguish from a genuine failure. `xml` is not filtered — it is
-served by the records API itself, not by a schema plugin.
+**`cdif` and `dde` list only the records that can actually be rendered.**
+`dropRecordsWithoutFormatter` (`SitemapApi.java`) omits the rest. This matters
+because the catalogue is mixed: iso19115-3.2018 provides `cdif` and `dde`,
+**iso19139 provides neither** (its plugin ships `iso19115-3.2018`, `dcat`, `jsonld`
+and the rest, but no `cdif`), and the `ngdc-mgg-geology` WAF harvest brings 19139
+records in. Without the filter a CDIF sitemap would advertise URLs that answer with
+an error, which a harvester cannot distinguish from a genuine fetch failure.
+
+The check mirrors `AbstractFormatService.getAndVerifyFormatDir`, which resolves a
+formatter in **two** steps, not one:
+
+1. `<schemaDir>/formatter/<format>` — the schema plugin's own, per-schema
+2. `<dataDir>/data/formatter/<format>` — catalogue-wide, applying to every schema
+
+So dropping a `cdif` bundle into the data directory's formatter directory makes the
+sitemap list 19139 records too, without touching any plugin. A directory counts only
+when it contains `view.xsl`; that is what distinguishes a bundle from an empty or
+half-removed folder, and `getAndVerifyFormatDir` rejects the latter.
+
+`xml` is not filtered — it is served by the records API itself, not by a formatter.
 
 Paging is unchanged: above 2500 records the API answers with a `<sitemapindex>` whose
 entries carry the format through (`?format=cdif&doc=2`), which is the path that

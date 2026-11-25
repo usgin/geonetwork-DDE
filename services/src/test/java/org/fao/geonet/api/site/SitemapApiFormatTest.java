@@ -23,6 +23,7 @@
 
 package org.fao.geonet.api.site;
 
+import org.fao.geonet.kernel.GeonetworkDataDirectory;
 import org.fao.geonet.kernel.SchemaManager;
 import org.jdom.Element;
 import org.junit.Before;
@@ -84,6 +85,8 @@ public class SitemapApiFormatTest {
 
     private SitemapApi api;
 
+    private Path sharedFormatterDir;
+
     /**
      * iso19115-3.2018 gets a cdif formatter directory, iso19139 does not --
      * which is the real arrangement in this catalogue.
@@ -91,9 +94,11 @@ public class SitemapApiFormatTest {
     @Before
     public void setUpSchemas() throws Exception {
         Path withCdif = schemaPlugins.newFolder("iso19115-3.2018").toPath();
-        Files.createDirectories(withCdif.resolve("formatter").resolve("cdif"));
+        bundle(withCdif.resolve("formatter").resolve("cdif"));
         Path withoutCdif = schemaPlugins.newFolder("iso19139").toPath();
-        Files.createDirectories(withoutCdif.resolve("formatter").resolve("dcat"));
+        bundle(withoutCdif.resolve("formatter").resolve("dcat"));
+
+        sharedFormatterDir = schemaPlugins.newFolder("shared-formatters").toPath();
 
         SchemaManager schemaManager = Mockito.mock(SchemaManager.class);
         Mockito.when(schemaManager.getSchemaDir("iso19115-3.2018")).thenReturn(withCdif);
@@ -101,10 +106,24 @@ public class SitemapApiFormatTest {
         Mockito.when(schemaManager.getSchemaDir("dublin-core"))
             .thenThrow(new IllegalArgumentException("Schema not registered : dublin-core"));
 
+        GeonetworkDataDirectory dataDirectory = Mockito.mock(GeonetworkDataDirectory.class);
+        Mockito.when(dataDirectory.getFormatterDir()).thenReturn(sharedFormatterDir);
+
         api = new SitemapApi();
-        Field field = SitemapApi.class.getDeclaredField("schemaManager");
+        inject("schemaManager", schemaManager);
+        inject("dataDirectory", dataDirectory);
+    }
+
+    private void inject(String fieldName, Object value) throws Exception {
+        Field field = SitemapApi.class.getDeclaredField(fieldName);
         field.setAccessible(true);
-        field.set(api, schemaManager);
+        field.set(api, value);
+    }
+
+    /** A formatter directory is only a usable bundle once it holds view.xsl. */
+    private void bundle(Path formatterDir) throws Exception {
+        Files.createDirectories(formatterDir);
+        Files.createFile(formatterDir.resolve("view.xsl"));
     }
 
     @Test
@@ -148,6 +167,37 @@ public class SitemapApiFormatTest {
 
         assertEquals(0, records.getChildren("record").size());
         assertEquals("cdif", records.getChildText("format"));
+    }
+
+    @Test
+    public void aCatalogueWideFormatterCoversEverySchema() throws Exception {
+        // AbstractFormatService falls back to the data directory's formatter
+        // dir, which is not schema-specific, so a cdif bundle installed there
+        // renders iso19139 too and those records belong in the sitemap.
+        bundle(sharedFormatterDir.resolve("cdif"));
+
+        Element records = new Element("metadata");
+        records.addContent(record("plugin-provides-it", "iso19115-3.2018"));
+        records.addContent(record("shared-provides-it", "iso19139"));
+        records.addContent(record("uninstalled-schema", "dublin-core"));
+
+        invokeDrop(records, "cdif");
+
+        assertEquals(3, records.getChildren("record").size());
+    }
+
+    @Test
+    public void aFormatterDirectoryWithoutViewXslDoesNotCount() throws Exception {
+        // A half-removed or empty bundle directory would otherwise be read as
+        // an available format, and every URL in the sitemap would then fail.
+        Files.createDirectories(sharedFormatterDir.resolve("dde"));
+
+        Element records = new Element("metadata");
+        records.addContent(record("no-view-xsl", "iso19139"));
+
+        invokeDrop(records, "dde");
+
+        assertEquals(0, records.getChildren("record").size());
     }
 
     private void invokeDrop(Element records, String format) throws Exception {
