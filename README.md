@@ -59,6 +59,22 @@ Handles complex distributions (primary + archive members with `schema:hasPart`),
 
 The output includes `xsi:schemaLocation` entries for all concrete schemas. GeoNetwork resolves these via `oasis-catalog.xml`; for Oxygen XML Editor validation, use `oxygen-catalog.xml` (repo root) which has absolute local paths.
 
+**Bulk discovery** (sitemap): the catalogue publishes a sitemap of its public records that a
+crawler or another CDIF harvester can walk, with the serialisation chosen by a `format` parameter:
+
+```
+GET /geonetwork/srv/api/sitemap?format=cdif     # each <loc> is .../formatters/cdif
+GET /geonetwork/srv/api/sitemap?format=dde      # DDE XML
+GET /geonetwork/srv/api/sitemap?format=xml      # ISO 19115-3 as stored
+GET /geonetwork/srv/api/sitemap                 # default: the record landing page (html)
+```
+
+A sitemap carries no per-URL format (the sitemaps.org schema has no element for it), so each format
+is its own sitemap rather than one annotated list. `cdif` and `dde` list only records whose schema
+provides that formatter — every record here is `iso19115-3.2018`, which provides both, so nothing is
+dropped today. Above 2500 records the response is a `<sitemapindex>` of pages that carry the format
+through (`?format=cdif&doc=2`). See [agents.md](agents.md) for the format table and the filter.
+
 ### DDE Format Converters
 
 XSLT pipelines in `schemas/iso19115-3.2018/.../convert/`:

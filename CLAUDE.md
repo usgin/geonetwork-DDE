@@ -306,6 +306,25 @@ The file is inert and safe to delete; doing so fixes it at the root for this clo
   Extending CDIF to a WAF means teaching that retriever about `.json` and running the
   `CdifJsonPreparer` pipeline on what it fetches — a feature, not a setting. Sitemap and
   single-URL CDIF harvesting already work and need no code.
+- **The catalogue publishes its own sitemap in four serialisations, and three of them are
+  separate sitemaps by necessity.** `GET /srv/api/sitemap?format=<xml|cdif|dde|html>`
+  (`SitemapApi.java`) — `html` is the default and the record landing page, the other three emit
+  `.../formatters/<format>`. One sitemap cannot be a mixed list: the sitemaps.org 0.9 schema has
+  no element for the format of what `loc` points at (upstream left a `dct:format` attempt
+  commented out in `sitemap.xsl`), and this fork's SimpleUrl harvester parses *every* `loc` in a
+  sitemap as JSON, so a mixed list would fail on each non-CDIF entry. `cdif`/`dde` list only
+  records whose schema has that formatter — `dropRecordsWithoutFormatter` checks
+  `<schemaDir>/formatter/<format>` **and** the catalogue-wide `<dataDir>/data/formatter/<format>`,
+  requiring `view.xsl` in it, mirroring `AbstractFormatService.getAndVerifyFormatDir`. On the
+  deployed catalogue this drops nothing: all 32,149 records are `iso19115-3.2018` (which provides
+  both), measured 2026-11-25. Above 2500 records the response is a `<sitemapindex>` whose pages
+  carry the format through (`?format=cdif&doc=2`); the filter runs after paging, so a page can be
+  short and the page count is an upper bound. Added 2026-11-27 (`33f31a0c0e`, `8c28544c4c`); 15
+  tests in `services` and `web`. Two traps left alone: `api/robots.txt` still advertises a
+  `format=rdf` sitemap that the controller has never implemented and silently coerces to `html`;
+  and the `/formatters/cdif` URLs the sitemap lists need `Accept: application/json` like the rest
+  of the API — a `*/*` request answers 200 with an empty `text/html` body, which is **not** the
+  sitemap's doing.
 - **A containerised Directory harvester can only see the data volume.** `docker-compose.yml` mounts
   exactly one volume into the catalogue, `gn_data:/var/lib/geonetwork_data`, so a directory under
   `/root` harvests **zero files and reports no error** — the path simply is not there. Put records
